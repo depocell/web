@@ -1,4 +1,80 @@
 // app.js — Single Shell Router & Navigation
+// ── GitHub Pages / Static Hosting API Interceptor ───────────────────────────
+(function initStaticApiAdapter() {
+  const isStaticHost = window.location.hostname.includes("github.io") || 
+                       window.location.protocol === "file:" ||
+                       window.location.port === "5500";
+
+  function mapUrl(url) {
+    if (typeof url !== "string") return url;
+
+    // Normalisasi awalan path relatif untuk pages dan static jika dimulai dengan slash absolut
+    if (isStaticHost) {
+      if (url.startsWith("/pages/")) return "." + url;
+      if (url.startsWith("/static/")) return "." + url;
+    }
+
+    // Normalisasi url API
+    let cleanUrl = url;
+    if (cleanUrl.startsWith("./api/")) cleanUrl = cleanUrl.substring(1);
+    
+    if (cleanUrl.startsWith("/api/overview")) {
+      return "./data/overview.json";
+    }
+    if (cleanUrl.startsWith("/api/daily/periods")) {
+      if (cleanUrl.includes("OKIPAY")) return "./data/daily_periods_okipay.json";
+      return "./data/daily_periods_astaga.json";
+    }
+    if (cleanUrl.startsWith("/api/daily")) {
+      if (cleanUrl.includes("OKIPAY")) return "./data/daily_okipay.json";
+      return "./data/daily_astaga.json";
+    }
+    if (cleanUrl.startsWith("/api/analisa/profit")) {
+      if (cleanUrl.includes("OKIPAY")) return "./data/analisa_profit_okipay.json";
+      if (cleanUrl.includes("ALL")) return "./data/analisa_profit_all.json";
+      return "./data/analisa_profit_astaga.json";
+    }
+    if (cleanUrl.startsWith("/api/analisa/data") || cleanUrl.includes("analisa/data.json")) {
+      return "./pages/analisa/data.json";
+    }
+    if (cleanUrl.startsWith("/api/agen/tren")) {
+      if (cleanUrl.includes("OKIPAY")) return "./data/agen_tren_okipay.json";
+      return "./data/agen_tren_astaga.json";
+    }
+    if (cleanUrl.startsWith("/api/agen")) {
+      if (cleanUrl.includes("OKIPAY")) return "./data/agen_okipay.json";
+      return "./data/agen_astaga.json";
+    }
+    if (cleanUrl.startsWith("/api/reseller")) {
+      if (cleanUrl.includes("OKIPAY")) return "./data/reseller_okipay.json";
+      return "./data/reseller_astaga.json";
+    }
+    if (cleanUrl.startsWith("/api/fisik")) {
+      return "./data/fisik.json";
+    }
+    if (cleanUrl.startsWith("/api/admin/status")) {
+      return "./data/admin_status.json";
+    }
+    if (cleanUrl.startsWith("/api/system/info") || cleanUrl.startsWith("/api/system-info")) {
+      return "./data/system_info.json";
+    }
+    if (cleanUrl.startsWith("/api/sco/check")) {
+      return "data:application/json," + encodeURIComponent(JSON.stringify({ ok: true, stale: false, message: "Data SCO up-to-date (Static Mode)" }));
+    }
+    return url;
+  }
+
+  const originalFetch = window.fetch;
+  window.fetch = async function(resource, init) {
+    if (isStaticHost && typeof resource === "string") {
+      const mapped = mapUrl(resource);
+      if (mapped !== resource) {
+        return originalFetch(mapped, init);
+      }
+    }
+    return originalFetch(resource, init);
+  };
+})();
 
 const ROUTES = {
   "#admin": {
