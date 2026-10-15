@@ -8,13 +8,13 @@
   </div>
 
   <div style="display: flex; align-items: center; gap: 10px;">
-    <!-- Brand Toggle Switcher -->
-    <div style="display: flex; gap: 6px; align-items: center;">
-      <button type="button" id="btn-piv-astaga" class="brand-btn active-brand-astaga" onclick="switchPivotBrand('ASTAGA')">
+    <!-- Brand Toggle Switcher (Unified Capsule) -->
+    <div class="unified-brand-switcher">
+      <button type="button" id="btn-piv-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchPivotBrand('ASTAGA')">
         <span class="brand-dot"></span>
         ASTAGA
       </button>
-      <button type="button" id="btn-piv-oki" class="brand-btn" onclick="switchPivotBrand('OKIPAY')">
+      <button type="button" id="btn-piv-oki" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchPivotBrand('OKIPAY')">
         <span class="brand-dot"></span>
         OKIPAY
       </button>
@@ -76,13 +76,24 @@
       </select>
     </div>
 
+    <!-- Filter Tahun -->
+    <div>
+      <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+        Tahun
+      </label>
+      <select id="piv-filter-year" onchange="onPivotYearChange()" class="piv-select">
+        <option value="2026" selected>2026</option>
+        <option value="2025">2025</option>
+      </select>
+    </div>
+
     <!-- Filter Bulan -->
     <div>
       <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
         Filter Periode Bulan
       </label>
       <select id="piv-filter-month" onchange="runPivot()" class="piv-select">
-        <option value="ALL">Semua Bulan (2026)</option>
+        <option value="ALL">Semua Bulan</option>
       </select>
     </div>
   </div>
@@ -244,12 +255,12 @@
   }
   .brand-btn.active-brand-oki {
     background: var(--surface);
-    color: #dc2626;
-    border-color: #dc2626;
-    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.15);
+    color: #0891b2;
+    border-color: #0891b2;
+    box-shadow: 0 1px 3px rgba(8, 145, 178, 0.15);
   }
   .brand-btn.active-brand-oki .brand-dot {
-    background: #dc2626;
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+    background: #0891b2;
+    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
   }
 </style>

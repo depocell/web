@@ -1,182 +1,215 @@
-<!-- TOP CONTROLS & HEADER ACTION STRIP -->
-<div style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-  <div>
-    <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Daily Summary Report</h2>
-    <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 2px;">Konsolidasi Performa Harian Cabang &amp; Produk</p>
-  </div>
-  
-  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-    <!-- Switch Brand di Header -->
-    <div style="display: flex; gap: 4px; background: var(--table-header); padding: 4px; border-radius: 8px; border: 1px solid var(--surface-border);">
-      <button type="button" id="btn-brand-astaga" class="brand-pill active-brand-astaga" onclick="switchDailyBrand('ASTAGA')">
-        ASTAGA
-      </button>
-      <button type="button" id="btn-brand-oki" class="brand-pill" onclick="switchDailyBrand('OKIPAY')">
-        OKIPAY
-      </button>
-    </div>
-
-    <!-- Filter Bulan di Header -->
-    <select id="daily-period-select" onchange="onDailyPeriodChange(this.value)" class="daily-filter-select">
-      <option value="">Memuat periode...</option>
-    </select>
-
-    <!-- Tombol Download PNG HD Quality di Header -->
-    <button type="button" id="btn-download-png" onclick="downloadDailyPNG()" class="btn-download-hd">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
-      </svg>
-      Download PNG (HD)
+<!-- TOP CONTROLS & ACTION STRIP -->
+<div
+  style="margin-bottom: 14px; display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <!-- Switch Brand di Header (Unified Capsule) -->
+  <div class="unified-brand-switcher">
+    <button type="button" id="btn-brand-astaga" class="unified-brand-btn active" data-brand="ASTAGA"
+      onclick="switchDailyBrand('ASTAGA')">
+      <span class="brand-dot"></span>
+      ASTAGA
+    </button>
+    <button type="button" id="btn-brand-oki" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchDailyBrand('OKIPAY')">
+      <span class="brand-dot"></span>
+      OKIPAY
     </button>
   </div>
+
+  <!-- Filter Bulan di Header -->
+  <select id="daily-period-select" onchange="onDailyPeriodChange(this.value)" class="daily-filter-select">
+    <option value="">Loading...</option>
+  </select>
+
+
+  <!-- Tombol Download PNG HD Quality di Header -->
+  <button type="button" id="btn-download-png" onclick="downloadDailyPNG()" class="btn-download-hd">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Download PNG
+  </button>
 </div>
 
 <!-- CAPTURE CONTAINER (Area yang diekspor menjadi PNG HD untuk Manajemen) -->
 <div id="daily-report-capture" style="display: flex; flex-direction: column; gap: 16px; padding: 4px;">
 
   <!-- EXECUTIVE REPORT HEADER (Dengan Logo Brand di Kanan) -->
-  <div class="card" style="padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+  <div class="card"
+    style="padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
     <div>
       <h1 style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin: 0;">Daily Summary Report</h1>
-      <div id="daily-period-subtitle" style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">
-        Periode: Memuat data...
+      <div id="daily-period-subtitle"
+        style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">
+        Periode: Loading...
       </div>
       <div style="margin-top: 8px;">
         <span class="badge" id="daily-updated-badge" style="font-size: 11px; padding: 3px 10px; font-weight: 600;">
-          Updated s/d tgl -
+          Updated: -
         </span>
       </div>
     </div>
 
     <!-- Logo Brand di Kanan Header -->
     <div style="display: flex; align-items: center;">
-      <img id="daily-brand-logo" src="/static/img/logo_myastaga.png" alt="Logo Brand" style="height: 44px; max-height: 48px; object-fit: contain;">
+      <img id="daily-brand-logo" src="/static/img/logo_myastaga.png" alt="Logo Brand"
+        style="height: 44px; max-height: 48px; object-fit: contain;">
     </div>
   </div>
 
   <!-- ROW 1: 4 COMPACT KPI CARDS -->
-  <div class="grid-kpi-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
-  <!-- KPI 1: AVG Trx / Hari -->
-  <div class="card" style="padding: 16px 20px; border-top: 4px solid #0284c7;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-      <span style="font-size: 11px; font-weight: 700; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">AVG DAILY TRX</span>
-      <span id="kpi-growth-trx" class="pill positive">-</span>
+  <div class="grid-kpi-4"
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+    <!-- KPI 1: AVG Trx / Hari -->
+    <div class="card" style="padding: 16px 20px; border-top: 4px solid #0284c7;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span
+          style="font-size: 11px; font-weight: 700; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">AVG
+          DAILY TRX</span>
+        <span id="kpi-growth-trx" class="pill positive">-</span>
+      </div>
+      <div id="kpi-val-trx" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
+      <div
+        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+        <span id="kpi-prev-trx">BL: -</span>
+        <span id="kpi-mtd-trx" style="font-weight: 600; color: #0284c7;">Total MTD: -</span>
+      </div>
     </div>
-    <div id="kpi-val-trx" style="font-size: 26px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
-    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
-      <span id="kpi-prev-trx">BL: -</span>
-      <span id="kpi-mtd-trx" style="font-weight: 600; color: #0284c7;">Total MTD: -</span>
+
+    <!-- KPI 2: AVG Daily Member -->
+    <div class="card" style="padding: 16px 20px; border-top: 4px solid #10b981;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span
+          style="font-size: 11px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;">AVG
+          DAILY MEMBER</span>
+        <span id="kpi-growth-mem" class="pill positive">-</span>
+      </div>
+      <div id="kpi-val-mem" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
+      <div
+        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+        <span id="kpi-prev-mem">BL: -</span>
+        <span style="font-weight: 600; color: #10b981;">Daily Agen Aktif</span>
+      </div>
+    </div>
+
+    <!-- KPI 3: Daily Trx / Member (TPM) -->
+    <div class="card" style="padding: 16px 20px; border-top: 4px solid #8b5cf6;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span
+          style="font-size: 11px; font-weight: 700; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px;">DAILY
+          TRX/MEMBER (TPM)</span>
+        <span id="kpi-growth-tpm" class="pill positive">-</span>
+      </div>
+      <div id="kpi-val-tpm" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
+      <div
+        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+        <span id="kpi-prev-tpm">BL: -</span>
+        <span style="font-weight: 600; color: #8b5cf6;">Produktivitas</span>
+      </div>
+    </div>
+
+    <!-- KPI 4: Kualitas Layanan (%Sukses & Speed) -->
+    <div class="card" style="padding: 16px 20px; border-top: 4px solid #f59e0b;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span
+          style="font-size: 11px; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">%SUKSES
+          &amp; SPEED</span>
+        <span id="kpi-growth-sukses" class="pill positive">-</span>
+      </div>
+      <div id="kpi-val-sukses" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-%</div>
+      <div
+        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+        <span id="kpi-val-dur">Avg: 00:00</span>
+        <span id="kpi-prev-dur">BL: 00:00</span>
+      </div>
     </div>
   </div>
 
-  <!-- KPI 2: AVG Daily Member -->
-  <div class="card" style="padding: 16px 20px; border-top: 4px solid #10b981;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-      <span style="font-size: 11px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;">AVG DAILY MEMBER</span>
-      <span id="kpi-growth-mem" class="pill positive">-</span>
+  <!-- ROW 2: GRAFIK TREN TRANSAKSI & MEMBER HARIAN -->
+  <div class="card" style="padding: 20px; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <div style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        <span>Tren Transaksi &amp; Member Harian</span>
+      </div>
     </div>
-    <div id="kpi-val-mem" style="font-size: 26px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
-    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
-      <span id="kpi-prev-mem">BL: -</span>
-      <span style="font-weight: 600; color: #10b981;">Agen Aktif Harian</span>
-    </div>
-  </div>
-
-  <!-- KPI 3: Daily Trx / Member (TPM) -->
-  <div class="card" style="padding: 16px 20px; border-top: 4px solid #8b5cf6;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-      <span style="font-size: 11px; font-weight: 700; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px;">DAILY TRX / MEMBER (TPM)</span>
-      <span id="kpi-growth-tpm" class="pill positive">-</span>
-    </div>
-    <div id="kpi-val-tpm" style="font-size: 26px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
-    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
-      <span id="kpi-prev-tpm">BL: -</span>
-      <span style="font-weight: 600; color: #8b5cf6;">Produktivitas / Agen</span>
+    <div style="position: relative; height: 260px; width: 100%;">
+      <canvas id="chart-daily-trend"></canvas>
     </div>
   </div>
 
-  <!-- KPI 4: Kualitas Layanan (%Sukses & Speed) -->
-  <div class="card" style="padding: 16px 20px; border-top: 4px solid #f59e0b;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-      <span style="font-size: 11px; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">%SUKSES &amp; SPEED</span>
-      <span id="kpi-growth-sukses" class="pill positive">-</span>
+  <!-- ROW 3: PERFORMANSI CABANG -->
+  <div class="card" style="padding: 20px; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <div style="font-size: 15px; font-weight: 700;">Performansi Cabang / Channel</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; gap: 14px;">
+        <span><span
+            style="display:inline-block;width:10px;height:10px;background:#0284c7;border-radius:2px;margin-right:4px;"></span>Daily
+          Trx</span>
+        <span><span
+            style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:2px;margin-right:4px;"></span>Member
+          Aktif</span>
+        <span><span
+            style="display:inline-block;width:10px;height:10px;background:#8b5cf6;border-radius:2px;margin-right:4px;"></span>Trx
+          / Member</span>
+      </div>
     </div>
-    <div id="kpi-val-sukses" style="font-size: 26px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-%</div>
-    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
-      <span id="kpi-val-dur">Avg: 00:00</span>
-      <span id="kpi-prev-dur">BL: 00:00</span>
-    </div>
-  </div>
-</div>
 
-<!-- ROW 2: GRAFIK TREN TRANSAKSI & MEMBER HARIAN -->
-<div class="card" style="padding: 20px; margin-bottom: 20px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-    <div style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-      <span>Tren Transaksi &amp; Member Harian</span>
+    <!-- Guide Header Strip -->
+    <div
+      style="display: grid; grid-template-columns: 160px 1fr 140px 140px; gap: 12px; padding: 8px 14px; background: var(--table-header); border: 1px solid var(--surface-border); border-radius: 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+      <div>Cabang</div>
+      <div>Daily Trx</div>
+      <div style="text-align: right;">Daily Member</div>
+      <div style="text-align: right;">Trx / Member</div>
     </div>
-  </div>
-  <div style="position: relative; height: 260px; width: 100%;">
-    <canvas id="chart-daily-trend"></canvas>
-  </div>
-</div>
 
-<!-- ROW 3: PERFORMANSI CABANG -->
-<div class="card" style="padding: 20px; margin-bottom: 20px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-    <div style="font-size: 15px; font-weight: 700;">Performansi Cabang / Channel</div>
-    <div style="font-size: 12px; color: var(--text-muted); display: flex; gap: 14px;">
-      <span><span style="display:inline-block;width:10px;height:10px;background:#0284c7;border-radius:2px;margin-right:4px;"></span>Daily Trx</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:2px;margin-right:4px;"></span>Member Aktif</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#8b5cf6;border-radius:2px;margin-right:4px;"></span>Trx / Member</span>
+    <!-- Bar Rows Container -->
+    <div id="daily-branch-container" style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="loader">Memuat data cabang...</div>
     </div>
   </div>
 
-  <!-- Guide Header Strip -->
-  <div style="display: grid; grid-template-columns: 160px 1fr 140px 140px; gap: 12px; padding: 8px 14px; background: var(--table-header); border: 1px solid var(--surface-border); border-radius: 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
-    <div>Cabang</div>
-    <div>Daily Trx</div>
-    <div style="text-align: right;">Daily Member</div>
-    <div style="text-align: right;">Trx / Member</div>
-  </div>
+  <!-- ROW 4: PERFORMANSI PRODUK (KATEGORI / OPERATOR) -->
+  <div class="card" style="padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <div style="font-size: 15px; font-weight: 700;">Performansi Produk</div>
+      <div style="font-size: 12px; color: var(--text-muted); display: flex; gap: 14px;">
+        <span><span
+            style="display:inline-block;width:10px;height:10px;background:#0284c7;border-radius:2px;margin-right:4px;"></span>Daily
+          Trx</span>
+        <span><span
+            style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:2px;margin-right:4px;"></span>%
+          Sukses</span>
+        <span><span
+            style="display:inline-block;width:10px;height:10px;background:#6366f1;border-radius:2px;margin-right:4px;"></span>Avg
+          Durasi</span>
+        <span><span
+            style="display:inline-block;width:10px;height:10px;background:#d97706;border-radius:2px;margin-right:4px;"></span>Net
+          ARPU</span>
+      </div>
+    </div>
 
-  <!-- Bar Rows Container -->
-  <div id="daily-branch-container" style="display: flex; flex-direction: column; gap: 8px;">
-    <div class="loader">Memuat data cabang...</div>
-  </div>
-</div>
+    <!-- Guide Header Strip -->
+    <div class="guide-header-prod">
+      <div>Kategori / Operator</div>
+      <div>Daily Trx</div>
+      <div style="text-align: right;">% Sukses</div>
+      <div style="text-align: right;">Avg Durasi</div>
+      <div style="text-align: right;">Net ARPU</div>
+    </div>
 
-<!-- ROW 4: PERFORMANSI PRODUK (KATEGORI / OPERATOR) -->
-<div class="card" style="padding: 20px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-    <div style="font-size: 15px; font-weight: 700;">Performansi Produk</div>
-    <div style="font-size: 12px; color: var(--text-muted); display: flex; gap: 14px;">
-      <span><span style="display:inline-block;width:10px;height:10px;background:#0284c7;border-radius:2px;margin-right:4px;"></span>Daily Trx</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:2px;margin-right:4px;"></span>% Sukses</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#6366f1;border-radius:2px;margin-right:4px;"></span>Avg Durasi</span>
+    <!-- Bar Rows Container -->
+    <div id="daily-product-container" style="display: flex; flex-direction: column; gap: 4px;">
+      <div class="loader">Memuat data produk...</div>
     </div>
   </div>
-
-  <!-- Guide Header Strip -->
-  <div style="display: grid; grid-template-columns: 180px 1fr 150px 150px; gap: 12px; padding: 8px 14px; background: var(--table-header); border: 1px solid var(--surface-border); border-radius: 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
-    <div>Kategori / Operator</div>
-    <div>Daily Trx</div>
-    <div style="text-align: right;">% Sukses (Kualitas)</div>
-    <div style="text-align: right;">Avg Durasi (Speed)</div>
-  </div>
-
-  <!-- Bar Rows Container -->
-  <div id="daily-product-container" style="display: flex; flex-direction: column; gap: 4px;">
-    <div class="loader">Memuat data produk...</div>
-  </div>
-</div>
 
   <!-- FOOTER TIMESTAMP (Kredibilitas Laporan Eksekutif) -->
-  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--text-muted); padding: 4px 8px;">
+  <div
+    style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--text-muted); padding: 4px 8px;">
     <span id="daily-footer-timestamp">Generated: -</span>
-    <span>DEPAS BI Executive Suite</span>
+    <span>DEPAS</span>
   </div>
 
 </div> <!-- End daily-report-capture -->
@@ -196,11 +229,13 @@
     gap: 7px;
     transition: all 0.2s ease;
   }
+
   .btn-download-hd:hover {
     background: var(--primary);
     color: #ffffff;
     border-color: var(--primary);
   }
+
   .daily-filter-select {
     padding: 7px 12px;
     border-radius: 8px;
@@ -211,6 +246,7 @@
     font-size: 13px;
     cursor: pointer;
   }
+
   .brand-pill {
     padding: 6px 14px;
     font-size: 12px;
@@ -222,18 +258,23 @@
     cursor: pointer;
     transition: all 0.15s ease;
   }
+
   .brand-pill:hover {
     color: var(--text-main);
   }
+
   .brand-pill.active-brand-astaga {
-    background: #0284c7;
+    background: #2563eb;
     color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
   }
+
   .brand-pill.active-brand-oki {
-    background: #dc2626;
+    background: #0891b2;
     color: #ffffff;
+    box-shadow: 0 1px 3px rgba(8, 145, 178, 0.3);
   }
-  
+
   .h-bar-row {
     display: grid;
     grid-template-columns: 180px 1fr 150px 150px;
@@ -245,6 +286,35 @@
     border-radius: 8px;
     font-size: 13.5px;
   }
+
+  .guide-header-prod {
+    display: grid;
+    grid-template-columns: 180px 1fr 125px 115px 150px;
+    gap: 12px;
+    padding: 8px 14px;
+    background: var(--table-header);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .h-bar-row-prod {
+    display: grid;
+    grid-template-columns: 180px 1fr 125px 115px 150px;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 14px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    font-size: 13.5px;
+  }
+
   .h-bar-bg {
     background: var(--table-header);
     height: 12px;
@@ -254,6 +324,7 @@
     display: flex;
     align-items: center;
   }
+
   .h-bar-fill {
     height: 100%;
     border-radius: 6px;
@@ -266,12 +337,15 @@
     font-weight: 700;
     margin-left: 4px;
   }
+
   .diff-badge.diff-pos {
     color: #16a34a;
   }
+
   .diff-badge.diff-neg {
     color: #dc2626;
   }
+
   .diff-badge.diff-zero {
     color: var(--text-muted);
   }
@@ -285,18 +359,22 @@
     font-weight: 700;
     margin-left: 4px;
   }
+
   .delta-pill.diff-pos {
     background: #dcfce7;
     color: #16a34a;
   }
+
   .delta-pill.diff-neg {
     background: #fee2e2;
     color: #dc2626;
   }
+
   .delta-pill.diff-zero {
     background: var(--table-header);
     color: var(--text-muted);
   }
+
   .delta-pill.diff-speed {
     background: #dcfce7;
     color: #16a34a;

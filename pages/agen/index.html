@@ -1,31 +1,97 @@
-<!-- PAGES/AGEN/INDEX.HTML — Customer & Agen Analytics (Induk / Rollup) -->
+<!-- PAGES/AGEN/INDEX.HTML — Customer & Agen Analytics (Tiga Sub-Tab: Ringkasan, Toko Induk, Reseller Downline) -->
 
-<div style="display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-direction: column; gap: 20px; font-family: var(--font-sans);">
 
-  <!-- HEADER BAR -->
+  <!-- ========================================================================= -->
+  <!-- TOP HEADER STRIP & TWO-TIER SUB-TAB NAVIGATION (IDENTIK DENGAN #ANALISA)  -->
+  <!-- ========================================================================= -->
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
     <div>
       <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Agen &amp; Reseller Analytics (Induk Agen)</h2>
-        <span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700;">ASTAGA</span>
-        
-        <!-- Toggle Level Reseller / Agen -->
-        <div style="display: inline-flex; background: var(--table-header); padding: 3px; border-radius: 8px; border: 1px solid var(--surface-border);">
-          <a href="#reseller" style="text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--text-muted); transition: all 0.15s ease;">Level Reseller</a>
-          <a href="#agen" style="text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--primary); color: #ffffff; box-shadow: 0 1px 2px rgba(37,99,235,0.25);">Level Agen (Induk)</a>
-        </div>
+        <h2
+          style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">
+          Agen &amp; Reseller
+        </h2>
       </div>
-      <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 2px;">
-        Agregasi Performa Toko Induk, Utilisasi Downline Reseller, Plafon Limit, &amp; Penugasan SCO
+      <p id="agen-header-subtitle"
+        style="font-size: 11px; color: var(--text-muted); margin-top: 3px; margin-bottom: 0;">
+        Evaluasi performa run-rate Daily Trx MoM, agregasi Toko Induk, dan tracking Reseller Downline.
       </p>
     </div>
 
-    <!-- FILTER PERIODE & ACTIONS -->
+    <!-- SUB-TAB SWITCHER & BRAND CONTROLS -->
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <!-- Brand Switcher Pill Box (Unified Capsule) -->
+      <div class="unified-brand-switcher">
+        <button type="button" id="brand-btn-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchAgenBrand('ASTAGA')">
+          <span class="brand-dot"></span>
+          ASTAGA
+        </button>
+        <button type="button" id="brand-btn-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchAgenBrand('OKIPAY')">
+          <span class="brand-dot"></span>
+          OKIPAY
+        </button>
+      </div>
+
+      <div class="agen-subtab-pill-box">
+        <!-- Tab 1: Ringkasan Agen -->
+        <button type="button" id="tab-btn-ringkasan" onclick="switchAgenTab('ringkasan')"
+          class="agen-subtab-btn active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>TOP 10 AGEN</span>
+        </button>
+
+        <!-- Tab 2: Toko Induk (Agen) -->
+        <button type="button" id="tab-btn-induk" onclick="switchAgenTab('induk')" class="agen-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>AGEN</span>
+        </button>
+
+        <!-- Tab 3: Reseller Downline -->
+        <button type="button" id="tab-btn-reseller" onclick="switchAgenTab('reseller')" class="agen-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+            <line x1="1" y1="10" x2="23" y2="10"></line>
+          </svg>
+          <span>RESELLER</span>
+        </button>
+
+        <!-- Tab 4: Tren Trx Agen (1 Tahun & YoY) -->
+        <button type="button" id="tab-btn-tren" onclick="switchAgenTab('tren')" class="agen-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+          </svg>
+          <span>TREN TRX AGEN</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- CONTROL TOOLBAR (PERIODE FILTER & EXCEL EXPORT)                           -->
+  <!-- ========================================================================= -->
+  <div class="card"
+    style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: var(--surface);">
     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
       <!-- Modern Periode Selector -->
-      <div class="filter-control-group">
+      <div class="filter-control-group" id="agen-period-control-group">
         <span class="control-label-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -35,17 +101,25 @@
         </span>
         <div class="custom-select-box">
           <select id="agen-month-select" onchange="onAgenMonthChange(this.value)" class="modern-header-select">
-            <option value="">Memuat periode...</option>
+            <option value="">Loading...</option>
           </select>
-          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
       </div>
 
-      <!-- Modern Excel Export Button -->
-      <button type="button" onclick="exportAgenExcel()" class="btn-excel-export" title="Export data agen terfilter ke format Microsoft Excel (.xlsx)">
-        <svg class="excel-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Info Cutoff Days Info -->
+      <span id="agen-cutoff-info" style="font-size: 12px; color: var(--text-muted); font-weight: 500;"></span>
+    </div>
+
+    <!-- Export Excel Button -->
+    <div>
+      <button type="button" onclick="exportActiveTabExcel()" class="btn-excel-export"
+        title="Export data tab aktif ke format Microsoft Excel (.xlsx)">
+        <svg class="excel-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
           <path d="M8 13h8"></path>
@@ -58,83 +132,415 @@
     </div>
   </div>
 
-  <!-- 6 KPI SUMMARY CARDS -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
-    <!-- Card 1: Total Agen Terdaftar -->
-    <div class="card" style="padding: 16px;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Agen Terdaftar</div>
-      <div id="kpi-agen-registered" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: var(--text-main);">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Master Toko Induk ASTAGA</div>
+  <!-- ========================================================================= -->
+  <!-- SECTION 1: RINGKASAN AGEN (TOP / BOTTOM 10 DAILY TRX MoM)                 -->
+  <!-- ========================================================================= -->
+  <div id="section-agen-ringkasan" style="display: flex; flex-direction: column; gap: 16px;">
+
+    <!-- Filter & Mode Bar untuk Ringkasan Agen -->
+    <div class="card" style="padding: 14px 18px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <!-- Mode Switcher Buttons (Bottom 10 vs Top 10) -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" id="btn-mode-bottom" class="ringkasan-mode-btn active-bottom"
+            onclick="setRingkasanMode('bottom')" style="display: inline-flex; align-items: center; gap: 5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span>Bottom 10 (Drop Terbesar)</span>
+          </button>
+          <button type="button" id="btn-mode-top" class="ringkasan-mode-btn" onclick="setRingkasanMode('top')" style="display: inline-flex; align-items: center; gap: 5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            <span>Top 10 (Growth Tertinggi)</span>
+          </button>
+          <span id="ringkasan-agen-days-info" style="display: none;"></span>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <!-- Filter Cabang -->
+          <div class="custom-select-box filter-cabang-box">
+            <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <select id="ringkasan-cabang-select" onchange="applyRingkasanFilters()" class="modern-select has-icon-left">
+              <option value="ALL">Semua Cabang</option>
+            </select>
+            <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+
+          <!-- Search Box -->
+          <div class="modern-search-box">
+            <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="ringkasan-search-input" oninput="applyRingkasanFilters()"
+              placeholder="Cari Agen ID, Nama Toko, SCO..." class="modern-input has-icon-left">
+            <button type="button" onclick="clearRingkasanSearch()" class="clear-search-btn"
+              title="Hapus pencarian">&times;</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Card 2: Agen Aktif Bulan Ini -->
-    <div class="card" style="padding: 16px; border-left: 4px solid #2563eb;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Agen Aktif Bulan Ini</div>
-      <div id="kpi-agen-active" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #2563eb;">-</div>
-      <div id="kpi-agen-active-rate" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">- % dari master</div>
+    <!-- Data Table Ringkasan Agen -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card-header" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <span id="ringkasan-title-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #dc2626;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span> <span id="ringkasan-table-title">Bottom 10 Toko Induk (Drop Terbesar Daily Trx)</span>
+          </h3>
+          <span id="ringkasan-table-row-count" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">10 baris</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Evaluasi perbandingan run-rate Daily Trx MoM (rata-rata trx/hari)
+        </div>
+      </div>
+      <div class="table-container" style="max-height: 650px; overflow-y: auto;">
+        <table class="table" id="ringkasan-table">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th>Toko Induk Agen</th>
+              <th>Cabang &amp; SCO</th>
+              <th>Jadwal &amp; Limit</th>
+              <th class="text-center">Reseller Downline</th>
+              <th class="text-right">Daily Trx (Bulan Ini)</th>
+              <th class="text-right">Daily Trx (Bulan Lalu)</th>
+              <th class="text-center">Selisih / Hari</th>
+              <th class="text-right">Total Trx</th>
+            </tr>
+          </thead>
+          <tbody id="ringkasan-tbody">
+            <tr>
+              <td colspan="9" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                <div class="loader">Memuat data ringkasan agen...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Card 3: Agen Aktif Rutin -->
-    <div class="card" style="padding: 16px; border-left: 4px solid #059669;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Aktif Rutin (Retained)</div>
-      <div id="kpi-agen-retained" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #059669;">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Aktif bln lalu &amp; bln ini</div>
-    </div>
-
-    <!-- Card 4: Agen Baru / Reaktivasi -->
-    <div class="card" style="padding: 16px; border-left: 4px solid #0284c7;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Baru / Reaktivasi</div>
-      <div id="kpi-agen-new" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #0284c7;">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Kembali bertransaksi</div>
-    </div>
-
-    <!-- Card 5: Agen Pasif / Churn -->
-    <div class="card" style="padding: 16px; border-left: 4px solid #dc2626;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Pasif / Churn</div>
-      <div id="kpi-agen-churn" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #dc2626;">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Semua anak 0 transaksi</div>
-    </div>
-
-    <!-- Card 6: Total Trx & % EWALLET -->
-    <div class="card" style="padding: 16px; border-left: 4px solid #7c3aed;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Trx Rollup &amp; % EW</div>
-      <div id="kpi-agen-trx" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #7c3aed;">-</div>
-      <div id="kpi-agen-pct-ew" style="font-size: 11.5px; font-weight: 600; color: #7c3aed; margin-top: 4px;">- % EWALLET</div>
-    </div>
   </div>
 
-  <!-- CONTROL & FILTER BAR -->
-  <div class="card" style="padding: 16px 20px;">
-    <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-      
-      <!-- Kiri: Filter Status Tabs -->
-      <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="agen-status-filter-pills">
-        <button type="button" class="reseller-tab active" onclick="setAgenTab('semua_aktif', this)">
-          Semua Aktif (<span id="count-agen-semua-aktif">0</span>)
+  <!-- ========================================================================= -->
+  <!-- SECTION 2: TOKO INDUK AGEN (ROLLUP RESELLER)                              -->
+  <!-- ========================================================================= -->
+  <div id="section-agen-induk" style="display: none; flex-direction: column; gap: 16px;">
+
+
+
+    <!-- Filter Status & Search Bar Toko Induk -->
+    <div class="card agen-filter-card">
+      <!-- Status Filter Pills -->
+      <div class="agen-pill-row" id="induk-status-filter-pills">
+        <button type="button" class="reseller-tab active" onclick="setIndukStatusTab('semua_aktif', this)">
+          Semua Aktif (<span id="count-induk-semua-aktif">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setAgenTab('rutin', this)">
-          Aktif Rutin (<span id="count-agen-rutin">0</span>)
+        <button type="button" class="reseller-tab" onclick="setIndukStatusTab('baru', this)"
+          style="border-color: #38bdf8;">
+          Agen Baru (<span id="count-induk-baru">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setAgenTab('baru', this)">
-          Baru / Reaktivasi (<span id="count-agen-baru">0</span>)
+        <button type="button" class="reseller-tab" onclick="setIndukStatusTab('reaktivasi', this)"
+          style="border-color: #fbbf24;">
+          Reaktivasi (<span id="count-induk-reaktivasi">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setAgenTab('churn', this)">
-          Pasif / Churn (<span id="count-agen-churn">0</span>)
+        <button type="button" class="reseller-tab" onclick="setIndukStatusTab('rutin', this)">
+          Aktif Rutin (<span id="count-induk-rutin">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setAgenTab('ewallet_high', this)">
-          Dominan EWALLET &ge; 50% (<span id="count-agen-ewallet">0</span>)
+        <button type="button" class="reseller-tab" onclick="setIndukStatusTab('churn', this)">
+          Pasif / Churn (<span id="count-induk-churn">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setIndukStatusTab('ewallet_high', this)">
+          Dominan EWALLET &ge; 50% (<span id="count-induk-ewallet">0</span>)
         </button>
       </div>
 
-      <!-- Kanan: Search & Cabang -->
-      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <!-- Modern Cabang Filter -->
+      <!-- Controls Row: Cabang & Search -->
+      <div class="agen-controls-row">
         <div class="custom-select-box filter-cabang-box">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <select id="induk-cabang-select" onchange="applyIndukFilters()" class="modern-select has-icon-left">
+            <option value="ALL">Semua Cabang</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="modern-search-box" style="flex: 1; min-width: 260px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="induk-search-input" oninput="applyIndukFilters()"
+            placeholder="Cari Agen ID, Nama Toko, SCO..." class="modern-input has-icon-left">
+          <button type="button" onclick="clearIndukSearch()" class="clear-search-btn"
+            title="Hapus pencarian">&times;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Toko Induk Agen -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card-header" style="padding: 14px 20px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0;">Daftar Toko Induk Agen</h3>
+          <span id="induk-table-row-count" class="badge"
+            style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 baris</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Klik baris agen untuk melihat rincian utilisasi &amp; daftar reseller downline
+        </div>
+      </div>
+
+      <div class="table-container" style="max-height: 650px; overflow-y: auto;">
+        <table class="table" id="induk-table">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th>Toko Induk Agen</th>
+              <th>Cabang &amp; SCO</th>
+              <th>Jadwal &amp; Limit</th>
+              <th class="text-center">Reseller Downline</th>
+              <th class="text-right">Total Trx Rollup</th>
+              <th class="text-right">Trx EWALLET</th>
+              <th class="text-right">% EWALLET</th>
+              <th>Komposisi Produk</th>
+              <th class="text-center">Status</th>
+              <th class="text-center" style="width: 70px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="induk-tbody">
+            <tr>
+              <td colspan="11" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                <div class="loader">Memuat data Toko Induk Agen...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Toko Induk -->
+      <div
+        style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
+        <div id="induk-table-page-info">Menampilkan 0 dari 0 data</div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button type="button" id="btn-induk-page-prev" onclick="prevIndukPage()" class="reseller-btn-page"
+            disabled>&laquo; Sebelumnya</button>
+          <span id="induk-page-current-num" style="font-weight: 600; padding: 0 8px; color: var(--text-main);">1</span>
+          <button type="button" id="btn-induk-page-next" onclick="nextIndukPage()" class="reseller-btn-page"
+            disabled>Selanjutnya &raquo;</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- SECTION 3: RESELLER DOWNLINE (CUSTOMER LEVEL)                             -->
+  <!-- ========================================================================= -->
+  <div id="section-agen-reseller" style="display: none; flex-direction: column; gap: 16px;">
+
+
+
+    <!-- Filter Status & Search Bar Reseller -->
+    <div class="card agen-filter-card">
+      <!-- Status Filter Pills -->
+      <div class="agen-pill-row" id="reseller-status-filter-pills">
+        <button type="button" class="reseller-tab active" onclick="setResellerStatusTab('semua_aktif', this)">
+          Semua Aktif (<span id="count-reseller-semua-aktif">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setResellerStatusTab('baru', this)"
+          style="border-color: #38bdf8;">
+          Member Baru (<span id="count-reseller-baru">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setResellerStatusTab('reaktivasi', this)"
+          style="border-color: #fbbf24;">
+          Reaktivasi (<span id="count-reseller-reaktivasi">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setResellerStatusTab('rutin', this)">
+          Aktif Rutin (<span id="count-reseller-rutin">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setResellerStatusTab('churn', this)">
+          Pasif / Churn (<span id="count-reseller-churn">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setResellerStatusTab('ewallet_high', this)">
+          Dominan EWALLET &ge; 50% (<span id="count-reseller-ewallet">0</span>)
+        </button>
+      </div>
+
+      <!-- Controls Row: Sort, Cabang & Search -->
+      <div class="agen-controls-row">
+        <div class="custom-select-box" style="min-width: 210px;">
+          <select id="reseller-sort-select" onchange="applyResellerFilters()" class="modern-select">
+            <option value="daily_desc">Sort: Daily Trx Terbesar</option>
+            <option value="growth_desc">Sort: Growth Positif</option>
+            <option value="growth_asc">Sort: Drop Terbesar</option>
+            <option value="ewallet_desc">Sort: % EWALLET Tertinggi</option>
+            <option value="total_desc">Sort: Total Trx Terbanyak</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="custom-select-box filter-cabang-box">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <select id="reseller-cabang-select" onchange="applyResellerFilters()" class="modern-select has-icon-left">
+            <option value="ALL">Semua Cabang</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <div class="modern-search-box" style="flex: 1; min-width: 260px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="reseller-search-input" oninput="applyResellerFilters()"
+            placeholder="Cari Reseller, Agen Induk, SCO..." class="modern-input has-icon-left">
+          <button type="button" onclick="clearResellerSearch()" class="clear-search-btn"
+            title="Hapus pencarian">&times;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Reseller Downline -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card-header" style="padding: 14px 20px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0;">Daftar Reseller Downline</h3>
+          <span id="reseller-table-row-count" class="badge"
+            style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 baris</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Klik baris reseller untuk melihat rincian komposisi produk perorangan
+        </div>
+      </div>
+
+      <div class="table-container" style="max-height: 650px; overflow-y: auto;">
+        <table class="table" id="reseller-table">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th>Nama Reseller</th>
+              <th>Toko Induk (Agen)</th>
+              <th>Cabang &amp; SCO</th>
+              <th class="text-right">Total Trx</th>
+              <th class="text-right">Trx EWALLET</th>
+              <th class="text-right">% EWALLET</th>
+              <th>Komposisi Produk</th>
+              <th class="text-center">Status</th>
+              <th class="text-center" style="width: 70px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="reseller-tbody">
+            <tr>
+              <td colspan="10" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                <div class="loader">Memuat data Reseller Downline...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Reseller -->
+      <div
+        style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
+        <div id="reseller-table-page-info">Menampilkan 0 dari 0 data</div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button type="button" id="btn-reseller-page-prev" onclick="prevResellerPage()" class="reseller-btn-page"
+            disabled>&laquo; Sebelumnya</button>
+          <span id="reseller-page-current-num"
+            style="font-weight: 600; padding: 0 8px; color: var(--text-main);">1</span>
+          <button type="button" id="btn-reseller-page-next" onclick="nextResellerPage()" class="reseller-btn-page"
+            disabled>Selanjutnya &raquo;</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- SECTION 4: TREN TRX AGEN (HISTORI 12 BULAN & YoY)                         -->
+  <!-- ========================================================================= -->
+  <div id="section-agen-tren" style="display: none; flex-direction: column; gap: 16px;">
+
+
+    <!-- Filter Card Tren Trx Agen -->
+    <div class="card agen-filter-card">
+      <!-- Top Row: Quick Filter Pills -->
+      <div class="agen-pill-row">
+        <span style="font-size:12px; font-weight:700; color:var(--text-muted); margin-right:4px;">Filter Cepat:</span>
+        <button id="tren-qf-all" class="quick-filter-btn active" onclick="setTrenTrendFilter('ALL')">
+          Semua Tren (0)
+        </button>
+        <button id="tren-qf-up" class="quick-filter-btn" onclick="setTrenTrendFilter('UP')">
+          <span style="display:inline-flex; align-items:center; color:#16a34a; margin-right:3px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+          </span>
+          Tren Naik YoY (0)
+        </button>
+        <button id="tren-qf-down" class="quick-filter-btn" onclick="setTrenTrendFilter('DOWN')">
+          <span style="display:inline-flex; align-items:center; color:#dc2626; margin-right:3px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+          </span>
+          Tren Turun YoY (0)
+        </button>
+        <button id="tren-qf-top" class="quick-filter-btn" onclick="setTrenTrendFilter('ACTIVE_TOP')">
+          <span style="display:inline-flex; align-items:center; color:#f59e0b; margin-right:3px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          </span>
+          Top Aktif (&ge; 50 trx/hari)
+        </button>
+        <button type="button" onclick="resetTrenFilters()" class="quick-filter-btn" style="margin-left:auto; border-color:var(--surface-border); background:transparent; display:inline-flex; align-items:center; gap:5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+          Reset Filter
+        </button>
+      </div>
+
+      <!-- Bottom Row: Filter Controls (SCO, Cabang, Sort, Search) -->
+      <div class="agen-controls-row">
+        <!-- Filter SCO -->
+        <div class="custom-select-box" style="min-width: 190px; flex: 1;">
+          <select id="tren-sco-select" onchange="setTrenSco(this.value)" class="modern-select">
+            <option value="ALL">Semua Petugas SCO</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <!-- Filter Cabang -->
+        <div class="custom-select-box filter-cabang-box" style="min-width: 160px; flex: 1;">
           <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
             <circle cx="12" cy="10" r="3"></circle>
           </svg>
-          <select id="agen-cabang-select" onchange="applyAgenFilters()" class="modern-select has-icon-left">
+          <select id="tren-cabang-select" onchange="setTrenCabang(this.value)" class="modern-select has-icon-left">
             <option value="ALL">Semua Cabang</option>
           </select>
           <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -142,440 +548,823 @@
           </svg>
         </div>
 
-        <!-- Modern Search Input -->
-        <div class="modern-search-box">
+        <!-- Sort By -->
+        <div class="custom-select-box" style="min-width: 220px; flex: 1;">
+          <select id="tren-sort-select" onchange="setTrenSort(this.value)" class="modern-select">
+            <option value="diff_asc">Growth Terendah / Penurunan YoY (Default)</option>
+            <option value="diff_desc">Growth Tertinggi / Kenaikan YoY</option>
+            <option value="curr_desc">Okt 2026 Tertinggi</option>
+            <option value="curr_asc">Okt 2026 Terendah</option>
+            <option value="nov_desc">Nov 2025 Tertinggi</option>
+            <option value="name_asc">Nama Agen (A - Z)</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <!-- Search Input -->
+        <div class="modern-search-box" style="flex: 1.2; min-width: 250px;">
           <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input type="text" id="agen-search-input" oninput="applyAgenFilters()" placeholder="Cari Agen ID, Nama Toko, SCO..." class="modern-input has-icon-left">
-          <button type="button" id="btn-clear-agen-search" onclick="clearAgenSearch()" class="clear-search-btn" title="Hapus pencarian">&times;</button>
+          <input type="text" id="tren-search-input" oninput="setTrenSearch(this.value)" placeholder="Cari Agen ID, Nama Toko, SCO..." class="modern-input has-icon-left">
+          <button type="button" id="tren-search-clear-btn" onclick="clearTrenSearch()" class="clear-search-btn" title="Hapus pencarian" style="display:none;">&times;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card-header" style="padding: 14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0; display:flex; align-items:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #3b82f6;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Histori &amp; Tren Daily Transaksi Agen (1 Tahun Terakhir / YoY)
+          </h3>
+          <span id="tren-badge-counter" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">
+            Menampilkan 0 dari 0 Agen
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Profil 12 bulan terakhir dan lonjakan transaksi YoY
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- MAIN DATA TABLE -->
-  <div class="card" style="overflow: hidden;">
-    <div class="card-header" style="padding: 14px 20px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <h3 id="agen-table-title" style="font-size: 15px; font-weight: 700; margin: 0;">Daftar Toko Induk Agen</h3>
-        <span id="agen-table-row-count" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 baris</span>
+      <div class="table-container" style="max-height: 650px; overflow-y: auto; overflow-x: auto;">
+        <table class="table" id="tren-table" style="min-width: 1200px;">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
+            <tr>
+              <th style="width: 40px; text-align: center;">No</th>
+              <th style="min-width: 250px;">Nama Agen &amp; Tren Line</th>
+              <th class="text-right" style="width: 65px;">Nov 25</th>
+              <th class="text-right" style="width: 65px;">Des 25</th>
+              <th class="text-right" style="width: 65px;">Jan 26</th>
+              <th class="text-right" style="width: 65px;">Feb 26</th>
+              <th class="text-right" style="width: 65px;">Mar 26</th>
+              <th class="text-right" style="width: 65px;">Apr 26</th>
+              <th class="text-right" style="width: 65px;">Mei 26</th>
+              <th class="text-right" style="width: 65px;">Jun 26</th>
+              <th class="text-right" style="width: 65px;">Jul 26</th>
+              <th class="text-right" style="width: 65px;">Agu 26</th>
+              <th class="text-right" style="width: 65px;">Sep 26</th>
+              <th class="text-right" style="width: 75px; color: var(--primary); font-weight: 800; background: rgba(37,99,235,0.06);">Okt 26</th>
+              <th class="text-right" style="min-width: 120px;">YoY Δ</th>
+              <th class="text-center" style="width: 60px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tren-table-tbody">
+            <tr>
+              <td colspan="16" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                <div class="loader">Memuat data Tren Trx Agen (1 Tahun)...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div style="font-size: 12px; color: var(--text-muted);">
-        Klik baris agen untuk melihat rincian utilisasi &amp; daftar reseller downline
-      </div>
-    </div>
 
-    <div class="table-container" style="max-height: 650px; overflow-y: auto;">
-      <table id="agen-table">
-        <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
-          <tr>
-            <th style="width: 45px; text-align: center;">#</th>
-            <th>Toko Induk Agen</th>
-            <th>Cabang &amp; SCO</th>
-            <th>Jadwal &amp; Limit</th>
-            <th class="text-center">Reseller Downline</th>
-            <th class="text-right">Total Trx Rollup</th>
-            <th class="text-right">Trx EWALLET</th>
-            <th class="text-right">% EWALLET</th>
-            <th>Komposisi Produk</th>
-            <th class="text-center">Status</th>
-            <th class="text-center" style="width: 70px;">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="agen-tbody">
-          <tr>
-            <td colspan="11" class="text-center" style="padding: 40px; color: var(--text-muted);">
-              Memuat data transaksi Agen...
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- TABLE FOOTER / PAGINATION -->
-    <div style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
-      <div id="agen-table-page-info">Menampilkan 0 dari 0 data</div>
-      <div style="display: flex; gap: 6px; align-items: center;">
-        <button type="button" id="btn-agen-page-prev" onclick="prevAgenPage()" class="reseller-btn-page" disabled>&laquo; Sebelumnya</button>
-        <span id="agen-page-current-num" style="font-weight: 600; padding: 0 8px; color: var(--text-main);">1</span>
-        <button type="button" id="btn-agen-page-next" onclick="nextAgenPage()" class="reseller-btn-page" disabled>Selanjutnya &raquo;</button>
+      <!-- Load More Bar -->
+      <div id="tren-loadmore-wrapper" style="padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--surface-border); background: var(--surface);">
+        <div id="tren-loadmore-info" style="font-size: 13px; color: var(--text-muted);">
+          Menampilkan <strong>0</strong> dari total <strong>0</strong> agen yang sesuai
+        </div>
+        <div id="tren-loadmore-actions" style="display: flex; gap: 8px;">
+          <!-- Tombol Muat 100 Lagi / Tampilkan Semua dinamis -->
+        </div>
       </div>
     </div>
+
   </div>
 
 </div>
 
-<!-- MODAL DETAIL AGEN & RESELLER DOWNLINE -->
-<div id="agen-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
-  <div class="card" style="width: 92%; max-width: 780px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); animation: modalFadeIn 0.15s ease-out;">
-    <div class="card-header" style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+<!-- ========================================================================= -->
+<!-- MODAL DETAIL TOKO INDUK AGEN & RESELLER DOWNLINE                          -->
+<!-- ========================================================================= -->
+<div id="agen-modal"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="card"
+    style="width: 90%; max-width: 820px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease;">
+    <!-- Modal Header -->
+    <div
+      style="padding: 18px 24px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
       <div>
-        <h3 id="modal-agen-title" style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-main);">-</h3>
-        <span id="modal-agen-kode" style="font-size: 12px; font-weight: 700; color: var(--primary);">-</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 id="modal-agen-name" style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main);">-</h3>
+          <span id="modal-agen-id" class="badge"
+            style="font-family: monospace; font-size: 12px; background: #e0e7ff; color: #4338ca;">-</span>
+        </div>
+        <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span class="badge" id="modal-agen-cabang"
+            style="background: var(--table-header); color: var(--text-main); font-weight: 600;">-</span>
+          <span class="badge" id="modal-agen-sco"
+            style="background: #e0f2fe; color: #0369a1; font-weight: 600;">-</span>
+          <span class="badge" id="modal-agen-tipe"
+            style="background: #f0fdf4; color: #15803d; font-weight: 600;">-</span>
+          <span class="badge" id="modal-agen-limit"
+            style="background: #fefce8; color: #a16207; font-weight: 600;">-</span>
+          <span id="modal-agen-jadwal" style="font-size: 12px; color: var(--text-muted);">Jadwal: -</span>
+          <span id="modal-agen-tgl-daftar" style="font-size: 12px; color: var(--text-muted);">-</span>
+        </div>
       </div>
-      <button type="button" onclick="closeAgenModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+      <button type="button" onclick="closeAgenModal()"
+        style="background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
     </div>
 
-    <div style="padding: 20px; display: flex; flex-direction: column; gap: 18px;">
-      <!-- Profil Grid -->
-      <div style="background: var(--table-header); border: 1px solid var(--surface-border); border-radius: 8px; padding: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; font-size: 13px;">
-        <div>
-          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Cabang:</span>
-          <strong id="modal-agen-cabang">-</strong>
+    <!-- Modal Body -->
+    <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 20px;">
+      <!-- KPI Rollup Summary Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+        <div style="background: var(--table-header); border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Trx
+            Rollup</div>
+          <div id="modal-agen-tot-trx"
+            style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
         </div>
-        <div>
-          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">SCO / DSO:</span>
-          <strong id="modal-agen-sco">-</strong>
+        <div
+          style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; color: #1e40af; font-weight: 600; text-transform: uppercase;">Trx EWALLET</div>
+          <div id="modal-agen-ew-trx" style="font-size: 18px; font-weight: 800; color: #1d4ed8; margin-top: 4px;">0
+          </div>
+          <div id="modal-agen-ew-pct" style="font-size: 11px; color: #1e40af; font-weight: 600;">0%</div>
         </div>
-        <div>
-          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Jadwal Kunjungan:</span>
-          <strong id="modal-agen-jadwal">-</strong>
-        </div>
-        <div>
-          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Plafon Limit:</span>
-          <strong id="modal-agen-limit">-</strong>
-        </div>
-        <div>
-          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Status Toko:</span>
-          <span id="modal-agen-status" class="pill">-</span>
-        </div>
-        <div>
-          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Utilisasi Downline:</span>
-          <strong id="modal-agen-utilisasi" style="color: var(--primary);">-</strong>
+        <div
+          style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; color: #166534; font-weight: 600; text-transform: uppercase;">Utilisasi Downline
+          </div>
+          <div id="modal-agen-downlines-aktif"
+            style="font-size: 18px; font-weight: 800; color: #15803d; margin-top: 4px;">0 / 0</div>
+          <div id="modal-agen-downlines-pct" style="font-size: 11px; color: #166534; font-weight: 600;">0% Aktif</div>
         </div>
       </div>
 
-      <!-- Komposisi Transaksi Bulan Ini -->
+      <!-- Komposisi Produk Bulan Ini -->
       <div>
-        <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Komposisi Transaksi Rollup</h4>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; margin-bottom: 12px;">
+        <h4 style="font-size: 13.5px; font-weight: 700; margin: 0 0 10px 0;">Komposisi Produk Toko Induk</h4>
+        <div
+          style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; margin-bottom: 12px;">
           <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px;">
             <div style="font-size: 11px; color: #1e40af; font-weight: 600;">EWALLET</div>
-            <div id="modal-agen-ewallet-trx" style="font-size: 16px; font-weight: 800; color: #1d4ed8; margin-top: 4px;">0</div>
-            <div id="modal-agen-ewallet-pct" style="font-size: 11px; color: #1e40af; font-weight: 600;">0%</div>
+            <div id="modal-agen-card-ew" style="font-size: 15px; font-weight: 800; color: #1d4ed8; margin-top: 4px;">0
+            </div>
+            <div id="modal-agen-pct-ew" style="font-size: 11px; color: #1e40af;">0%</div>
           </div>
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
             <div style="font-size: 11px; color: #166534; font-weight: 600;">TELCO</div>
-            <div id="modal-agen-telco-trx" style="font-size: 16px; font-weight: 800; color: #15803d; margin-top: 4px;">0</div>
+            <div id="modal-agen-card-telco" style="font-size: 15px; font-weight: 800; color: #15803d; margin-top: 4px;">
+              0</div>
           </div>
           <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 10px;">
             <div style="font-size: 11px; color: #854d0e; font-weight: 600;">PPOB</div>
-            <div id="modal-agen-ppob-trx" style="font-size: 16px; font-weight: 800; color: #a16207; margin-top: 4px;">0</div>
+            <div id="modal-agen-card-ppob" style="font-size: 15px; font-weight: 800; color: #a16207; margin-top: 4px;">0
+            </div>
           </div>
           <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 10px;">
             <div style="font-size: 11px; color: #6b21a8; font-weight: 600;">TOKEN PLN</div>
-            <div id="modal-agen-token-trx" style="font-size: 16px; font-weight: 800; color: #7e22ce; margin-top: 4px;">0</div>
+            <div id="modal-agen-card-token" style="font-size: 15px; font-weight: 800; color: #7e22ce; margin-top: 4px;">
+              0</div>
           </div>
         </div>
 
-        <!-- Progress bar visual % EWALLET -->
         <div style="margin-top: 8px;">
           <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-            <span style="font-weight: 600; color: #1d4ed8;">Porsi EWALLET: <span id="modal-agen-bar-pct">0%</span></span>
+            <span style="font-weight: 600; color: #1d4ed8;">Dominasi EWALLET: <span
+                id="modal-agen-bar-pct">0%</span></span>
             <span style="color: var(--text-muted);">Total: <span id="modal-agen-bar-tot">0</span> Trx</span>
           </div>
           <div style="height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
-            <div id="modal-agen-bar-fill" style="height: 100%; width: 0%; background: #2563eb; transition: width 0.3s ease;"></div>
+            <div id="modal-agen-bar-fill"
+              style="height: 100%; width: 0%; background: #2563eb; transition: width 0.3s ease;"></div>
           </div>
         </div>
       </div>
 
-      <!-- TABEL DAFTAR RESELLER DOWNLINE (DRILLDOWN) -->
+      <!-- Daftar Reseller Downline Toko Induk -->
       <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h4 style="font-size: 14px; font-weight: 700; margin: 0;">
-            Daftar Reseller Anak (<span id="modal-child-count">0</span>)
-          </h4>
-          <span style="font-size: 11.5px; color: var(--text-muted);">Diurutkan dari transaksi tertinggi</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h4 style="font-size: 13.5px; font-weight: 700; margin: 0;">Daftar Downline Reseller</h4>
+          <span id="modal-downline-count" class="badge"
+            style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 reseller</span>
         </div>
-        <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: 8px;">
-          <table style="width: 100%; font-size: 12.5px;">
-            <thead style="position: sticky; top: 0; background: var(--table-header); z-index: 5;">
+        <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: 8px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+            <thead
+              style="position: sticky; top: 0; background: var(--table-header); border-bottom: 1px solid var(--surface-border); z-index: 2;">
               <tr>
-                <th style="width: 35px; text-align: center;">#</th>
-                <th>Kode</th>
-                <th>Nama Reseller</th>
-                <th class="text-right">Trx Bulan Ini</th>
-                <th class="text-center">Status</th>
+                <th style="padding: 8px 12px; width: 35px; text-align: center;">#</th>
+                <th style="padding: 8px 12px;">ID &amp; Nama Reseller</th>
+                <th style="padding: 8px 12px; text-align: right;">Total Trx</th>
+                <th style="padding: 8px 12px; text-align: right;">% EW</th>
+                <th style="padding: 8px 12px; text-align: center;">Status</th>
+                <th style="padding: 8px 12px; text-align: center; width: 60px;">Aksi</th>
               </tr>
             </thead>
-            <tbody id="modal-child-tbody">
+            <tbody id="modal-downlines-tbody">
               <tr>
-                <td colspan="5" class="text-center" style="padding: 16px; color: var(--text-muted);">Tidak ada reseller downline.</td>
+                <td colspan="6" style="text-align: center; padding: 20px; color: var(--text-muted);">Tidak ada downline
+                  terdaftar.</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
 
-    <div style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; background: var(--surface);">
-      <button type="button" onclick="closeAgenModal()" style="padding: 6px 18px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-main);">
+    <!-- Modal Footer -->
+    <div
+      style="padding: 12px 24px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; background: var(--surface);">
+      <button type="button" onclick="closeAgenModal()"
+        style="padding: 6px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-main);">
         Tutup
       </button>
     </div>
   </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- MODAL DETAIL RESELLER DOWNLINE PERORANGAN                                 -->
+<!-- ========================================================================= -->
+<div id="reseller-modal"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 101; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="card"
+    style="width: 90%; max-width: 650px; max-height: 85vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease;">
+    <!-- Modal Header -->
+    <div
+      style="padding: 18px 24px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 id="modal-reseller-name" style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main);">-
+          </h3>
+          <span id="modal-reseller-kode" class="badge"
+            style="font-family: monospace; font-size: 12px; background: #e0e7ff; color: #4338ca;">-</span>
+        </div>
+        <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span class="badge" id="modal-reseller-cabang"
+            style="background: var(--table-header); color: var(--text-main); font-weight: 600;">-</span>
+          <span class="badge" id="modal-reseller-sco"
+            style="background: #e0f2fe; color: #0369a1; font-weight: 600;">-</span>
+          <span id="modal-reseller-induk" style="font-size: 12px; color: var(--text-muted);">Induk: -</span>
+          <span id="modal-reseller-tgl-daftar" style="font-size: 12px; color: var(--text-muted);">-</span>
+        </div>
+      </div>
+      <button type="button" onclick="closeResellerModal()"
+        style="background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 20px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+        <div style="background: var(--table-header); border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total
+            Transaksi</div>
+          <div id="modal-reseller-tot-trx"
+            style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
+        </div>
+        <div
+          style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; color: #1e40af; font-weight: 600; text-transform: uppercase;">Trx EWALLET</div>
+          <div id="modal-reseller-ew-trx" style="font-size: 18px; font-weight: 800; color: #1d4ed8; margin-top: 4px;">0
+          </div>
+          <div id="modal-reseller-ew-pct" style="font-size: 11px; color: #1e40af; font-weight: 600;">0%</div>
+        </div>
+        <div
+          style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; color: #166534; font-weight: 600; text-transform: uppercase;">Status Aktivitas
+          </div>
+          <div id="modal-reseller-status-badge" style="margin-top: 6px;">-</div>
+        </div>
+      </div>
+
+      <!-- Komposisi Produk -->
+      <div>
+        <h4 style="font-size: 13.5px; font-weight: 700; margin: 0 0 10px 0;">Komposisi Produk Reseller</h4>
+        <div
+          style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; margin-bottom: 12px;">
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 11px; color: #1e40af; font-weight: 600;">EWALLET</div>
+            <div id="modal-reseller-card-ew"
+              style="font-size: 15px; font-weight: 800; color: #1d4ed8; margin-top: 4px;">0</div>
+            <div id="modal-reseller-pct-ew-card" style="font-size: 11px; color: #1e40af;">0%</div>
+          </div>
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 11px; color: #166534; font-weight: 600;">TELCO</div>
+            <div id="modal-reseller-card-telco"
+              style="font-size: 15px; font-weight: 800; color: #15803d; margin-top: 4px;">0</div>
+          </div>
+          <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 11px; color: #854d0e; font-weight: 600;">PPOB</div>
+            <div id="modal-reseller-card-ppob"
+              style="font-size: 15px; font-weight: 800; color: #a16207; margin-top: 4px;">0</div>
+          </div>
+          <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 10px;">
+            <div style="font-size: 11px; color: #6b21a8; font-weight: 600;">TOKEN PLN</div>
+            <div id="modal-reseller-card-token"
+              style="font-size: 15px; font-weight: 800; color: #7e22ce; margin-top: 4px;">0</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+            <span style="font-weight: 600; color: #1d4ed8;">Dominasi EWALLET: <span
+                id="modal-reseller-bar-pct">0%</span></span>
+            <span style="color: var(--text-muted);">Total: <span id="modal-reseller-bar-tot">0</span> Trx</span>
+          </div>
+          <div style="height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+            <div id="modal-reseller-bar-fill"
+              style="height: 100%; width: 0%; background: #2563eb; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div
+      style="padding: 12px 24px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; background: var(--surface);">
+      <button type="button" onclick="closeResellerModal()"
+        style="padding: 6px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-main);">
+        Tutup
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- STYLES KHUSUS AGEN & RESELLER MODULE                                      -->
+<!-- ========================================================================= -->
 <style>
-/* CSS Khusus Agen Page */
-.reseller-tab {
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  color: var(--text-muted);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.reseller-tab:hover {
-  background: var(--table-hover);
-  color: var(--text-main);
-}
-.reseller-tab.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #ffffff;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
-}
-.reseller-tab.active span {
-  font-weight: 700;
-}
-.reseller-btn-page {
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface);
-  color: var(--text-main);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.reseller-btn-page:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.badge-ewallet-high {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  font-weight: 700;
-}
-.badge-ewallet-normal {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-  font-weight: 600;
-}
+  /* SUB-TAB PILL BUTTONS (IDENTIK DENGAN ANALISA-SUBTAB-BTN) */
+  .agen-subtab-pill-box {
+    display: flex;
+    background: var(--surface-card, var(--surface));
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    flex-wrap: wrap;
+  }
 
-/* Header Controls */
-.filter-control-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  padding: 4px 6px 4px 12px;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
-}
-.filter-control-group:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
-}
-.filter-control-group:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-.control-label-icon {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  user-select: none;
-}
-.control-label-icon svg {
-  color: var(--primary);
-}
-.custom-select-box {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-.modern-header-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background: var(--table-header);
-  border: 1px solid var(--surface-border);
-  border-radius: 7px;
-  padding: 6px 30px 6px 12px;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text-main);
-  cursor: pointer;
-  outline: none;
-  transition: all 0.15s ease;
-}
-.modern-header-select:hover {
-  background: #e2e8f0;
-}
-.modern-header-select:focus {
-  background: #ffffff;
-  border-color: var(--primary);
-}
-.dropdown-chevron {
-  position: absolute;
-  right: 10px;
-  pointer-events: none;
-  color: #64748b;
-  transition: transform 0.2s ease;
-}
+  .agen-subtab-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
 
-/* Button Excel */
-.btn-excel-export {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #ffffff;
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  border: 1px solid #047857;
-  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.28), 0 1px 2px rgba(0, 0, 0, 0.05);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.btn-excel-export:hover {
-  transform: translateY(-1px);
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.38);
-}
-.btn-excel-export:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.2);
-}
-.excel-icon {
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-.btn-excel-export:hover .excel-icon {
-  transform: scale(1.1);
-}
-.excel-badge {
-  font-size: 10px;
-  font-weight: 800;
-  background: rgba(255, 255, 255, 0.22);
-  padding: 1.5px 5px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-}
+  .agen-subtab-btn:hover {
+    color: var(--text-main);
+    background: rgba(0, 0, 0, 0.03);
+  }
 
-/* Filter Cabang & Search */
-.filter-cabang-box {
-  min-width: 175px;
-}
-.modern-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  width: 100%;
-  height: 38px;
-  padding: 0 32px 0 14px;
-  border-radius: 9px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface);
-  color: var(--text-main);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  outline: none;
-}
-.modern-select.has-icon-left {
-  padding-left: 36px;
-}
-.modern-select:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-}
-.modern-select:focus {
-  border-color: var(--primary);
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-.modern-search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: 240px;
-}
-.modern-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 32px 0 14px;
-  border-radius: 9px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface);
-  color: var(--text-main);
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  outline: none;
-}
-.modern-input.has-icon-left {
-  padding-left: 36px;
-}
-.modern-input:hover {
-  border-color: #cbd5e1;
-}
-.modern-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-.input-icon-left {
-  position: absolute;
-  left: 12px;
-  pointer-events: none;
-  color: #64748b;
-  z-index: 2;
-}
-.clear-search-btn {
-  position: absolute;
-  right: 10px;
-  background: #e2e8f0;
-  border: none;
-  color: #475569;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  cursor: pointer;
-  line-height: 1;
-  transition: all 0.15s ease;
-}
-.clear-search-btn:hover {
-  background: #cbd5e1;
-  color: #0f172a;
-}
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
+  .agen-subtab-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  }
+
+  /* TOGGLE MODE RINGKASAN */
+  .ringkasan-mode-btn {
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    background: var(--surface);
+    color: var(--text-main);
+  }
+
+  .ringkasan-mode-btn.active-bottom {
+    background: #e11d48;
+    color: #ffffff;
+    border-color: #e11d48;
+    box-shadow: 0 2px 4px rgba(225, 29, 72, 0.25);
+  }
+
+  .ringkasan-mode-btn.active-top {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+  }
+
+  /* STATUS FILTER PILLS */
+  .reseller-tab {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .reseller-tab:hover {
+    background: var(--table-hover);
+    color: var(--text-main);
+  }
+
+  .reseller-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  }
+
+  .reseller-tab.active span {
+    font-weight: 700;
+  }
+
+  .reseller-btn-page {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-main);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .reseller-btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* --- MODERN HEADER CONTROLS (PERIODE & EXCEL) --- */
+  .filter-control-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    padding: 4px 6px 4px 12px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+  }
+
+  .filter-control-group:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+  }
+
+  .filter-control-group:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .control-label-icon {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    user-select: none;
+  }
+
+  .control-label-icon svg {
+    color: var(--primary);
+  }
+
+  .custom-select-box {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .modern-header-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: var(--table-header);
+    border: 1px solid var(--surface-border);
+    border-radius: 7px;
+    padding: 6px 30px 6px 12px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-main);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+
+  .modern-header-select:hover {
+    background: var(--surface);
+    border-color: #94a3b8;
+  }
+
+  .dropdown-chevron {
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+    color: var(--text-muted);
+  }
+
+  /* BUTTON EXPORT EXCEL HIJAU ELEGAN */
+  .btn-excel-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #16a34a;
+    color: #ffffff;
+    border: 1px solid #15803d;
+    padding: 7px 14px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-excel-export:hover {
+    background: #15803d;
+    box-shadow: 0 4px 8px rgba(22, 163, 74, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .excel-icon {
+    stroke: #ffffff;
+  }
+
+  .excel-badge {
+    font-size: 10px;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.22);
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  /* --- FILTER CABANG & SEARCH BAR --- */
+  .filter-cabang-box {
+    min-width: 175px;
+  }
+
+  .modern-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 100%;
+    height: 38px;
+    padding: 0 32px 0 14px;
+    border-radius: 9px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    outline: none;
+  }
+
+  .modern-select.has-icon-left {
+    padding-left: 36px;
+  }
+
+  .modern-select:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+
+  .modern-select:focus {
+    border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .modern-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 240px;
+  }
+
+  .modern-input {
+    width: 100%;
+    height: 38px;
+    padding: 0 32px 0 14px;
+    border-radius: 9px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    outline: none;
+  }
+
+  .modern-input.has-icon-left {
+    padding-left: 36px;
+  }
+
+  .modern-input:hover {
+    border-color: #cbd5e1;
+  }
+
+  .modern-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .input-icon-left {
+    position: absolute;
+    left: 12px;
+    pointer-events: none;
+    color: #64748b;
+    z-index: 2;
+  }
+
+  .clear-search-btn {
+    position: absolute;
+    right: 10px;
+    background: #e2e8f0;
+    border: none;
+    color: #475569;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+
+  .clear-search-btn:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+  }
+
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* --- TREN TRX AGEN STYLES (MATCHING SCO #PROFIL-AGEN) --- */
+  .sparkline-svg {
+    display: inline-block;
+    vertical-align: middle;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
+  }
+
+  .val-peak {
+    font-weight: 800;
+    color: var(--primary);
+    background: rgba(37, 99, 235, 0.12);
+    padding: 1px 5px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .quick-filter-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 14px;
+  }
+
+  .quick-filter-btn {
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .quick-filter-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .quick-filter-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  }
+
+  .tren-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .btn-copy-mini {
+    background: transparent;
+    border: 1px solid var(--surface-border);
+    border-radius: 5px;
+    color: var(--text-muted);
+    padding: 3px 6px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-copy-mini:hover {
+    background: var(--surface);
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  /* BRAND SWITCHER PILL BOX */
+  .agen-brand-pill-box {
+    display: inline-flex;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .agen-brand-pill-btn {
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .agen-brand-pill-btn:hover {
+    color: var(--text-main);
+  }
+
+  .agen-brand-pill-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  }
+
+  .agen-brand-pill-btn#brand-btn-okipay.active {
+    background: #0891b2;
+    box-shadow: 0 1px 3px rgba(8, 145, 178, 0.3);
+  }
+
+  /* HARMONIZED FILTER CARD LAYOUT */
+  .agen-filter-card {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: var(--surface);
+  }
+
+  .agen-pill-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .agen-controls-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding-top: 4px;
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+  }
+
 </style>

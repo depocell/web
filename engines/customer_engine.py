@@ -22,16 +22,53 @@ _CABANG_MTIME: dict[str, float] = {}
 
 
 def _load_reseller_sheet(brand: str) -> pd.DataFrame:
-    """Baca sheet Reseller dari CUSTOMER master, return df dengan Kode Reseller & Cabang (cached via Parquet)."""
-    path = MASTER_FILES[brand]
+    """
+    Baca data master customer dari Parquet cache atau database SQLite master_data.db.
+    Fallback ke Excel hanya jika DB dan Parquet belum ada.
+    """
+    brand = brand.upper()
     p_cache = os.path.join(CACHE_DIR, f"cust_{brand.lower()}.parquet")
-    mtime = os.path.getmtime(path) if os.path.exists(path) else 0
+    db_path = os.path.join(MASTER_DIR, "master_data.db")
+    db_mtime = os.path.getmtime(db_path) if os.path.exists(db_path) else 0
 
-    if os.path.exists(p_cache) and os.path.getmtime(p_cache) >= mtime:
+    # 1. Coba baca dari cache Parquet jika up-to-date dengan database
+    if os.path.exists(p_cache) and (db_mtime == 0 or os.path.getmtime(p_cache) >= db_mtime):
         try:
             return pd.read_parquet(p_cache)
         except Exception:
             pass
+
+    # 2. Coba baca dari database SQLite master_data.db
+    if os.path.exists(db_path):
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            query = """
+                SELECT kode_reseller AS ar_id, cabang
+                FROM resellers
+                WHERE brand = ? AND cabang IS NOT NULL AND cabang != ''
+            """
+            df_res = pd.read_sql_query(query, conn, params=(brand,))
+            q_ag = """
+                SELECT agen_id AS ar_id, cabang
+                FROM agents
+                WHERE brand = ? AND cabang IS NOT NULL AND cabang != ''
+            """
+            df_ag = pd.read_sql_query(q_ag, conn, params=(brand,))
+            conn.close()
+
+            df_comb = pd.concat([df_res, df_ag]).drop_duplicates(subset=["ar_id"])
+            if not df_comb.empty:
+                os.makedirs(CACHE_DIR, exist_ok=True)
+                df_comb.to_parquet(p_cache, index=False)
+                return df_comb
+        except Exception as e:
+            print(f"[WARN] Gagal membaca master dari SQLite: {e}")
+
+    # 3. Fallback terakhir ke Excel jika database belum ada
+    path = MASTER_FILES.get(brand, "")
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=["ar_id", "cabang"])
 
     # Baca via calamine / openpyxl
     df_r = pd.DataFrame()
@@ -109,11 +146,18 @@ def _load_reseller_sheet(brand: str) -> pd.DataFrame:
 def get_ar_to_cabang(brand: str) -> dict:
     """
     Kembalikan dict {ar_id: cabang} untuk brand tertentu.
-    Di-cache di memory — auto reload jika file master diupdate.
+    Di-cache di memory — auto reload jika database master atau parquet diupdate.
     """
     brand = brand.upper()
-    path = MASTER_FILES.get(brand, "")
-    current_mtime = os.path.getmtime(path) if os.path.exists(path) else 0
+    db_path = os.path.join(MASTER_DIR, "master_data.db")
+    p_cache = os.path.join(CACHE_DIR, f"cust_{brand.lower()}.parquet")
+    path_xl = MASTER_FILES.get(brand, "")
+
+    # Mtime mengacu ke database atau parquet atau legacy excel
+    current_mtime = 0
+    for p in [db_path, p_cache, path_xl]:
+        if os.path.exists(p):
+            current_mtime = max(current_mtime, os.path.getmtime(p))
 
     if brand not in _CABANG_MAP or _CABANG_MTIME.get(brand, 0) < current_mtime:
         df = _load_reseller_sheet(brand)

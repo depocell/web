@@ -292,7 +292,7 @@ function renderBranches(branches, totalBranch, brandColor) {
     html += `
       <div class="h-bar-row total-branch-strip" style="background: var(--table-header); border: 1px solid var(--surface-border); font-weight: 800; margin-top: 4px;">
         <div style="display: flex; align-items: center; gap: 6px; color: #0284c7;">
-          <span>★</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
           <span>TOTAL CABANG</span>
           <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(100%)</span>
         </div>
@@ -331,7 +331,7 @@ function renderProducts(products, grandTotal, brandColor) {
     const nameSize = isOp ? "13px" : "13.5px";
 
     html += `
-      <div class="h-bar-row" style="${isOp ? 'background: transparent; border-color: transparent; padding-top: 6px; padding-bottom: 6px;' : ''}">
+      <div class="h-bar-row-prod" style="${isOp ? 'background: transparent; border-color: transparent; padding-top: 6px; padding-bottom: 6px;' : ''}">
         <div style="font-weight: ${nameWeight}; font-size: ${nameSize}; display: flex; align-items: center;">
           ${namePrefix}<span>${p.name}</span>
         </div>
@@ -349,15 +349,18 @@ function renderProducts(products, grandTotal, brandColor) {
         <div style="text-align: right; font-weight: 700;">
           ${p.dur_curr_str} ${renderSpeedBadge(p.diff_dur_sec)}
         </div>
+        <div style="text-align: right; font-weight: 700; white-space: nowrap;">
+          Rp ${formatInt(p.arpu_curr)} ${renderDiffBadge(p.diff_arpu)}
+        </div>
       </div>
     `;
   });
 
   if (grandTotal) {
     html += `
-      <div class="h-bar-row" style="background: var(--table-header); border: 1px solid var(--surface-border); font-weight: 800; margin-top: 6px;">
+      <div class="h-bar-row-prod" style="background: var(--table-header); border: 1px solid var(--surface-border); font-weight: 800; margin-top: 6px;">
         <div style="display: flex; align-items: center; gap: 6px; color: #0284c7;">
-          <span>★</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
           <span>GRAND TOTAL</span>
         </div>
         <div style="text-align: right; font-weight: 800;">
@@ -368,6 +371,9 @@ function renderProducts(products, grandTotal, brandColor) {
         </div>
         <div style="text-align: right; font-weight: 800;">
           ${grandTotal.dur_curr_str} ${renderSpeedBadge(grandTotal.diff_dur_sec)}
+        </div>
+        <div style="text-align: right; font-weight: 800; white-space: nowrap;">
+          Rp ${formatInt(grandTotal.arpu_curr)} ${renderDiffBadge(grandTotal.diff_arpu)}
         </div>
       </div>
     `;
@@ -381,12 +387,17 @@ function switchDailyBrand(brand) {
   const btnAstaga = document.getElementById("btn-brand-astaga");
   const btnOki = document.getElementById("btn-brand-oki");
 
+  const activeBtn = brand === "ASTAGA" ? btnAstaga : btnOki;
   if (brand === "ASTAGA") {
-    btnAstaga.className = "brand-pill active-brand-astaga";
-    btnOki.className = "brand-pill";
+    if (btnAstaga) btnAstaga.classList.add("active");
+    if (btnOki) btnOki.classList.remove("active");
   } else {
-    btnAstaga.className = "brand-pill";
-    btnOki.className = "brand-pill active-brand-oki";
+    if (btnAstaga) btnAstaga.classList.remove("active");
+    if (btnOki) btnOki.classList.add("active");
+  }
+
+  if (window.triggerBrandSwitchVisual) {
+    window.triggerBrandSwitchVisual(brand, activeBtn, "daily-report-capture");
   }
 
   loadDailyPeriods();
@@ -408,7 +419,7 @@ async function downloadDailyPNG() {
   const origHtml = btn ? btn.innerHTML : "";
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> Memproses HD PNG...`;
+    btn.innerHTML = `<span style="display:inline-flex; align-items:center; animation:spin 1s linear infinite;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg></span> Memproses HD PNG...`;
   }
 
   try {
@@ -420,12 +431,19 @@ async function downloadDailyPNG() {
       logging: false
     });
 
-    const link = document.createElement("a");
     const brandStr = dailyBrand.toUpperCase();
     const periodStr = (dailyCurrPeriod || "daily").replace(/[^a-zA-Z0-9_-]/g, "_");
-    link.download = `Daily_Report_${brandStr}_${periodStr}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    const filename = `Daily_Report_${brandStr}_${periodStr}.png`;
+    const dataUrl = canvas.toDataURL("image/png");
+
+    if (typeof window.saveFileSmart === "function") {
+      await window.saveFileSmart(filename, dataUrl, "image/png");
+    } else {
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+    }
   } catch (err) {
     console.error("Gagal export PNG:", err);
     alert("Gagal mendownload gambar PNG: " + err.message);

@@ -13,6 +13,8 @@ from typing import Dict, Any, List
 import engines.transaction_engine as te
 import engines.customer_engine as ce
 import engines.product_engine as pe
+import engines.metrics_engine as me
+import engines.profit_engine as profit_engine
 
 BRAND_CONFIG = {
     "ASTAGA": {
@@ -24,17 +26,13 @@ BRAND_CONFIG = {
     "OKIPAY": {
         "name": "OKI PAY",
         "channels": ["ONLINE", "H2H"],
-        "categories": ["TELCO", "EWALLET", "PPOB", "PLN", "GAME ONLINE"],
-        "telco_operators": ["AXIS/XL", "TELKOMSEL", "INDOSAT", "TRI", "SMARTFREN"]
+        "categories": ["TELCO", "EWALLET", "TOKEN PLN", "PPOB", "VOUCHER GAME"],
+        "telco_operators": ["XL - AXIS", "TELKOMSEL", "INDOSAT", "TRI", "SMARTFREN"]
     }
 }
 
 def _format_duration(seconds: float) -> str:
-    if np.isnan(seconds) or seconds < 0:
-        return "00:00"
-    m = int(seconds // 60)
-    s = int(seconds % 60)
-    return f"{m:02d}:{s:02d}"
+    return me.format_duration_str(seconds)
 
 def get_available_periods(brand: str = "ASTAGA", year: str = "2026") -> List[Dict[str, str]]:
     """Daftar pasangan periode [Bulan Ini, Bulan Lalu] yang tersedia."""
@@ -62,6 +60,8 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
     cfg = BRAND_CONFIG.get(brand, BRAND_CONFIG["ASTAGA"])
     
     df = te.load(brand, year)
+    if brand.upper() == "ASTAGA":
+        df = me.filter_astaga_internal(df)
     cabang_map = ce.get_ar_to_cabang(brand)
     prod_map = pe.get_product_map(brand)
 
@@ -95,19 +95,27 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
     dur_prev = (df_prev_all["tgl_stat"] - df_prev_all["tgl_entry"]).dt.total_seconds()
     df_prev_all["durasi_sec"] = dur_prev.where((dur_prev >= 0) & (dur_prev <= 86400), np.nan)
 
+    # Hitung markup dan base_price (Harga Jual Dasar) sesuai Hukum 2 GEMINI.md
+    markup_map = profit_engine.get_reseller_markup_map(brand)
+    for df_slice in (df_curr_all, df_prev_all):
+        ar_sub = df_slice["ar_id"].astype(str).str.strip().str.upper()
+        df_slice["markup"] = ar_sub.map(markup_map).fillna(0.0)
+        df_slice["base_price"] = me.calculate_server_base_price(df_slice["jual"].fillna(0.0), df_slice["markup"])
+
     df_curr_sukses = df_curr_all[df_curr_all["is_sukses"]].copy()
     df_prev_sukses = df_prev_all[df_prev_all["is_sukses"]].copy()
 
-    days_curr = max(int(df_curr_all["date"].nunique()), 1)
-    days_prev = max(int(df_prev_all["date"].nunique()), 1)
+    days_curr = me.get_active_days(df_curr_all, date_col="tgl_entry")
+    days_prev = me.get_active_days(df_prev_all, date_col="tgl_entry")
 
     # 1. KPI CARDS
     tot_trx_curr = int(len(df_curr_sukses))
     tot_trx_prev = int(len(df_prev_sukses))
-    avg_trx_curr = float(tot_trx_curr / days_curr)
-    avg_trx_prev = float(tot_trx_prev / days_prev)
-    diff_trx = float(avg_trx_curr - avg_trx_prev)
-    growth_trx_pct = float(diff_trx / avg_trx_prev * 100) if avg_trx_prev > 0 else 0.0
+    avg_trx_curr = me.calculate_daily_rate(tot_trx_curr, days_curr)
+    avg_trx_prev = me.calculate_daily_rate(tot_trx_prev, days_prev)
+    growth_trx = me.calculate_daily_growth(avg_trx_curr, avg_trx_prev)
+    diff_trx = growth_trx["growth_diff"]
+    growth_trx_pct = growth_trx["growth_pct"]
 
     mem_per_day_curr = df_curr_sukses.groupby("date")["ar_id"].nunique()
     mem_per_day_prev = df_prev_sukses.groupby("date")["ar_id"].nunique()
@@ -184,9 +192,9 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
         c_ch = df_curr_sukses[df_curr_sukses["cabang"] == ch]
         p_ch = df_prev_sukses[df_prev_sukses["cabang"] == ch]
 
-        d_trx_c = round(float(len(c_ch) / days_curr), 1)
-        d_trx_p = round(float(len(p_ch) / days_prev), 1)
-        diff_c_trx = round(d_trx_c - d_trx_p, 1)
+        d_trx_c = me.calculate_daily_rate(len(c_ch), days_curr)
+        d_trx_p = me.calculate_daily_rate(len(p_ch), days_prev)
+        diff_c_trx = me.calculate_daily_growth(d_trx_c, d_trx_p)["growth_diff"]
 
         d_mem_c = round(float(c_ch.groupby("date")["ar_id"].nunique().mean()), 1) if not c_ch.empty else 0.0
         d_mem_p = round(float(p_ch.groupby("date")["ar_id"].nunique().mean()), 1) if not p_ch.empty else 0.0
@@ -230,7 +238,7 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
         "share_pct": 100.0,
         "daily_curr": round(tot_branch_curr_trx, 1),
         "daily_prev": round(tot_branch_prev_trx, 1),
-        "diff_trx": round(tot_branch_curr_trx - tot_branch_prev_trx, 1),
+        "diff_trx": me.calculate_daily_growth(tot_branch_curr_trx, tot_branch_prev_trx)["growth_diff"],
         "daily_mem_curr": round(tot_branch_curr_mem, 1),
         "daily_mem_prev": round(tot_branch_prev_mem, 1),
         "diff_mem": round(tot_branch_curr_mem - tot_branch_prev_mem, 1),
@@ -253,18 +261,54 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
 
     def calc_metrics(df_sub, days):
         if df_sub.empty:
-            return {"daily_trx": 0.0, "sukses_pct": 0.0, "avg_dur_sec": 0.0, "dur_str": "00:00"}
+            return {
+                "daily_trx": 0.0,
+                "sukses_pct": 0.0,
+                "avg_dur_sec": 0.0,
+                "dur_str": "00:00",
+                "net_arpu": 0.0,
+                "arpu_int": 0
+            }
         tot = len(df_sub)
         sukses_df = df_sub[df_sub["is_sukses"]]
         sukses_cnt = len(sukses_df)
-        d_trx = round(float(sukses_cnt / days), 1)
+        d_trx = me.calculate_daily_rate(sukses_cnt, days)
         s_rate = round(float(sukses_cnt / tot * 100), 1) if tot > 0 else 0.0
         dur_avg = float(sukses_df["durasi_sec"].mean()) if not sukses_df.empty else 0.0
+        
+        # Net ARPU sesuai Hukum 2 GEMINI.md (Base Price / Trx Sukses)
+        net_rev = float(sukses_df["base_price"].sum()) if not sukses_df.empty else 0.0
+        net_arpu = me.calculate_net_arpu(net_rev, sukses_cnt)
+
         return {
             "daily_trx": d_trx,
             "sukses_pct": s_rate,
             "avg_dur_sec": dur_avg,
-            "dur_str": _format_duration(dur_avg)
+            "dur_str": me.format_duration_str(dur_avg),
+            "net_arpu": net_arpu,
+            "arpu_int": int(round(net_arpu))
+        }
+
+    def build_row(name, level, row_type, m_c, m_p):
+        diff_arpu = int(round(m_c["net_arpu"] - m_p["net_arpu"]))
+        growth_arpu_pct = round((diff_arpu / m_p["net_arpu"] * 100), 1) if m_p["net_arpu"] > 0 else 0.0
+        return {
+            "name": name,
+            "level": level,
+            "type": row_type,
+            "daily_curr": m_c["daily_trx"],
+            "daily_prev": m_p["daily_trx"],
+            "diff_trx": me.calculate_daily_growth(m_c["daily_trx"], m_p["daily_trx"])["growth_diff"],
+            "sukses_curr": m_c["sukses_pct"],
+            "sukses_prev": m_p["sukses_pct"],
+            "diff_sukses": round(m_c["sukses_pct"] - m_p["sukses_pct"], 1),
+            "dur_curr_str": m_c["dur_str"],
+            "dur_prev_str": m_p["dur_str"],
+            "diff_dur_sec": int(round(m_c["avg_dur_sec"] - m_p["avg_dur_sec"])),
+            "arpu_curr": m_c["arpu_int"],
+            "arpu_prev": m_p["arpu_int"],
+            "diff_arpu": diff_arpu,
+            "growth_arpu_pct": growth_arpu_pct
         }
 
     # Build exact hierarchy list
@@ -280,20 +324,7 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
     if m_c_telco["daily_trx"] > max_prod_trx:
         max_prod_trx = m_c_telco["daily_trx"]
 
-    prod_rows.append({
-        "name": "TELCO",
-        "level": 0,
-        "type": "category",
-        "daily_curr": m_c_telco["daily_trx"],
-        "daily_prev": m_p_telco["daily_trx"],
-        "diff_trx": round(m_c_telco["daily_trx"] - m_p_telco["daily_trx"], 1),
-        "sukses_curr": m_c_telco["sukses_pct"],
-        "sukses_prev": m_p_telco["sukses_pct"],
-        "diff_sukses": round(m_c_telco["sukses_pct"] - m_p_telco["sukses_pct"], 1),
-        "dur_curr_str": m_c_telco["dur_str"],
-        "dur_prev_str": m_p_telco["dur_str"],
-        "diff_dur_sec": int(round(m_c_telco["avg_dur_sec"] - m_p_telco["avg_dur_sec"]))
-    })
+    prod_rows.append(build_row("TELCO", 0, "category", m_c_telco, m_p_telco))
 
     # Operators under TELCO
     for op in cfg["telco_operators"]:
@@ -302,23 +333,16 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
         m_c_op = calc_metrics(c_op, days_curr)
         m_p_op = calc_metrics(p_op, days_prev)
 
-        prod_rows.append({
-            "name": op,
-            "level": 1,
-            "type": "operator",
-            "daily_curr": m_c_op["daily_trx"],
-            "daily_prev": m_p_op["daily_trx"],
-            "diff_trx": round(m_c_op["daily_trx"] - m_p_op["daily_trx"], 1),
-            "sukses_curr": m_c_op["sukses_pct"],
-            "sukses_prev": m_p_op["sukses_pct"],
-            "diff_sukses": round(m_c_op["sukses_pct"] - m_p_op["sukses_pct"], 1),
-            "dur_curr_str": m_c_op["dur_str"],
-            "dur_prev_str": m_p_op["dur_str"],
-            "diff_dur_sec": int(round(m_c_op["avg_dur_sec"] - m_p_op["avg_dur_sec"]))
-        })
+        prod_rows.append(build_row(op, 1, "operator", m_c_op, m_p_op))
 
-    # Other categories (EWALLET, PPOB, TOKEN PLN, TRANSFER STOK, VOUCHER GAME)
+    # Other categories (EWALLET, TOKEN PLN, PPOB, VOUCHER GAME, TRANSFER STOK, etc.)
     other_cats = [c for c in cfg["categories"] if c != "TELCO"]
+    present_cats = set(df_curr_all["kategori"].dropna().unique()).union(set(df_prev_all["kategori"].dropna().unique()))
+    for c in sorted(present_cats):
+        if c != "TELCO" and c != "LAINNYA" and c not in other_cats:
+            other_cats.append(c)
+    if "LAINNYA" in present_cats and "LAINNYA" not in other_cats:
+        other_cats.append("LAINNYA")
     for cat in other_cats:
         c_cat = df_curr_all[df_curr_all["kategori"] == cat]
         p_cat = df_prev_all[df_prev_all["kategori"] == cat]
@@ -328,20 +352,7 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
         if m_c_cat["daily_trx"] > max_prod_trx:
             max_prod_trx = m_c_cat["daily_trx"]
 
-        prod_rows.append({
-            "name": cat,
-            "level": 0,
-            "type": "category",
-            "daily_curr": m_c_cat["daily_trx"],
-            "daily_prev": m_p_cat["daily_trx"],
-            "diff_trx": round(m_c_cat["daily_trx"] - m_p_cat["daily_trx"], 1),
-            "sukses_curr": m_c_cat["sukses_pct"],
-            "sukses_prev": m_p_cat["sukses_pct"],
-            "diff_sukses": round(m_c_cat["sukses_pct"] - m_p_cat["sukses_pct"], 1),
-            "dur_curr_str": m_c_cat["dur_str"],
-            "dur_prev_str": m_p_cat["dur_str"],
-            "diff_dur_sec": int(round(m_c_cat["avg_dur_sec"] - m_p_cat["avg_dur_sec"]))
-        })
+        prod_rows.append(build_row(cat, 0, "category", m_c_cat, m_p_cat))
 
     # Hitung bar_pct relative to max_prod_trx
     for r in prod_rows:
@@ -351,21 +362,8 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
     m_c_grand = calc_metrics(df_curr_all, days_curr)
     m_p_grand = calc_metrics(df_prev_all, days_prev)
 
-    grand_total_prod = {
-        "name": "GRAND TOTAL",
-        "level": 0,
-        "type": "grand_total",
-        "daily_curr": m_c_grand["daily_trx"],
-        "daily_prev": m_p_grand["daily_trx"],
-        "diff_trx": round(m_c_grand["daily_trx"] - m_p_grand["daily_trx"], 1),
-        "sukses_curr": m_c_grand["sukses_pct"],
-        "sukses_prev": m_p_grand["sukses_pct"],
-        "diff_sukses": round(m_c_grand["sukses_pct"] - m_p_grand["sukses_pct"], 1),
-        "dur_curr_str": m_c_grand["dur_str"],
-        "dur_prev_str": m_p_grand["dur_str"],
-        "diff_dur_sec": int(round(m_c_grand["avg_dur_sec"] - m_p_grand["avg_dur_sec"])),
-        "bar_pct": 100.0
-    }
+    grand_total_prod = build_row("GRAND TOTAL", 0, "grand_total", m_c_grand, m_p_grand)
+    grand_total_prod["bar_pct"] = 100.0
 
     return {
         "brand": brand,

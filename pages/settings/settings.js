@@ -5,7 +5,6 @@ let _systemDataCache = null;
 async function loadSettings() {
   console.log("[SETTINGS] Memuat modul Sistem & Pengaturan...");
   initThemeButtons();
-  initBranchPreference();
   await fetchSystemInfo();
 }
 
@@ -20,7 +19,6 @@ async function fetchSystemInfo() {
     renderFreshnessCards(_systemDataCache.brands);
     renderMasterFilesTable(_systemDataCache.master_files);
     renderSummaryPlatform(_systemDataCache);
-    populateBranchPreferences(_systemDataCache.branches);
   } catch (err) {
     console.error("[SETTINGS] Error fetch system info:", err);
     const container = document.getElementById("freshness-cards-container");
@@ -199,37 +197,16 @@ function updateThemeButtonActiveState(theme) {
   if (lightBtn) lightBtn.classList.toggle("active", theme === "light");
   if (darkBtn) darkBtn.classList.toggle("active", theme === "dark");
 }
+window.updateThemeButtonActiveState = updateThemeButtonActiveState;
 
 function setAppTheme(theme) {
   if (theme !== "light" && theme !== "dark") return;
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("theme_preference", theme);
   updateThemeButtonActiveState(theme);
-}
-
-function initBranchPreference() {
-  const select = document.getElementById("pref-cabang-select");
-  if (!select) return;
-  const savedBranch = localStorage.getItem("default_cabang") || "ALL";
-  select.value = savedBranch;
-}
-
-function populateBranchPreferences(branches) {
-  const select = document.getElementById("pref-cabang-select");
-  if (!select || !branches) return;
-
-  const saved = localStorage.getItem("default_cabang") || "ALL";
-  let html = `<option value="ALL">Semua Cabang (Global)</option>`;
-  branches.forEach(b => {
-    html += `<option value="${b}">${b}</option>`;
-  });
-  select.innerHTML = html;
-  select.value = saved;
-}
-
-function setDefaultCabangPreference(val) {
-  localStorage.setItem("default_cabang", val);
-  console.log("[SETTINGS] Default cabang preference tersimpan:", val);
+  if (typeof window.updateThemeToggleUI === "function") {
+    window.updateThemeToggleUI(theme);
+  }
 }
 
 async function refreshSystemData(btn) {
@@ -261,3 +238,9 @@ async function refreshSystemData(btn) {
     }, 400);
   }
 }
+
+// Global exports for shell router & admin integration
+window.loadSettings = loadSettings;
+window.refreshSystemData = refreshSystemData;
+window.setAppTheme = setAppTheme;
+

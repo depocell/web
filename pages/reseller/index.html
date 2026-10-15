@@ -2,20 +2,41 @@
 
 <div style="display: flex; flex-direction: column; gap: 20px;">
 
+  <!-- NAVIGATION MENU: AGEN & RESELLER -->
+  <div class="ar-nav-strip">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <a href="#agen?tab=ringkasan" class="ar-main-tab-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span>Tab Ringkasan (Top Bottom 10 Agen Daily Trx)</span>
+      </a>
+
+      <a href="#reseller" class="ar-main-tab-btn active">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+        <span>Tab Analisa Ewallet</span>
+      </a>
+    </div>
+  </div>
+
   <!-- HEADER BAR -->
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
     <div>
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Agen &amp; Reseller Analytics</h2>
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin: 0;">Analisa Ewallet</h2>
         <span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700;">ASTAGA</span>
-        
-        <!-- Toggle Level Reseller / Agen -->
-        <div style="display: inline-flex; background: var(--table-header); padding: 3px; border-radius: 8px; border: 1px solid var(--surface-border);">
-          <a href="#reseller" style="text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--primary); color: #ffffff; box-shadow: 0 1px 2px rgba(37,99,235,0.25);">Level Reseller</a>
-          <a href="#agen" style="text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--text-muted); transition: all 0.15s ease;">Level Agen (Induk)</a>
+        <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--table-header); padding: 3px 4px; border-radius: 8px; border: 1px solid var(--surface-border); margin-left: 4px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding: 0 4px 0 6px;">Level:</span>
+          <a href="#reseller" class="ar-sub-tab-btn active">Reseller Ewallet</a>
+          <a href="#agen" class="ar-sub-tab-btn">Agen Ewallet (Induk)</a>
         </div>
       </div>
-      <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 2px;">
+      <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">
         Profil Customer, Komposisi Produk, % EWALLET, dan Tracking Retensi / Churn Reseller
       </p>
     </div>
@@ -43,6 +64,7 @@
         </div>
       </div>
 
+
       <!-- Modern Excel Export Button -->
       <button type="button" onclick="exportResellerExcel()" class="btn-excel-export" title="Export data terfilter ke format Microsoft Excel (.xlsx)">
         <svg class="excel-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -58,48 +80,61 @@
     </div>
   </div>
 
-  <!-- 6 KPI SUMMARY CARDS -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
+  <!-- 7 KPI SUMMARY CARDS -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
     <!-- Card 1: Total Terdaftar -->
     <div class="card" style="padding: 16px;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Terdaftar</div>
-      <div id="kpi-total-registered" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: var(--text-main);">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Master Customer ASTAGA</div>
+      <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Terdaftar</div>
+      <div id="kpi-total-registered" style="font-size: 20px; font-weight: 800; margin-top: 6px; color: var(--text-main);">-</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Master Customer ASTAGA</div>
     </div>
 
     <!-- Card 2: Aktif Bulan Ini -->
     <div class="card" style="padding: 16px; border-left: 4px solid #2563eb;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Aktif Bulan Ini</div>
-      <div id="kpi-active-current" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #2563eb;">-</div>
-      <div id="kpi-active-rate" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">- % dari master</div>
+      <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Aktif Bulan Ini</div>
+      <div id="kpi-active-current" style="font-size: 20px; font-weight: 800; margin-top: 6px; color: #2563eb;">-</div>
+      <div id="kpi-active-rate" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">- % dari master</div>
     </div>
 
     <!-- Card 3: Aktif Rutin -->
     <div class="card" style="padding: 16px; border-left: 4px solid #059669;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Aktif Rutin (Retained)</div>
-      <div id="kpi-retained" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #059669;">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Aktif bln lalu &amp; bln ini</div>
+      <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Aktif Rutin (Retained)</div>
+      <div id="kpi-retained" style="font-size: 20px; font-weight: 800; margin-top: 6px; color: #059669;">-</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Aktif bln lalu &amp; bln ini</div>
     </div>
 
-    <!-- Card 4: Baru / Reaktivasi -->
+    <!-- Card 4: Member Baru (Trx) -->
     <div class="card" style="padding: 16px; border-left: 4px solid #0284c7;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Baru / Reaktivasi</div>
-      <div id="kpi-new-reactivated" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #0284c7;">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Kembali / baru transaksi</div>
+      <div style="font-size: 11.5px; font-weight: 600; color: #0284c7; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        Member Baru (Trx)
+      </div>
+      <div id="kpi-new-active" style="font-size: 20px; font-weight: 800; margin-top: 6px; color: #0284c7;">-</div>
+      <div id="kpi-new-rate" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Daftar &amp; transaksi bln ini</div>
     </div>
 
-    <!-- Card 5: Pasif / Churn -->
+    <!-- Card 5: Reaktivasi -->
+    <div class="card" style="padding: 16px; border-left: 4px solid #f59e0b;">
+      <div style="font-size: 11.5px; font-weight: 600; color: #b45309; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        Reaktivasi
+      </div>
+      <div id="kpi-reactivated" style="font-size: 20px; font-weight: 800; margin-top: 6px; color: #d97706;">-</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Akun lama belanja lagi</div>
+    </div>
+
+    <!-- Card 6: Pasif / Churn -->
     <div class="card" style="padding: 16px; border-left: 4px solid #dc2626;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Pasif / Churn</div>
-      <div id="kpi-churned" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #dc2626;">-</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Aktif bln lalu, 0 bln ini</div>
+      <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Pasif / Churn</div>
+      <div id="kpi-churned" style="font-size: 20px; font-weight: 800; margin-top: 6px; color: #dc2626;">-</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Aktif bln lalu, 0 bln ini</div>
     </div>
 
-    <!-- Card 6: Total Trx & % EWALLET -->
+    <!-- Card 7: Total Trx & % EWALLET -->
     <div class="card" style="padding: 16px; border-left: 4px solid #7c3aed;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Trx &amp; % EWALLET</div>
-      <div id="kpi-total-trx" style="font-size: 22px; font-weight: 800; margin-top: 6px; color: #7c3aed;">-</div>
-      <div id="kpi-pct-ewallet" style="font-size: 11.5px; font-weight: 600; color: #7c3aed; margin-top: 4px;">- % EWALLET</div>
+      <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Daily Run-Rate &amp; % EW</div>
+      <div id="kpi-total-trx" style="font-size: 20px; font-weight: 800; margin-top: 6px; color: #7c3aed;">-</div>
+      <div id="kpi-pct-ewallet" style="font-size: 11px; font-weight: 600; color: #7c3aed; margin-top: 4px;">- % EWALLET</div>
     </div>
   </div>
 
@@ -112,13 +147,20 @@
         <button type="button" class="reseller-tab active" onclick="setResellerTab('semua_aktif', this)">
           Semua Aktif (<span id="count-semua-aktif">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setResellerTab('rutin', this)">
+        <button type="button" class="reseller-tab" onclick="setResellerTab('baru', this)" style="border-color: #38bdf8; display: inline-flex; align-items: center; gap: 5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="color: #0284c7;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          Member Baru (<span id="count-baru">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setResellerTab('reaktivasi', this)" style="border-color: #fbbf24; display: inline-flex; align-items: center; gap: 5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #d97706;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Reaktivasi (<span id="count-reaktivasi">0</span>)
+        </button>
+        <button type="button" class="reseller-tab" onclick="setResellerTab('rutin', this)" style="display: inline-flex; align-items: center; gap: 5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #059669;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
           Aktif Rutin (<span id="count-rutin">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setResellerTab('baru', this)">
-          Baru / Reaktivasi (<span id="count-baru">0</span>)
-        </button>
-        <button type="button" class="reseller-tab" onclick="setResellerTab('churn', this)">
+        <button type="button" class="reseller-tab" onclick="setResellerTab('churn', this)" style="display: inline-flex; align-items: center; gap: 5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #dc2626;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
           Pasif / Churn (<span id="count-churn">0</span>)
         </button>
         <button type="button" class="reseller-tab" onclick="setResellerTab('ewallet_high', this)">
@@ -126,8 +168,22 @@
         </button>
       </div>
 
-      <!-- Kanan: Search & Cabang -->
+      <!-- Kanan: Search & Cabang & Sort -->
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <!-- Sort Control -->
+        <div class="custom-select-box">
+          <select id="reseller-sort-select" onchange="applyResellerFilters()" class="modern-select">
+            <option value="daily_desc">Daily Trx Tertinggi</option>
+            <option value="growth_desc">Top Growth Harian</option>
+            <option value="growth_asc">Drop Terbesar Harian</option>
+            <option value="ewallet_desc">% EWALLET Tertinggi</option>
+            <option value="total_desc">Total Trx Terbanyak</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
         <!-- Modern Cabang Filter -->
         <div class="custom-select-box filter-cabang-box">
           <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -176,7 +232,7 @@
             <th>Reseller</th>
             <th>Cabang &amp; SCO</th>
             <th>Jadwal &amp; Limit</th>
-            <th class="text-right">Total Trx</th>
+            <th class="text-right" id="th-trx-reseller">Daily Trx (vs Bln Lalu)</th>
             <th class="text-right">Trx EWALLET</th>
             <th class="text-right">% EWALLET</th>
             <th>Komposisi Produk</th>
@@ -238,10 +294,17 @@
           <strong id="modal-jadwal">-</strong>
         </div>
         <div>
-          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Limit:</span>
-          <strong id="modal-limit">-</strong>
+          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Tipe &amp; Limit:</span>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+            <span id="modal-type" class="pill" style="font-size: 11px;">-</span>
+            <strong id="modal-limit">-</strong>
+          </div>
         </div>
         <div>
+          <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Tgl. Daftar:</span>
+          <strong id="modal-tgl-daftar">-</strong>
+        </div>
+        <div style="grid-column: span 2;">
           <span style="color: var(--text-muted); font-size: 11.5px; display: block;">Status Keaktifan:</span>
           <span id="modal-status" class="pill">-</span>
         </div>

@@ -12,6 +12,7 @@ import datetime
 import subprocess
 import pandas as pd
 import numpy as np
+import engines.metrics_engine as me
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
@@ -46,40 +47,67 @@ BULAN_SHORT_EN = {
 
 def load_master_customers():
     """
-    Load mapping reseller -> agen dan profil agen dari cache parquet atau Excel MASTER.
+    Load mapping reseller -> agen dan profil agen dari cache parquet atau database SQLite master_data.db.
     """
     agen_pq = os.path.join(CACHE_DIR, "agen_astaga.parquet")
     reseller_pq = os.path.join(CACHE_DIR, "reseller_astaga.parquet")
-    p_cust = os.path.join(MASTER_DIR, "CUSTOMER_ASTAGA.xlsx")
-
-    # Cek mtime Excel
-    cust_mtime = os.path.getmtime(p_cust) if os.path.exists(p_cust) else 0
+    db_path = os.path.join(MASTER_DIR, "master_data.db")
+    db_mtime = os.path.getmtime(db_path) if os.path.exists(db_path) else 0
 
     # 1. Load Agen (sheet Mapping_Agen / Agen)
-    if os.path.exists(agen_pq) and os.path.getmtime(agen_pq) >= cust_mtime:
+    if os.path.exists(agen_pq) and (db_mtime == 0 or os.path.getmtime(agen_pq) >= db_mtime):
         df_a = pd.read_parquet(agen_pq)
     else:
-        with pd.ExcelFile(p_cust, engine="openpyxl") as xl:
-            s_name = "Mapping_Agen" if "Mapping_Agen" in xl.sheet_names else ("Agen" if "Agen" in xl.sheet_names else xl.sheet_names[0])
-            df_a = pd.read_excel(xl, sheet_name=s_name)
-        for c in df_a.columns:
-            if df_a[c].dtype == object or str(df_a[c].dtype) == "object":
-                df_a[c] = df_a[c].fillna("").astype(str).str.replace("\xa0", " ").str.strip()
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        df_a.to_parquet(agen_pq, index=False)
+        try:
+            import sqlite3
+            with sqlite3.connect(db_path) as conn:
+                df_a = pd.read_sql_query("""
+                    SELECT agen_id AS "AGEN ID", nama_agen AS "AGEN NAME", cabang AS CABANG,
+                           type AS TYPE, sco AS SCO, dso AS DSO, jadwal AS JADWAL,
+                           location AS LOCATION, 1 AS STATUS
+                    FROM agents WHERE brand = ?
+                """, conn, params=('ASTAGA',))
+            for c in df_a.columns:
+                df_a[c] = df_a[c].fillna("").astype(str).str.strip()
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            df_a.to_parquet(agen_pq, index=False)
+        except Exception:
+            p_cust = os.path.join(MASTER_DIR, "CUSTOMER_ASTAGA.xlsx")
+            if os.path.exists(p_cust):
+                with pd.ExcelFile(p_cust, engine="openpyxl") as xl:
+                    s_name = "Mapping_Agen" if "Mapping_Agen" in xl.sheet_names else ("Agen" if "Agen" in xl.sheet_names else xl.sheet_names[0])
+                    df_a = pd.read_excel(xl, sheet_name=s_name)
+                for c in df_a.columns:
+                    df_a[c] = df_a[c].fillna("").astype(str).str.replace("\xa0", " ").str.strip()
+            else:
+                df_a = pd.DataFrame()
 
     # 2. Load Reseller
-    if os.path.exists(reseller_pq) and os.path.getmtime(reseller_pq) >= cust_mtime:
+    if os.path.exists(reseller_pq) and (db_mtime == 0 or os.path.getmtime(reseller_pq) >= db_mtime):
         df_r = pd.read_parquet(reseller_pq)
     else:
-        with pd.ExcelFile(p_cust, engine="openpyxl") as xl:
-            s_name = next((s for s in xl.sheet_names if "reseller" in s.lower()), "Reseller")
-            df_r = pd.read_excel(xl, sheet_name=s_name)
-        for c in df_r.columns:
-            if df_r[c].dtype == object or str(df_r[c].dtype) == "object":
-                df_r[c] = df_r[c].fillna("").astype(str).str.replace("\xa0", " ").str.strip()
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        df_r.to_parquet(reseller_pq, index=False)
+        try:
+            import sqlite3
+            with sqlite3.connect(db_path) as conn:
+                df_r = pd.read_sql_query("""
+                    SELECT kode_reseller AS "Kode Reseller", nama_reseller AS "Reseller Name",
+                           grup AS "Group", root_agen_id AS "Agen id", cabang AS Cabang
+                    FROM resellers WHERE brand = ?
+                """, conn, params=('ASTAGA',))
+            for c in df_r.columns:
+                df_r[c] = df_r[c].fillna("").astype(str).str.strip()
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            df_r.to_parquet(reseller_pq, index=False)
+        except Exception:
+            p_cust = os.path.join(MASTER_DIR, "CUSTOMER_ASTAGA.xlsx")
+            if os.path.exists(p_cust):
+                with pd.ExcelFile(p_cust, engine="openpyxl") as xl:
+                    s_name = next((s for s in xl.sheet_names if "reseller" in s.lower()), "Reseller")
+                    df_r = pd.read_excel(xl, sheet_name=s_name)
+                for c in df_r.columns:
+                    df_r[c] = df_r[c].fillna("").astype(str).str.replace("\xa0", " ").str.strip()
+            else:
+                df_r = pd.DataFrame()
 
     df_r["Kode Reseller"] = df_r["Kode Reseller"].astype(str).str.replace("\xa0", " ").str.strip()
     df_r["Agen id"] = df_r["Agen id"].astype(str).str.replace("\xa0", " ").str.strip()
@@ -109,7 +137,7 @@ def load_master_customers():
             "status": str(row.get("STATUS", "")).strip(),
         }
 
-    return reseller_to_agen, agen_profiles, df_a
+    return reseller_to_agen, agen_profiles, df_a, df_r
 
 
 def is_stale():
@@ -118,7 +146,7 @@ def is_stale():
     Return True jika:
       - data_sco.json belum ada, ATAU
       - trx_astaga_2026.parquet lebih baru dari data_sco.json, ATAU
-      - CUSTOMER_ASTAGA.xlsx lebih baru dari data_sco.json, ATAU
+      - master_data.db lebih baru dari data_sco.json, ATAU
       - KPI_SCO.xlsx lebih baru dari data_sco.json.
     """
     if not os.path.exists(JSON_OUTPUT) or not os.path.exists(RESELLER_JSON_OUTPUT):
@@ -131,8 +159,8 @@ def is_stale():
     if os.path.exists(p_trx) and os.path.getmtime(p_trx) > json_mtime:
         return True
 
-    # Cek master customer
-    p_master = os.path.join(MASTER_DIR, "CUSTOMER_ASTAGA.xlsx")
+    # Cek master data DB
+    p_master = os.path.join(MASTER_DIR, "master_data.db")
     if os.path.exists(p_master) and os.path.getmtime(p_master) > json_mtime:
         return True
 
@@ -155,6 +183,7 @@ def generate_sco_data():
         te.build_cache("ASTAGA", "2026")
 
     df_trx = pd.read_parquet(p_trx)
+    df_trx = me.filter_astaga_internal(df_trx)
     df_sukses = df_trx[df_trx["status"].astype(str).str.lower().str.contains("sukses", na=False)].copy()
 
     # Ekstrak tanggal dan kode bulan
@@ -164,7 +193,7 @@ def generate_sco_data():
     df_sukses["ar_id"] = df_sukses["ar_id"].astype(str).str.strip()
 
     # Load master
-    reseller_to_agen, agen_profiles, _ = load_master_customers()
+    reseller_to_agen, agen_profiles, df_a, df_r = load_master_customers()
 
     # Vectorized mapping
     df_sukses["AGEN_ID"] = df_sukses["ar_id"].map(reseller_to_agen).fillna(df_sukses["ar_id"])
@@ -204,7 +233,7 @@ def generate_sco_data():
         label_id = BULAN_SHORT_ID.get(mm, mm)
 
         df_m = df_sukses[df_sukses["MonthCode"] == m]
-        days_count = max(1, df_m["Date"].nunique())
+        days_count = me.get_active_days(df_m, date_col="tgl_dt")
         last_date = df_m["Date"].max() if not df_m.empty else ""
         last_dt_formatted = ""
         if last_date:
@@ -222,11 +251,11 @@ def generate_sco_data():
 
         # Group by category (SCO, CABANG)
         grp_cat = df_m.groupby(["C_SCO", "C_CB"]).size()
-        month_cat_counts[m] = {k: v / days_count for k, v in grp_cat.to_dict().items()}
+        month_cat_counts[m] = {k: me.calculate_daily_rate(v, days_count) for k, v in grp_cat.to_dict().items()}
 
         # Group by AGEN_ID
         grp_agen = df_m.groupby("AGEN_ID").size()
-        month_agen_counts[m] = {k: v / days_count for k, v in grp_agen.to_dict().items()}
+        month_agen_counts[m] = {k: me.calculate_daily_rate(v, days_count) for k, v in grp_agen.to_dict().items()}
 
         # Daily trends
         df_h = df_m.groupby(["Date", "C_SCO"]).size().reset_index(name="Trx")
@@ -650,18 +679,14 @@ def generate_reseller_data(df_sukses: pd.DataFrame = None, months: list = None) 
                 import engines.transaction_engine as te
                 te.build_cache("ASTAGA", "2026")
             df_trx = pd.read_parquet(p_trx)
+            df_trx = me.filter_astaga_internal(df_trx)
             df_sukses = df_trx[df_trx["status"].astype(str).str.lower().str.contains("sukses", na=False)].copy()
             df_sukses["tgl_dt"] = pd.to_datetime(df_sukses["tgl_entry"])
             df_sukses["MonthCode"] = df_sukses["tgl_dt"].dt.strftime("%m%y")
             df_sukses["ar_id"] = df_sukses["ar_id"].astype(str).str.strip()
 
         # Load master mapping
-        p_cust = os.path.join(MASTER_DIR, "CUSTOMER_ASTAGA.xlsx")
-        with pd.ExcelFile(p_cust, engine="openpyxl") as xl:
-            s_res = next((s for s in xl.sheet_names if "reseller" in s.lower()), "Reseller")
-            df_r = pd.read_excel(xl, sheet_name=s_res)
-            s_agen = "Mapping_Agen" if "Mapping_Agen" in xl.sheet_names else ("Agen" if "Agen" in xl.sheet_names else xl.sheet_names[0])
-            df_a = pd.read_excel(xl, sheet_name=s_agen)
+        _, _, df_a, df_r = load_master_customers()
 
         for col in ["Kode Reseller", "Reseller Name", "Group", "Agen id"]:
             if col in df_r.columns:

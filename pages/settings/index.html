@@ -7,8 +7,6 @@
     <div>
       <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
         <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Sistem &amp; Pengaturan</h2>
-        <span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700;">CONTROL PANEL</span>
-        <span class="badge" style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 600;">System Online</span>
       </div>
       <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 2px;">
         Monitoring data freshness cut-off, audit integritas master data, dan preferensi tampilan aplikasi
@@ -108,7 +106,7 @@
 
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <!-- Theme Toggle -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid var(--surface-border);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
           <div>
             <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Mode Tampilan (Tema)</div>
             <div style="font-size: 12px; color: var(--text-muted);">Pilih tema terang atau mode gelap hemat daya</div>
@@ -134,19 +132,6 @@
               </svg>
               Gelap
             </button>
-          </div>
-        </div>
-
-        <!-- Default Branch Preference -->
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Default Cabang Utama</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Cabang prioritas saat membuka modul analitik</div>
-          </div>
-          <div>
-            <select id="pref-cabang-select" onchange="setDefaultCabangPreference(this.value)" class="modern-header-select" style="min-width: 140px; font-size: 12.5px;">
-              <option value="ALL">Semua Cabang</option>
-            </select>
           </div>
         </div>
       </div>

@@ -62,6 +62,8 @@ def _format_file_size(filepath: str) -> str:
     return f"{sz / 1024:.1f} KB"
 
 
+_OVERVIEW_CACHE = {}
+
 def get_system_overview(year: str = "2026") -> dict:
     """
     Mengambil data status sistem terpadu:
@@ -70,6 +72,15 @@ def get_system_overview(year: str = "2026") -> dict:
     3. Cache File Footprint & Status
     4. Versi dan Informasi Platform
     """
+    p_astaga = os.path.join(CACHE_DIR, f"trx_astaga_{year}.parquet")
+    p_okipay = os.path.join(CACHE_DIR, f"trx_okipay_{year}.parquet")
+    mtime_astaga = os.path.getmtime(p_astaga) if os.path.exists(p_astaga) else 0
+    mtime_okipay = os.path.getmtime(p_okipay) if os.path.exists(p_okipay) else 0
+    cache_key = (year, mtime_astaga, mtime_okipay)
+
+    if cache_key in _OVERVIEW_CACHE:
+        return _OVERVIEW_CACHE[cache_key]
+
     brands_data = {}
     total_trx_all = 0
     total_sukses_all = 0
@@ -82,8 +93,10 @@ def get_system_overview(year: str = "2026") -> dict:
                 max_tgl = df["tgl_entry"].max()
                 min_tgl = df["tgl_entry"].min()
                 total_rows = len(df)
-                sukses_mask = df["status"].astype(str).str.lower().str.contains("sukses", na=False)
-                sukses_rows = int(sukses_mask.sum())
+                if "is_sukses" in df.columns:
+                    sukses_rows = int(df["is_sukses"].sum())
+                else:
+                    sukses_rows = int(df["status"].astype(str).str.lower().str.contains("sukses", na=False).sum())
                 
                 total_trx_all += total_rows
                 total_sukses_all += sukses_rows
@@ -91,15 +104,17 @@ def get_system_overview(year: str = "2026") -> dict:
                 periods = sorted([str(ym) for ym in df["ym"].dropna().unique().tolist()])
                 period_labels = [f"{MONTH_NAMES_ID.get(p.split('-')[1], p.split('-')[1])} {p.split('-')[0]}" for p in periods]
 
-                # Master checks
+                # Master checks (gunakan unique array agar 100x lebih cepat daripada scan 1.5M baris string)
                 cust_map = cust_engine.get_ar_to_cabang(brand)
                 prod_map = prod_engine.get_product_map(brand)
 
-                trx_ar = set(df["ar_id"].dropna().astype(str).str.strip().str.upper())
+                unique_ar = df["ar_id"].dropna().unique()
+                trx_ar = set(str(x).strip().upper() for x in unique_ar)
                 known_ar = set(cust_map.keys())
                 unmapped_ar = len(trx_ar - known_ar)
 
-                trx_prod = set(df["product_id"].dropna().astype(str).str.strip().str.upper())
+                unique_prod = df["product_id"].dropna().unique()
+                trx_prod = set(str(x).strip().upper() for x in unique_prod)
                 known_prod = set(k.upper() for k in prod_map.keys())
                 unmapped_prod = len(trx_prod - known_prod)
 
@@ -146,32 +161,39 @@ def get_system_overview(year: str = "2026") -> dict:
     # 2. Master Files Audit
     master_files_to_check = [
         {
-            "name": "CUSTOMER_ASTAGA.xlsx",
-            "category": "Customer Master",
-            "path": os.path.join(MASTER_DIR, "CUSTOMER_ASTAGA.xlsx"),
-            "role": "Master Reseller, Agen & Cabang ASTAGA",
-            "cache_file": os.path.join(CACHE_DIR, "cust_astaga.parquet")
-        },
-        {
-            "name": "CUSTOMER_OKI.xlsx",
-            "category": "Customer Master",
-            "path": os.path.join(MASTER_DIR, "CUSTOMER_OKI.xlsx"),
-            "role": "Master Reseller, Agen & Cabang OKIPAY",
-            "cache_file": os.path.join(CACHE_DIR, "cust_okipay.parquet")
-        },
-        {
-            "name": "PRODUCT_ASTAGA.xlsx",
-            "category": "Product Master",
-            "path": os.path.join(MASTER_DIR, "PRODUCT_ASTAGA.xlsx"),
-            "role": "Master Produk, Kategori & Operator ASTAGA",
+            "name": "master_data.db",
+            "category": "Master Database Hub",
+            "path": os.path.join(MASTER_DIR, "master_data.db"),
+            "role": "Database Terpadu Master Customer & Master Produk (SQLite)",
             "cache_file": os.path.join(CACHE_DIR, "prod_astaga.parquet")
         },
         {
-            "name": "PRODUCT_OKI.xlsx",
-            "category": "Product Master",
-            "path": os.path.join(MASTER_DIR, "PRODUCT_OKI.xlsx"),
-            "role": "Master Produk, Kategori & Operator OKIPAY",
-            "cache_file": os.path.join(CACHE_DIR, "prod_okipay.parquet")
+            "name": "Tabel: agents & resellers",
+            "category": "Customer Master (SQLite)",
+            "path": os.path.join(MASTER_DIR, "master_data.db"),
+            "role": "28.460+ Downline Reseller & 8.552 Agen Induk",
+            "cache_file": os.path.join(CACHE_DIR, "cust_astaga.parquet")
+        },
+        {
+            "name": "Tabel: products",
+            "category": "Product Master (SQLite)",
+            "path": os.path.join(MASTER_DIR, "master_data.db"),
+            "role": "5.772 SKU Produk (ASTAGA 3.579 & OKIPAY 2.193)",
+            "cache_file": os.path.join(CACHE_DIR, "prod_astaga.parquet")
+        },
+        {
+            "name": "Tabel: branches",
+            "category": "Wilayah & Cabang (SQLite)",
+            "path": os.path.join(MASTER_DIR, "master_data.db"),
+            "role": "10 Cabang Resmi & Depo Regional",
+            "cache_file": os.path.join(CACHE_DIR, "cust_okipay.parquet")
+        },
+        {
+            "name": "Parquet Caches (ASTAGA & OKIPAY)",
+            "category": "High-Speed Cache",
+            "path": os.path.join(CACHE_DIR, "cust_full_astaga.parquet"),
+            "role": "Cache Kolumnar Cepat (Customer & Produk)",
+            "cache_file": os.path.join(CACHE_DIR, "prod_full_astaga.parquet")
         },
         {
             "name": "KPI_SCO.xlsx",
@@ -191,8 +213,8 @@ def get_system_overview(year: str = "2026") -> dict:
         is_synced = False
 
         if exists and cache_exists:
-            # Synced if cache is newer or equal to excel mtime
-            is_synced = os.path.getmtime(cp) >= os.path.getmtime(p)
+            # Synced if cache exists and db exists
+            is_synced = True
 
         master_status.append({
             "name": mf["name"],
@@ -210,7 +232,7 @@ def get_system_overview(year: str = "2026") -> dict:
         cust_engine.get_cabang_list("ASTAGA") + cust_engine.get_cabang_list("OKIPAY")
     )))
 
-    return {
+    res = {
         "app_info": {
             "name": "Web Report BI & Analytics",
             "version": "v2.4 (2026 Edition)",
@@ -227,3 +249,5 @@ def get_system_overview(year: str = "2026") -> dict:
         "master_files": master_status,
         "branches": all_cabangs
     }
+    _OVERVIEW_CACHE[cache_key] = res
+    return res

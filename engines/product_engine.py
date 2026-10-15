@@ -1,7 +1,8 @@
 """
-product_engine.py
-Membaca dan menyediakan mapping master produk dari MASTER/PRODUCT_*.xlsx
-untuk ASTAGA dan OKIPAY dengan cache Parquet cepat.
+engines/product_engine.py
+Membaca dan menyediakan mapping master produk dari database SQLite (MASTER/master_data.db)
+dan Parquet cache (.cache/prod_*.parquet) untuk ASTAGA dan OKIPAY.
+100% mandiri tanpa ketergantungan pada file Excel.
 """
 
 import os
@@ -10,11 +11,7 @@ import pandas as pd
 BASE_DIR   = os.path.dirname(os.path.dirname(__file__))
 MASTER_DIR = os.path.join(BASE_DIR, "MASTER")
 CACHE_DIR  = os.path.join(BASE_DIR, ".cache")
-
-PRODUCT_FILES = {
-    "ASTAGA": os.path.join(MASTER_DIR, "PRODUCT_ASTAGA.xlsx"),
-    "OKIPAY": os.path.join(MASTER_DIR, "PRODUCT_OKI.xlsx"),
-}
+DB_PATH    = os.path.join(MASTER_DIR, "master_data.db")
 
 _PROD_MAP: dict[str, dict] = {}
 
@@ -22,70 +19,64 @@ _PROD_MAP: dict[str, dict] = {}
 def get_product_map(brand: str) -> dict:
     """
     Kembalikan dict {product_id: {'kategori': ..., 'operator': ...}}
+    Membaca dari in-memory cache RAM -> Parquet cache -> SQLite master_data.db.
     """
     brand = brand.upper()
     if brand in _PROD_MAP:
         return _PROD_MAP[brand]
 
-    path = PRODUCT_FILES.get(brand)
-    if not path or not os.path.exists(path):
-        return {}
-
     p_cache = os.path.join(CACHE_DIR, f"prod_{brand.lower()}.parquet")
+    db_mtime = os.path.getmtime(DB_PATH) if os.path.exists(DB_PATH) else 0
 
-    # Cek apakah cache parquet masih valid terhadap mtime Excel
-    excel_mtime = os.path.getmtime(path)
-    if os.path.exists(p_cache) and os.path.getmtime(p_cache) >= excel_mtime:
+    # 1. Coba baca dari cache Parquet jika up-to-date (<0.005s)
+    if os.path.exists(p_cache) and (db_mtime == 0 or os.path.getmtime(p_cache) >= db_mtime):
         try:
             df_cache = pd.read_parquet(p_cache)
-            # Fast vectorized dict creation (<0.005s)
-            pids = df_cache["product_id"].tolist()
-            kats = df_cache["kategori"].tolist()
-            ops  = df_cache["operator"].tolist()
-            mapping = {p: {"kategori": k, "operator": o} for p, k, o in zip(pids, kats, ops)}
-            _PROD_MAP[brand] = mapping
-            return mapping
+            if "product_id" in df_cache.columns and "tipe_produk" in df_cache.columns:
+                pids = df_cache["product_id"].tolist()
+                kats = df_cache["kategori"].tolist()
+                ops  = df_cache["operator"].tolist()
+                tips = df_cache["tipe_produk"].tolist()
+                mapping = {p: {"kategori": k, "operator": o, "tipe_produk": t} for p, k, o, t in zip(pids, kats, ops, tips)}
+                _PROD_MAP[brand] = mapping
+                return mapping
         except Exception:
             pass
 
-    mapping = {}
-    try:
-        with pd.ExcelFile(path, engine="openpyxl") as xl:
-            target_sheet = next((s for s in xl.sheet_names if "prod" in s.lower() or "sheet" in s.lower()), xl.sheet_names[0])
-            df = pd.read_excel(xl, sheet_name=target_sheet)
+    # 2. Coba baca dari database SQLite master_data.db
+    if os.path.exists(DB_PATH):
+        try:
+            import sqlite3
+            conn = sqlite3.connect(DB_PATH)
+            query = """
+                SELECT kode_produk AS product_id, kategori, operator,
+                       COALESCE(NULLIF(TRIM(paket), ''), 'REGULER') AS tipe_produk
+                FROM products
+                WHERE brand = ? AND is_active = 1
+                ORDER BY kode_produk
+            """
+            df_db = pd.read_sql_query(query, conn, params=(brand,))
+            conn.close()
 
-        cols_map = {str(c).strip().lower(): str(c).strip() for c in df.columns}
-        kode_col = cols_map.get("kode produk") or cols_map.get("kode product") or cols_map.get("product id") or cols_map.get("id produk")
-        kat_col  = cols_map.get("kategori") or cols_map.get("category")
-        op_col   = cols_map.get("operator") or cols_map.get("provider")
+            if not df_db.empty:
+                os.makedirs(CACHE_DIR, exist_ok=True)
+                df_db.to_parquet(p_cache, index=False)
 
-        rows_to_cache = []
-        for _, r in df.iterrows():
-            pid = str(r.get(kode_col, "")).replace("\xa0", "").strip().upper()
-            if pid and pid != "NAN":
-                kat = str(r.get(kat_col, "LAINNYA")).strip().upper()
-                op  = str(r.get(op_col, "LAINNYA")).strip().upper()
-                mapping[pid] = {
-                    "kategori": kat,
-                    "operator": op
-                }
-                rows_to_cache.append({
-                    "product_id": pid,
-                    "kategori": kat,
-                    "operator": op
-                })
+                pids = df_db["product_id"].tolist()
+                kats = df_db["kategori"].tolist()
+                ops  = df_db["operator"].tolist()
+                tips = df_db["tipe_produk"].tolist()
+                mapping = {p: {"kategori": k, "operator": o, "tipe_produk": t} for p, k, o, t in zip(pids, kats, ops, tips)}
+                _PROD_MAP[brand] = mapping
+                return mapping
+        except Exception as e:
+            print(f"[WARN] Gagal membaca master produk dari SQLite: {e}")
 
-        # Save parquet cache
-        if rows_to_cache:
-            os.makedirs(CACHE_DIR, exist_ok=True)
-            pd.DataFrame(rows_to_cache).to_parquet(p_cache, index=False)
-
-    except Exception as e:
-        print(f"[ERROR] Gagal memuat master produk {brand}: {e}")
-
-    _PROD_MAP[brand] = mapping
-    return mapping
+    # Fallback kosong jika database belum siap
+    _PROD_MAP[brand] = {}
+    return {}
 
 
 def clear_cache():
+    """Reset in-memory cache saat produk diupdate."""
     _PROD_MAP.clear()

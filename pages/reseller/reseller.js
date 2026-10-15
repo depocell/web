@@ -59,7 +59,9 @@ function renderResellerHeaderAndKPI() {
   const elAct = document.getElementById('kpi-active-current');
   const elRate = document.getElementById('kpi-active-rate');
   const elRet = document.getElementById('kpi-retained');
-  const elNew = document.getElementById('kpi-new-reactivated');
+  const elNewAct = document.getElementById('kpi-new-active');
+  const elNewRate = document.getElementById('kpi-new-rate');
+  const elReac = document.getElementById('kpi-reactivated');
   const elChu = document.getElementById('kpi-churned');
   const elTrx = document.getElementById('kpi-total-trx');
   const elPew = document.getElementById('kpi-pct-ewallet');
@@ -71,27 +73,42 @@ function renderResellerHeaderAndKPI() {
     elRate.textContent = `${actRate}% dari total master`;
   }
   if (elRet) elRet.textContent = formatIDR(k.retained);
-  if (elNew) elNew.textContent = formatIDR(k.new_reactivated);
+
+  const newActiveVal = k.new_active !== undefined ? k.new_active : 0;
+  const newRegVal = k.new_registered !== undefined ? k.new_registered : 0;
+  if (elNewAct) elNewAct.textContent = formatIDR(newActiveVal);
+  if (elNewRate) {
+    const convPct = newRegVal > 0 ? ((newActiveVal / newRegVal) * 100).toFixed(1).replace('.', ',') : '0';
+    elNewRate.textContent = `${formatIDR(newActiveVal)} dr ${formatIDR(newRegVal)} reg (${convPct}%)`;
+  }
+
+  if (elReac) elReac.textContent = formatIDR(k.reactivated !== undefined ? k.reactivated : (k.new_reactivated || 0));
   if (elChu) elChu.textContent = formatIDR(k.churned);
-  if (elTrx) elTrx.textContent = formatIDR(k.total_trx) + ' trx';
-  if (elPew) elPew.textContent = `${formatPct(k.avg_pct_ewallet)} EWALLET (${formatIDR(k.total_ewallet)} trx)`;
+  if (elTrx) {
+    const dailyRate = k.daily_rate_total ? Number(k.daily_rate_total).toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1}) : '0';
+    elTrx.textContent = `${dailyRate} / hr`;
+  }
+  if (elPew) elPew.textContent = `${formatPct(k.avg_pct_ewallet)} EWALLET (Tot: ${formatIDR(k.total_trx)} trx)`;
 
   // Tab counts
   const countSemua = data.rows ? data.rows.length : 0;
+  const countBaru = data.rows ? data.rows.filter(r => r.activity_status === 'Member Baru').length : 0;
+  const countReaktivasi = data.rows ? data.rows.filter(r => r.activity_status === 'Reaktivasi').length : 0;
   const countRutin = data.rows ? data.rows.filter(r => r.activity_status === 'Aktif Rutin').length : 0;
-  const countBaru = data.rows ? data.rows.filter(r => r.activity_status === 'Baru / Reaktivasi').length : 0;
   const countChurn = data.churn_rows ? data.churn_rows.length : 0;
   const countEwallet = data.rows ? data.rows.filter(r => (r.pct_ewallet || 0) >= 50).length : 0;
 
   const elCS = document.getElementById('count-semua-aktif');
-  const elCR = document.getElementById('count-rutin');
   const elCB = document.getElementById('count-baru');
+  const elCReac = document.getElementById('count-reaktivasi');
+  const elCR = document.getElementById('count-rutin');
   const elCC = document.getElementById('count-churn');
   const elCE = document.getElementById('count-ewallet');
 
   if (elCS) elCS.textContent = formatIDR(countSemua);
-  if (elCR) elCR.textContent = formatIDR(countRutin);
   if (elCB) elCB.textContent = formatIDR(countBaru);
+  if (elCReac) elCReac.textContent = formatIDR(countReaktivasi);
+  if (elCR) elCR.textContent = formatIDR(countRutin);
   if (elCC) elCC.textContent = formatIDR(countChurn);
   if (elCE) elCE.textContent = formatIDR(countEwallet);
 }
@@ -150,10 +167,12 @@ window.applyResellerFilters = function() {
   let source = [];
   if (resellerState.activeTab === 'churn') {
     source = data.churn_rows || [];
+  } else if (resellerState.activeTab === 'baru') {
+    source = (data.rows || []).filter(r => r.activity_status === 'Member Baru');
+  } else if (resellerState.activeTab === 'reaktivasi') {
+    source = (data.rows || []).filter(r => r.activity_status === 'Reaktivasi');
   } else if (resellerState.activeTab === 'rutin') {
     source = (data.rows || []).filter(r => r.activity_status === 'Aktif Rutin');
-  } else if (resellerState.activeTab === 'baru') {
-    source = (data.rows || []).filter(r => r.activity_status === 'Baru / Reaktivasi');
   } else if (resellerState.activeTab === 'ewallet_high') {
     source = (data.rows || []).filter(r => (r.pct_ewallet || 0) >= 50);
   } else {
@@ -181,6 +200,33 @@ window.applyResellerFilters = function() {
   const btnClear = document.getElementById('btn-clear-search');
   if (btnClear) {
     btnClear.style.display = sInput && sInput.value ? 'flex' : 'none';
+  }
+
+  // Sort
+  const sortSelect = document.getElementById('reseller-sort-select');
+  const sortMode = sortSelect ? sortSelect.value : 'daily_desc';
+
+  if (sortMode === 'growth_desc') {
+    source.sort((a, b) => {
+      const gA = a.growth_daily !== undefined ? a.growth_daily : 0;
+      const gB = b.growth_daily !== undefined ? b.growth_daily : 0;
+      if (gA !== gB) return gB - gA;
+      return (b.growth_daily_pct || 0) - (a.growth_daily_pct || 0);
+    });
+  } else if (sortMode === 'growth_asc') {
+    source.sort((a, b) => {
+      const gA = a.growth_daily !== undefined ? a.growth_daily : 0;
+      const gB = b.growth_daily !== undefined ? b.growth_daily : 0;
+      if (gA !== gB) return gA - gB;
+      return (a.growth_daily_pct || 0) - (b.growth_daily_pct || 0);
+    });
+  } else if (sortMode === 'ewallet_desc') {
+    source.sort((a, b) => (b.pct_ewallet || 0) - (a.pct_ewallet || 0));
+  } else if (sortMode === 'total_desc') {
+    source.sort((a, b) => (b.total_trx || 0) - (a.total_trx || 0));
+  } else {
+    // Default: daily_desc
+    source.sort((a, b) => (b.daily_curr || 0) - (a.daily_curr || 0));
   }
 
   resellerState.filteredRows = source;
@@ -212,8 +258,9 @@ function renderResellerTable() {
   if (titleEl) {
     const tabLabels = {
       semua_aktif: 'Daftar Semua Reseller Aktif',
+      baru: 'Reseller Member Baru (Daftar & Transaksi Bulan Ini)',
+      reaktivasi: 'Reseller Reaktivasi (Akun Lama Belanja Kembali)',
       rutin: 'Reseller Aktif Rutin (Retained)',
-      baru: 'Reseller Baru / Reaktivasi',
       churn: 'Reseller Pasif / Churn (Bulan Lalu Aktif, Bulan Ini 0)',
       ewallet_high: 'Reseller Dominan EWALLET (Porsi ≥ 50%)'
     };
@@ -248,8 +295,10 @@ function renderResellerTable() {
     let statusBadge = '';
     if (isChurn) {
       statusBadge = `<span class="pill negative">Pasif / Churn</span>`;
-    } else if (r.activity_status === 'Baru / Reaktivasi') {
-      statusBadge = `<span class="pill" style="background: #e0f2fe; color: #0369a1;">Baru / Reaktivasi</span>`;
+    } else if (r.activity_status === 'Member Baru') {
+      statusBadge = `<span class="pill" style="background: #e0f2fe; color: #0284c7; font-weight: 700; border: 1px solid #bae6fd;">Baru (Trx)</span>`;
+    } else if (r.activity_status === 'Reaktivasi') {
+      statusBadge = `<span class="pill" style="background: #fef3c7; color: #b45309; font-weight: 600; border: 1px solid #fde68a;">Reaktivasi</span>`;
     } else {
       statusBadge = `<span class="pill positive">Aktif Rutin</span>`;
     }
@@ -294,19 +343,44 @@ function renderResellerTable() {
             <span class="badge" style="font-size: 11px; padding: 2px 7px;">${escapeHtml(r.cabang || '-')}</span>
           </div>
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">
-            SCO: <strong>${escapeHtml(r.sco || '-')}</strong>
+            SCO: <strong>${escapeHtml(r.sco || '-')}</strong> ${r.tgl_daftar && r.tgl_daftar !== '-' ? `• <span style="font-size: 10.5px; color: var(--text-muted);">Reg: ${escapeHtml(r.tgl_daftar.split(' ')[0])}</span>` : ''}
           </div>
         </td>
         <td>
           <div style="font-size: 12px; font-weight: 600; color: var(--text-main);">
             ${escapeHtml(r.jadwal || '-')}
           </div>
-          <div style="font-size: 11.5px; color: var(--text-muted);">
-            Limit: Rp ${formatIDR(r.limit || 0)}
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+            <span class="badge" style="font-size: 10px; padding: 1px 5px; ${r.type === 'Limit' ? 'background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;' : (r.type === 'Prima' ? 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' : 'background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;')}">${escapeHtml(r.type || 'Non Limit')}</span>
+            <span>Rp ${formatIDR(r.limit || 0)}</span>
           </div>
         </td>
         <td class="text-right font-semibold" style="font-size: 13.5px; color: var(--text-main);">
-          ${formatIDR(r.total_trx || 0)}
+          ${
+            isChurn ? `
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-muted);">0 / hari</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Bln lalu: ${(r.daily_prev || 0).toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1})} / hari</div>
+              <div style="margin-top: 4px;">
+                <span class="pill negative" style="font-weight: 700; font-size: 11px; padding: 2px 7px; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;">
+                  Drop 100% (-${(r.daily_prev || 0).toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1})} / hr)
+                </span>
+              </div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 3px;">
+                (Total: 0 vs ${formatIDR(r.prev_trx || 0)})
+              </div>
+            ` : `
+              <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">${(r.daily_curr || 0).toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1})} / hari</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Bln lalu: ${(r.daily_prev || 0).toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1})} / hari</div>
+              <div style="margin-top: 4px;">
+                <span class="pill ${r.growth_daily >= 0 ? 'positive' : 'negative'}" style="font-weight: 700; font-size: 11px; padding: 2px 7px; ${r.growth_daily >= 0 ? 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' : 'background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;'}">
+                  ${r.growth_daily >= 0 ? '+' : ''}${(r.growth_daily || 0).toLocaleString('id-ID', {minimumFractionDigits: 1, maximumFractionDigits: 1})} / hr (${(r.growth_daily_pct || 0) > 0 ? '+' : ''}${formatPct(r.growth_daily_pct)})
+                </span>
+              </div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 3px;">
+                (Total: ${formatIDR(r.total_trx || 0)} vs ${formatIDR(r.prev_trx || 0)})
+              </div>
+            `
+          }
         </td>
         <td class="text-right font-semibold" style="color: #2563eb;">
           ${formatIDR(r.ewallet_trx || 0)}
@@ -366,18 +440,38 @@ window.openResellerModal = function(encodedKode) {
   document.getElementById('modal-agen-id').textContent = `${item.agen_id || '-'} (${item.agen_name || '-'})`;
   document.getElementById('modal-jadwal').textContent = item.jadwal || '-';
   document.getElementById('modal-limit').textContent = `Rp ${formatIDR(item.limit || 0)}`;
+  const typeEl = document.getElementById('modal-type');
+  if (typeEl) {
+    typeEl.textContent = item.type || 'Non Limit';
+    typeEl.className = `pill ${item.type === 'Limit' ? 'positive' : ''}`;
+  }
+
+  const tglDaftarEl = document.getElementById('modal-tgl-daftar');
+  if (tglDaftarEl) tglDaftarEl.textContent = item.tgl_daftar || '-';
 
   const statusEl = document.getElementById('modal-status');
   if (statusEl) {
     statusEl.textContent = item.activity_status || '-';
     if (item.activity_status === 'Pasif / Churn') {
       statusEl.className = 'pill negative';
-    } else if (item.activity_status === 'Baru / Reaktivasi') {
+      statusEl.style.background = '';
+      statusEl.style.color = '';
+      statusEl.style.border = '';
+    } else if (item.activity_status === 'Member Baru') {
       statusEl.className = 'pill';
       statusEl.style.background = '#e0f2fe';
-      statusEl.style.color = '#0369a1';
+      statusEl.style.color = '#0284c7';
+      statusEl.style.border = '1px solid #bae6fd';
+    } else if (item.activity_status === 'Reaktivasi') {
+      statusEl.className = 'pill';
+      statusEl.style.background = '#fef3c7';
+      statusEl.style.color = '#b45309';
+      statusEl.style.border = '1px solid #fde68a';
     } else {
       statusEl.className = 'pill positive';
+      statusEl.style.background = '';
+      statusEl.style.color = '';
+      statusEl.style.border = '';
     }
   }
 
@@ -445,8 +539,9 @@ window.exportResellerExcel = async function() {
 
   const tabLabels = {
     semua_aktif: 'Semua_Aktif',
+    baru: 'Member_Baru_Trx',
+    reaktivasi: 'Reaktivasi',
     rutin: 'Aktif_Rutin',
-    baru: 'Baru_Reaktivasi',
     churn: 'Pasif_Churn',
     ewallet_high: 'Dominan_EWALLET'
   };
@@ -471,8 +566,12 @@ window.exportResellerExcel = async function() {
     'SCO',
     'Jadwal Kunjungan',
     'Limit (Rp)',
-    'Trx Bulan Lalu',
-    'Trx Bulan Ini',
+    'Tgl. Daftar',
+    'Daily Trx (Bulan Ini)',
+    'Daily Trx (Bulan Lalu)',
+    'Daily Growth',
+    'Daily Growth %',
+    'Total Trx Bulan Lalu',
     'Status Keaktifan'
   ] : [
     'No',
@@ -484,6 +583,11 @@ window.exportResellerExcel = async function() {
     'SCO',
     'Jadwal Kunjungan',
     'Limit (Rp)',
+    'Tgl. Daftar',
+    'Daily Trx (Bulan Ini)',
+    'Daily Trx (Bulan Lalu)',
+    'Daily Growth',
+    'Daily Growth %',
     'Total Trx',
     'Trx EWALLET',
     '% EWALLET',
@@ -507,8 +611,12 @@ window.exportResellerExcel = async function() {
         r.sco || '-',
         r.jadwal || '-',
         Number(r.limit) || 0,
-        Number(r.prev_trx) || 0,
+        r.tgl_daftar || '-',
         0,
+        Number(r.daily_prev) || 0,
+        Number(r.growth_daily) || 0,
+        -1.0,
+        Number(r.prev_trx) || 0,
         r.activity_status || 'Pasif / Churn'
       ]);
     } else {
@@ -522,6 +630,11 @@ window.exportResellerExcel = async function() {
         r.sco || '-',
         r.jadwal || '-',
         Number(r.limit) || 0,
+        r.tgl_daftar || '-',
+        Number(r.daily_curr) || 0,
+        Number(r.daily_prev) || 0,
+        Number(r.growth_daily) || 0,
+        Number(r.growth_daily_pct ? (r.growth_daily_pct / 100).toFixed(3) : 0),
         Number(r.total_trx) || 0,
         Number(r.ewallet_trx) || 0,
         Number(r.pct_ewallet ? (r.pct_ewallet / 100).toFixed(3) : 0),
@@ -535,13 +648,13 @@ window.exportResellerExcel = async function() {
 
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-  // Formatting % EWALLET
+  // Formatting % EWALLET & Growth %
   if (!isChurn) {
     for (let r = 1; r < sheetData.length; r++) {
-      const cell = XLSX.utils.encode_cell({ r: r, c: 11 });
-      if (ws[cell]) {
-        ws[cell].z = '0.0%';
-      }
+      const cellEw = XLSX.utils.encode_cell({ r: r, c: 16 });
+      if (ws[cellEw]) ws[cellEw].z = '0.0%';
+      const cellGw = XLSX.utils.encode_cell({ r: r, c: 13 });
+      if (ws[cellGw]) ws[cellGw].z = '0.0%';
     }
   }
 
@@ -574,7 +687,7 @@ window.exportResellerExcel = async function() {
 };
 
 // Fallback CSV jika terjadi kendala pada XLSX
-function exportResellerCSVFallback() {
+async function exportResellerCSVFallback() {
   const rows = resellerState.filteredRows;
   const period = (resellerState.raw && resellerState.raw.selected_month) || '2026';
   const headers = ['Kode', 'Nama', 'Cabang', 'SCO', 'Agen ID', 'Jadwal', 'Limit', 'Total Trx', 'Trx EWALLET', '% EWALLET', 'Trx Telco', 'Trx PPOB', 'Trx PLN', 'Status Keaktifan'];
@@ -600,15 +713,21 @@ function exportResellerCSVFallback() {
     csvLines.push(line.join(','));
   });
 
-  const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Reseller_ASTAGA_${period}_${resellerState.activeTab}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const filename = `Reseller_ASTAGA_${period}_${resellerState.activeTab}.csv`;
+  const csvContent = csvLines.join('\n');
+  if (typeof window.saveFileSmart === "function") {
+    await window.saveFileSmart(filename, csvContent, 'text/csv;charset=utf-8;');
+  } else {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 }
 
 // Kompatibilitas alias fungsi lama

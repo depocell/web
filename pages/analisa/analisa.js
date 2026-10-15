@@ -1,10 +1,62 @@
 // pages/analisa/analisa.js — Controller Dashboard Analisa (Chart Only, Tren Daily Trx Berbasis Cut-off Bulan)
 
+function escapeHtml(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+window.escapeHtml = escapeHtml;
+
 const activeFilters = {
   brand: "ASTAGA",
   year: "ALL",
-  month: "ALL"
+  month: "ALL",
+  kategori: "ALL",
+  operator: "ALL",
+  tipe: "ALL"
 };
+
+const PRODUCT_CATEGORY_OPERATORS = {
+  "ASTAGA": {
+    "EWALLET": ["DANA", "EMONEY", "GOPAY", "GRAB", "OTHERS", "OVO", "SHOPEEPAY"],
+    "TELCO": ["INDOSAT", "SMARTFREN", "TELKOMSEL", "TRI", "XL - AXIS"],
+    "TOKEN PLN": ["TOKEN PLN"],
+    "PPOB": ["PPOB"],
+    "VOUCHER GAME": ["VOUCHER GAME"],
+    "TRANSFER STOK": ["TRANSFER STOK"]
+  },
+  "OKIPAY": {
+    "EWALLET": ["DANA", "EMONEY", "GOPAY", "GRAB", "LAINNYA", "LINKAJA", "MAXIM", "OVO", "SHOPEEPAY"],
+    "TELCO": ["AXIS/XL", "INDOSAT", "LAINNYA", "SMARTFREN", "TELKOMSEL", "TRI"],
+    "TOKEN PLN": ["TOKEN PLN"],
+    "PPOB": ["PPOB"],
+    "VOUCHER GAME": ["VOUCHER GAME"]
+  }
+};
+
+const PRODUCT_PAKETS = {
+  "ASTAGA": ["REGULER", "DATA", "INJECT", "NOMINAL", "BEBAS NOMINAL"],
+  "OKIPAY": ["REGULER", "MOBILE DATA", "SMS", "DANA BEBAS", "DANA CEK", "DANA NOMINAL", "MOBILE", "TV K-VISION"]
+};
+
+function getCategoryForOperator(op) {
+  if (!op) return "";
+  const uOp = op.toUpperCase().trim();
+  for (const brand of ["ASTAGA", "OKIPAY"]) {
+    const bMap = PRODUCT_CATEGORY_OPERATORS[brand] || {};
+    for (const [cat, opList] of Object.entries(bMap)) {
+      if (opList.some(o => o.toUpperCase() === uOp)) return cat;
+    }
+  }
+  if (uOp.includes("PLN")) return "TOKEN PLN";
+  if (uOp.includes("GAME")) return "VOUCHER GAME";
+  if (uOp.includes("TELKOMSEL") || uOp.includes("INDOSAT") || uOp.includes("AXIS") || uOp.includes("XL") || uOp.includes("TRI") || uOp.includes("SMARTFREN")) return "TELCO";
+  return "LAINNYA";
+}
 
 let currentAnalisaTab = "distribusi";
 let cachedAnalisaData = null;
@@ -22,6 +74,11 @@ function destroyChart(name) {
 
 // ── PILL FILTER HANDLERS ──
 function setPillFilter(filterType, value) {
+  // Guard khusus: jika tab service aktif dan filter yang diubah adalah year, paksa tetap 2026
+  if (currentAnalisaTab === "service" && filterType === "year") {
+    value = "2026";
+  }
+
   activeFilters[filterType] = value;
 
   // Update visual active pill
@@ -37,15 +94,158 @@ function setPillFilter(filterType, value) {
     });
   }
 
+  if (filterType === "brand") {
+    updateProductFilterDropdowns();
+    if (window.triggerBrandSwitchVisual && group) {
+      const activeBtn = group.querySelector(`.filter-pill[data-brand="${value}"]`);
+      window.triggerBrandSwitchVisual(value, activeBtn, "analisa-view-container");
+    }
+  }
+
   fetchAndRenderAnalisa();
+}
+
+// ── MASTER PRODUK FILTER HANDLERS (KATEGORI, OPERATOR, TIPE) ──
+function updateProductFilterDropdowns() {
+  const brand = activeFilters.brand === "OKIPAY" ? "OKIPAY" : "ASTAGA";
+  const opSelect = document.getElementById("filter-prod-operator");
+  const tipSelect = document.getElementById("filter-prod-tipe");
+
+  if (opSelect) {
+    const curOp = activeFilters.operator;
+    let ops = [];
+    const brandMap = PRODUCT_CATEGORY_OPERATORS[brand] || {};
+    if (activeFilters.kategori !== "ALL") {
+      ops = brandMap[activeFilters.kategori] || [];
+    } else {
+      const set = new Set();
+      Object.values(brandMap).forEach(list => list.forEach(o => set.add(o)));
+      ops = Array.from(set).sort();
+    }
+
+    opSelect.innerHTML = `<option value="ALL">Semua Operator</option>` +
+      ops.map(o => `<option value="${o}" ${o === curOp ? "selected" : ""}>${o}</option>`).join("");
+  }
+
+  if (tipSelect) {
+    const curTip = activeFilters.tipe;
+    let tips = [];
+    if (activeFilters.brand === "ALL" || activeFilters.brand === "GABUNGAN") {
+      const s = new Set([...(PRODUCT_PAKETS["ASTAGA"] || []), ...(PRODUCT_PAKETS["OKIPAY"] || [])]);
+      tips = Array.from(s).sort();
+    } else {
+      tips = PRODUCT_PAKETS[brand] || PRODUCT_PAKETS["ASTAGA"] || [];
+    }
+    tipSelect.innerHTML = `<option value="ALL">Semua Tipe</option>` +
+      tips.map(t => `<option value="${t}" ${t === curTip ? "selected" : ""}>${t}</option>`).join("");
+  }
+
+  const resetBtn = document.getElementById("btn-reset-prod-filter");
+  if (resetBtn) {
+    const hasFilter = activeFilters.kategori !== "ALL" || activeFilters.operator !== "ALL" || activeFilters.tipe !== "ALL";
+    resetBtn.style.display = hasFilter ? "inline-block" : "none";
+  }
+}
+
+function setProductFilter(type, value) {
+  activeFilters[type] = value;
+
+  if (type === "kategori") {
+    const group = document.getElementById("pills-kategori");
+    if (group) {
+      group.querySelectorAll(".filter-pill").forEach(btn => {
+        if (btn.getAttribute("data-kategori") === value) btn.classList.add("active");
+        else btn.classList.remove("active");
+      });
+    }
+    // Reset operator saat kategori berganti jika operator tidak relevan
+    activeFilters.operator = "ALL";
+    updateProductFilterDropdowns();
+  } else {
+    updateProductFilterDropdowns();
+  }
+
+  fetchAndRenderAnalisa();
+}
+
+function resetProductFilters() {
+  activeFilters.kategori = "ALL";
+  activeFilters.operator = "ALL";
+  activeFilters.tipe = "ALL";
+
+  const group = document.getElementById("pills-kategori");
+  if (group) {
+    group.querySelectorAll(".filter-pill").forEach(btn => {
+      if (btn.getAttribute("data-kategori") === "ALL") btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+  }
+
+  updateProductFilterDropdowns();
+  fetchAndRenderAnalisa();
+}
+
+// ── KONTROL VISIBILITAS FILTER TAHUN & MASTER PRODUK BERDASARKAN TAB ──
+function updateYearPillsVisibility(tabName) {
+  const pillsYear = document.getElementById("pills-year");
+  if (!pillsYear) return;
+
+  const allYearBtns = pillsYear.querySelectorAll(".filter-pill");
+
+  if (tabName === "service" || tabName === "supplier" || tabName === "profit") {
+    allYearBtns.forEach(btn => {
+      const yr = btn.getAttribute("data-year");
+      if (yr === "2026") {
+        btn.style.display = "";
+        btn.classList.add("active");
+      } else {
+        btn.style.display = "none";
+        btn.classList.remove("active");
+      }
+    });
+    // Kunci active filter ke 2026 jika sebelumnya bukan 2026
+    if (activeFilters.year !== "2026") {
+      activeFilters.year = "2026";
+    }
+  } else {
+    // Tab Distribusi & Lain: Kembalikan semua tombol tahun (ALL, 2026, 2025, 2024, 2023)
+    allYearBtns.forEach(btn => {
+      btn.style.display = "";
+      if (btn.getAttribute("data-year") === activeFilters.year) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+  }
 }
 
 // ── TAB SWITCHER HANDLER ──
 function switchAnalisaTab(tabName) {
   currentAnalisaTab = tabName;
 
+  // Sinkronisasi status sub-tab ke URL tanpa reload
+  try {
+    history.replaceState(null, null, "#analisa?tab=" + tabName);
+  } catch (e) { }
+
+  // Sesuaikan tombol filter tahun sesuai kapabilitas data tab
+  updateYearPillsVisibility(tabName);
+
+  // Kontrol visibilitas baris filter Master Produk (aktif di tab service dan supplier)
+  const prodFilterRow = document.getElementById("filter-master-produk-container");
+  if (prodFilterRow) {
+    prodFilterRow.style.display = (tabName === "service" || tabName === "supplier") ? "flex" : "none";
+  }
+
+  // Kontrol visibilitas Tipe / Paket (hanya relevan di tab service)
+  const tipeFilterWrap = document.getElementById("filter-prod-tipe-wrap");
+  if (tipeFilterWrap) {
+    tipeFilterWrap.style.display = (tabName === "service") ? "flex" : "none";
+  }
+
   // Update tab buttons
-  ["distribusi", "service", "lain"].forEach(t => {
+  ["distribusi", "service", "supplier", "profit", "lain"].forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const sec = document.getElementById(`section-analisa-${t}`);
     if (btn) {
@@ -57,29 +257,247 @@ function switchAnalisaTab(tabName) {
     }
   });
 
-  // Update sidebar sub-menu highlight
-  document.querySelectorAll(".nav-sub-link").forEach(el => {
-    const href = el.getAttribute("href");
-    if (href === `#analisa-${tabName}` || (tabName === "distribusi" && href === "#analisa")) {
-      el.classList.add("active");
-    } else {
-      el.classList.remove("active");
-    }
-  });
+  // Re-fetch dan render data agar filter tab langsung teraplikasi
+  fetchAndRenderAnalisa();
+}
 
-  // Render visual jika data sudah tersedia
-  if (cachedAnalisaData) {
-    renderCurrentTabCharts(cachedAnalisaData);
-  } else {
-    fetchAndRenderAnalisa();
+// ── PROFIT & REVENUE ANALYTICS FETCHER ──
+async function fetchAndRenderProfitAnalisa() {
+  const brand = activeFilters.brand === "ALL" ? "ALL" : (activeFilters.brand === "OKIPAY" ? "OKIPAY" : "ASTAGA");
+  const year = activeFilters.year === "ALL" ? "2026" : activeFilters.year;
+  const month = activeFilters.month === "ALL" ? "" : `${year}-${activeFilters.month}`;
+
+  const catTbody = document.getElementById("table-profit-category-body");
+  if (catTbody) {
+    catTbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: var(--text-muted);">Memuat data analisa profit ${escapeHtml(brand)} (${escapeHtml(month || year)})...</td></tr>`;
+  }
+
+  try {
+    let url = `/api/analisa/profit?brand=${brand}&year=${year}`;
+    if (month) url += `&month=${encodeURIComponent(month)}`;
+
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.ok || !json.data) {
+      console.error("Gagal memuat analisa profit:", json.error);
+      if (catTbody) {
+        catTbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: #dc2626;">Gagal memuat data profit: ${escapeHtml(json.error || 'Terjadi kesalahan')}</td></tr>`;
+      }
+      return;
+    }
+
+    const data = json.data;
+    const kpi = data.kpi || {};
+
+    // 1. KPI Cards
+    const elRev = document.getElementById("profit-kpi-revenue");
+    const elDRev = document.getElementById("profit-kpi-daily-rev");
+    const elMod = document.getElementById("profit-kpi-modal");
+    const elGross = document.getElementById("profit-kpi-gross");
+    const elGMarg = document.getElementById("profit-kpi-gross-margin");
+    const elMk = document.getElementById("profit-kpi-markup");
+    const elNet = document.getElementById("profit-kpi-net");
+    const elNMarg = document.getElementById("profit-kpi-net-margin");
+    const elYield = document.getElementById("profit-kpi-yield");
+    const elDNet = document.getElementById("profit-kpi-daily-net");
+
+    if (elRev) {
+      elRev.textContent = `Rp ${Number(kpi.gross_revenue || 0).toLocaleString("id-ID")}`;
+      elRev.title = `Rp ${Number(kpi.gross_revenue || 0).toLocaleString("id-ID")}`;
+    }
+    if (elDRev) elDRev.textContent = `Rp ${Number(kpi.daily_revenue || 0).toLocaleString("id-ID")} / hari`;
+    if (elMod) {
+      elMod.textContent = `Rp ${Number(kpi.total_modal || 0).toLocaleString("id-ID")}`;
+      elMod.title = `Rp ${Number(kpi.total_modal || 0).toLocaleString("id-ID")}`;
+    }
+    if (elGross) {
+      elGross.textContent = `Rp ${Number(kpi.gross_profit || 0).toLocaleString("id-ID")}`;
+      elGross.title = `Rp ${Number(kpi.gross_profit || 0).toLocaleString("id-ID")}`;
+    }
+    if (elGMarg) elGMarg.textContent = `Margin: ${kpi.margin_gross_pct || 0}%`;
+    if (elMk) {
+      elMk.textContent = `Rp ${Number(kpi.komisi_upline || 0).toLocaleString("id-ID")}`;
+      elMk.title = `Rp ${Number(kpi.komisi_upline || 0).toLocaleString("id-ID")}`;
+    }
+    if (elNet) {
+      elNet.textContent = `Rp ${Number(kpi.net_profit || 0).toLocaleString("id-ID")}`;
+      elNet.title = `Rp ${Number(kpi.net_profit || 0).toLocaleString("id-ID")}`;
+    }
+    if (elNMarg) elNMarg.textContent = `Margin: ${kpi.margin_net_pct || 0}%`;
+    if (elYield) {
+      const yVal = Number(kpi.yield_per_trx || 0);
+      elYield.textContent = `Rp ${yVal.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / trx`;
+      elYield.title = `Rp ${yVal.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per Transaksi Sukses`;
+    }
+    if (elDNet) elDNet.textContent = `Rp ${Number(kpi.daily_net_profit || 0).toLocaleString("id-ID")} / hari`;
+
+    // 2. Chart Tren Bulanan
+    const ctx = document.getElementById("chart-profit-monthly");
+    if (ctx && data.monthly_trend) {
+      destroyChart("profit_monthly");
+      const labels = data.monthly_trend.map(m => {
+        const parts = m.ym.split("-");
+        const monthNum = parts[1];
+        const mNames = { "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr", "05": "Mei", "06": "Jun", "07": "Jul", "08": "Agu", "09": "Sep", "10": "Okt", "11": "Nov", "12": "Des" };
+        return mNames[monthNum] || parts[1];
+      });
+
+      const netProfits = data.monthly_trend.map(m => m.net_profit);
+      const markups = data.monthly_trend.map(m => m.komisi_upline);
+      const yields = data.monthly_trend.map(m => m.yield_per_trx);
+
+      chartInstances["profit_monthly"] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Net Profit Server (Rp)",
+              data: netProfits,
+              backgroundColor: "rgba(16, 185, 129, 0.8)",
+              borderColor: "#10b981",
+              borderWidth: 1,
+              borderRadius: 4,
+              order: 2,
+              yAxisID: "y"
+            },
+            {
+              label: "Komisi Upline (Markup)",
+              data: markups,
+              backgroundColor: "rgba(245, 158, 11, 0.7)",
+              borderColor: "#f59e0b",
+              borderWidth: 1,
+              borderRadius: 4,
+              order: 3,
+              yAxisID: "y"
+            },
+            {
+              label: "Yield Laba / Trx (Rp)",
+              data: yields,
+              type: "line",
+              borderColor: "#7c3aed",
+              backgroundColor: "#7c3aed",
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointBackgroundColor: "#7c3aed",
+              order: 1,
+              yAxisID: "y1"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "top",
+              labels: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: 600 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  let val = context.parsed.y;
+                  if (context.dataset.yAxisID === "y1") {
+                    return `${context.dataset.label}: Rp ${Number(val).toLocaleString("id-ID")}`;
+                  }
+                  return `${context.dataset.label}: Rp ${Number(val).toLocaleString("id-ID")}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              position: "left",
+              grid: { color: "rgba(0, 0, 0, 0.05)" },
+              ticks: {
+                callback: function (v) {
+                  if (v >= 1000000000) return (v / 1000000000).toFixed(1) + " M";
+                  if (v >= 1000000) return (v / 1000000).toFixed(0) + " Jt";
+                  return v;
+                }
+              }
+            },
+            y1: {
+              position: "right",
+              grid: { drawOnChartArea: false },
+              ticks: {
+                callback: function (v) { return "Rp " + v; }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Category Breakdown Table
+    const catTbody = document.getElementById("table-profit-category-body");
+    if (catTbody && data.category_breakdown) {
+      catTbody.innerHTML = data.category_breakdown.map(c => `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 10px 14px; font-weight: 700; color: var(--text-main);">${escapeHtml(c.category)}</td>
+          <td style="padding: 10px 14px; text-align: right;">${Number(c.total_trx).toLocaleString("id-ID")}</td>
+          <td style="padding: 10px 14px; text-align: right; color: var(--text-muted);">${c.pct_trx}%</td>
+          <td style="padding: 10px 14px; text-align: right;">Rp ${Number(c.gross_revenue).toLocaleString("id-ID")}</td>
+          <td style="padding: 10px 14px; text-align: right; color: var(--text-muted);">Rp ${Number(c.total_modal).toLocaleString("id-ID")}</td>
+          <td style="padding: 10px 14px; text-align: right; color: #b45309; font-weight: 600;">Rp ${Number(c.komisi_upline).toLocaleString("id-ID")}</td>
+          <td style="padding: 10px 14px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(c.net_profit).toLocaleString("id-ID")}</td>
+          <td style="padding: 10px 14px; text-align: right; font-weight: 600;">${c.pct_profit}%</td>
+          <td style="padding: 10px 14px; text-align: right; color: #7c3aed; font-weight: 700;">Rp ${Number(c.yield_per_trx).toLocaleString("id-ID")}</td>
+        </tr>
+      `).join("");
+    }
+
+    // 4. Top 10 Products Table
+    const prodTbody = document.getElementById("table-top-products-body");
+    if (prodTbody && data.top_products) {
+      prodTbody.innerHTML = data.top_products.map(p => `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 8px 10px;">
+            <div style="font-weight: 700; color: var(--text-main); font-size: 12.5px;">${escapeHtml(p.product_name)}</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${escapeHtml(p.product_id)} • ${escapeHtml(p.kategori)}</div>
+          </td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: 600;">${Number(p.total_trx).toLocaleString("id-ID")}</td>
+          <td style="padding: 8px 10px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(p.net_profit).toLocaleString("id-ID")}</td>
+          <td style="padding: 8px 10px; text-align: right; color: #7c3aed; font-weight: 600;">Rp ${Number(p.yield_per_trx).toLocaleString("id-ID")}</td>
+        </tr>
+      `).join("");
+    }
+
+    // 5. Top 10 Resellers Table
+    const resTbody = document.getElementById("table-top-resellers-body");
+    if (resTbody && data.top_resellers) {
+      resTbody.innerHTML = data.top_resellers.map(r => `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 8px 10px;">
+            <div style="font-weight: 700; color: var(--text-main); font-size: 12.5px;">${escapeHtml(r.nama_reseller)}</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${escapeHtml(r.kode_reseller)}</div>
+          </td>
+          <td style="padding: 8px 10px;"><span class="badge" style="font-size: 10.5px;">${escapeHtml(r.cabang || '-')}</span></td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: 600;">${Number(r.total_trx).toLocaleString("id-ID")}</td>
+          <td style="padding: 8px 10px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(r.net_profit).toLocaleString("id-ID")}</td>
+          <td style="padding: 8px 10px; text-align: right; color: #7c3aed; font-weight: 600;">Rp ${Number(r.yield_per_trx).toLocaleString("id-ID")}</td>
+        </tr>
+      `).join("");
+    }
+
+  } catch (err) {
+    console.error("Error in fetchAndRenderProfitAnalisa:", err);
   }
 }
 
 // ── DATA FETCHING (API DENGAN GOLD STATIC FALLBACK) ──
 async function fetchAndRenderAnalisa() {
+  if (currentAnalisaTab === "profit") {
+    await fetchAndRenderProfitAnalisa();
+    return;
+  }
   // 1. Coba fetch dari backend endpoint API
   try {
-    const url = `/api/analisa/data?brand=${activeFilters.brand}&year=${activeFilters.year}&month=${activeFilters.month}`;
+    let url = `/api/analisa/data?brand=${activeFilters.brand}&year=${activeFilters.year}&month=${activeFilters.month}`;
+    if (activeFilters.kategori !== "ALL") url += `&kategori=${encodeURIComponent(activeFilters.kategori)}`;
+    if (activeFilters.operator !== "ALL") url += `&operator=${encodeURIComponent(activeFilters.operator)}`;
+    if (activeFilters.tipe !== "ALL") url += `&tipe=${encodeURIComponent(activeFilters.tipe)}`;
+
     const res = await fetch(url);
     if (res.ok) {
       const json = await res.json();
@@ -99,7 +517,7 @@ async function fetchAndRenderAnalisa() {
       const fRes = await fetch(`/pages/analisa/data.json?t=` + Date.now());
       rawGoldData = await fRes.json();
     }
-    const processed = filterGoldDataLocal(rawGoldData, activeFilters.brand, activeFilters.year, activeFilters.month);
+    const processed = filterGoldDataLocal(rawGoldData, activeFilters.brand, activeFilters.year, activeFilters.month, activeFilters.kategori, activeFilters.operator, activeFilters.tipe);
     cachedAnalisaData = processed;
     renderCurrentTabCharts(processed);
   } catch (err) {
@@ -107,11 +525,19 @@ async function fetchAndRenderAnalisa() {
   }
 }
 
+// Helper format durasi detik ke mm:ss
+function formatDurationSec(sec) {
+  if (sec == null || isNaN(sec) || sec < 0) return "00:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 // ── FALLBACK ENGINE CLIENT-SIDE (Sama persis dengan analisa_engine.py) ──
-function filterGoldDataLocal(dataAll, brand, year, month) {
+function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", operator = "ALL", tipe = "ALL") {
   const brandUpper = (brand || "ALL").toUpperCase();
   const targetBrands = (brandUpper === "ALL" || brandUpper === "GABUNGAN") ? ["ASTAGA", "OKIPAY"] : [brandUpper];
-  
+
   const allYms = Object.keys(dataAll["ASTAGA"] || {}).sort();
 
   const MONTH_NAMES = {
@@ -140,12 +566,22 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
     const categoriesTotal = {};
     const branchesTotal = {};
 
+    const monthSuksesRate = Number((targetBrands.reduce((acc, b) => {
+      const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+      return acc + (it.sukses_pct || 98.0);
+    }, 0) / targetBrands.length).toFixed(1));
+
+    const monthDurSec = Number((targetBrands.reduce((acc, b) => {
+      const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+      return acc + (it.avg_dur_sec || 21.0);
+    }, 0) / targetBrands.length).toFixed(1));
+    const monthDurStr = sampleItem.avg_dur_str || formatDurationSec(monthDurSec);
+
     sampleDaily.forEach((dObj, dIdx) => {
       const dayNum = dObj.day;
       const dLabel = `Tgl ${dayNum}`;
       let dayTrx = 0;
       let dayCust = 0;
-      let daySuksesSum = 0;
 
       targetBrands.forEach(b => {
         const bItem = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
@@ -154,7 +590,6 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
           const bD = bDaily[dIdx];
           dayTrx += bD.trx || 0;
           dayCust += bD.cust || 0;
-          daySuksesSum += bD.sukses_pct || 98.5;
         }
       });
 
@@ -188,8 +623,9 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
         daily_trx: dayTrx,
         customers: dayCust,
         tpm: tpm,
-        sukses_pct: Number((daySuksesSum / targetBrands.length).toFixed(1)),
-        dur_sec: 2.8,
+        sukses_pct: monthSuksesRate,
+        dur_sec: monthDurSec,
+        dur_str: monthDurStr,
         categories: dayCats,
         branches: dayBranches
       });
@@ -199,6 +635,11 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
     const avgDailyTrx = Math.round(totTrx / countPts);
     const avgDailyCust = Math.round(totCustSum / countPts);
     const avgTpm = Number((timeline.reduce((acc, t) => acc + t.tpm, 0) / countPts).toFixed(2));
+
+    const totalRealTrx = targetBrands.reduce((acc, b) => {
+      const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+      return acc + (it.trx_count || totTrx);
+    }, 0);
 
     const hourlyHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
     const hourlyWeights = [
@@ -217,12 +658,14 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       trx: Math.round((totTrx / 4.3) * weekdayWeights[i])
     }));
 
-    const topCategory = Object.keys(categoriesTotal).length > 0 
-      ? Object.entries(categoriesTotal).sort((a,b) => b[1] - a[1])[0][0] : "EWALLET";
-    const topBranch = Object.keys(branchesTotal).length > 0 
-      ? Object.entries(branchesTotal).sort((a,b) => b[1] - a[1])[0][0] : "BSD";
+    const topCategory = Object.keys(categoriesTotal).length > 0
+      ? Object.entries(categoriesTotal).sort((a, b) => b[1] - a[1])[0][0] : "EWALLET";
+    const topBranch = Object.keys(branchesTotal).length > 0
+      ? Object.entries(branchesTotal).sort((a, b) => b[1] - a[1])[0][0] : "BSD";
 
-    return {
+    const gagalTot = Math.max(0, Number((100 - monthSuksesRate).toFixed(1)));
+
+    return _applyProductFiltersClient({
       ok: true,
       brand: brandUpper,
       year, month,
@@ -230,13 +673,18 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       is_mtd: isMtd,
       active_days: activeDays,
       summary: {
-        total_trx: totTrx,
+        total_trx: totalRealTrx,
+        total_sukses: totTrx,
         daily_trx_avg: avgDailyTrx,
         avg_monthly_trx: avgDailyTrx,
         avg_monthly_cust: avgDailyCust,
         avg_tpm: avgTpm,
+        avg_sukses_pct: monthSuksesRate,
+        avg_sukses_str: monthSuksesRate.toFixed(1) + "%",
+        avg_dur_sec: monthDurSec,
+        avg_dur_str: monthDurStr,
         total_points: countPts,
-        granularity_label: `Harian (${MONTH_FULL[month.padStart(2, "0")] || month} ${year})` + (isMtd ? " • MTD 4 Hari" : ""),
+        granularity_label: `Harian (${MONTH_FULL[month.padStart(2, "0")] || month} ${year})` + (isMtd ? ` • MTD ${activeDays} Hari` : ""),
         top_category: topCategory,
         top_branch: topBranch
       },
@@ -245,8 +693,13 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       branches_total: branchesTotal,
       hourly_distribution: hourlyDistribution,
       weekday_distribution: weekdayDistribution,
-      status_breakdown: { "Sukses": 98.5, "Gagal Nomor": 0.8, "Gagal Saldo": 0.4, "Timeout Provider": 0.3 }
-    };
+      status_breakdown: {
+        "Sukses": monthSuksesRate,
+        "Gagal Nomor": Number((gagalTot * 0.55).toFixed(1)),
+        "Gagal Saldo": Number((gagalTot * 0.25).toFixed(1)),
+        "Timeout Provider": Number((gagalTot * 0.20).toFixed(1))
+      }
+    }, kategori, operator, tipe, targetBrands, [targetYm], dataAll);
   }
 
   // 2. GRANULARITAS TAHUNAN (4 TAHUN: 2023 - 2026)
@@ -273,7 +726,7 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
           const item = (dataAll[b] && dataAll[b][ym]) ? dataAll[b][ym] : null;
           if (!item) return;
           yTrx += item.trx_count || 0;
-          
+
           // Ambil rata-rata customer aktif harian per bulan
           const bDaily = item.daily || [];
           const bDayCust = bDaily.length > 0
@@ -302,6 +755,7 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       const yDailyTrx = yDays > 0 ? Math.round(yTrx / yDays) : 0;
       const yTpm = yAvgCust > 0 ? Number((yDailyTrx / yAvgCust).toFixed(2)) : 0;
       const ySukses = Number((ySuksesSum / (mCount * targetBrands.length)).toFixed(1));
+      const yDurSec = Number((yDurSum / (mCount * targetBrands.length)).toFixed(1));
 
       totTrx += yTrx;
       totCustSum += yAvgCust;
@@ -316,7 +770,8 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
         customers: yAvgCust,
         tpm: yTpm,
         sukses_pct: ySukses,
-        dur_sec: 2.8,
+        dur_sec: yDurSec,
+        dur_str: formatDurationSec(yDurSec),
         categories: yCats,
         branches: yBranches
       });
@@ -327,6 +782,10 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
     const avgYearlyCust = Math.round(totCustSum / countPts);
     const overallDailyTrx = totDaysAll > 0 ? Math.round(totTrx / totDaysAll) : 0;
     const avgTpm = avgYearlyCust > 0 ? Number((overallDailyTrx / avgYearlyCust).toFixed(2)) : 0;
+
+    const overallSuksesPct = Number((timeline.reduce((acc, t) => acc + (t.sukses_pct || 98.0), 0) / countPts).toFixed(1));
+    const overallDurSec = Number((timeline.reduce((acc, t) => acc + (t.dur_sec || 23.0), 0) / countPts).toFixed(1));
+    const overallDurStr = formatDurationSec(overallDurSec);
 
     const hourlyHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
     const hourlyWeights = [
@@ -345,12 +804,14 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       trx: Math.round((totTrx / 52) * weekdayWeights[i])
     }));
 
-    const topCategory = Object.keys(categoriesTotal).length > 0 
-      ? Object.entries(categoriesTotal).sort((a,b) => b[1] - a[1])[0][0] : "EWALLET";
-    const topBranch = Object.keys(branchesTotal).length > 0 
-      ? Object.entries(branchesTotal).sort((a,b) => b[1] - a[1])[0][0] : "BSD";
+    const topCategory = Object.keys(categoriesTotal).length > 0
+      ? Object.entries(categoriesTotal).sort((a, b) => b[1] - a[1])[0][0] : "EWALLET";
+    const topBranch = Object.keys(branchesTotal).length > 0
+      ? Object.entries(branchesTotal).sort((a, b) => b[1] - a[1])[0][0] : "BSD";
 
-    return {
+    const gagalTot = Math.max(0, Number((100 - overallSuksesPct).toFixed(1)));
+
+    return _applyProductFiltersClient({
       ok: true,
       brand: brandUpper,
       year: "ALL",
@@ -363,6 +824,10 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
         avg_monthly_trx: avgYearlyTrx,
         avg_monthly_cust: avgYearlyCust,
         avg_tpm: avgTpm,
+        avg_sukses_pct: overallSuksesPct,
+        avg_sukses_str: overallSuksesPct.toFixed(1) + "%",
+        avg_dur_sec: overallDurSec,
+        avg_dur_str: overallDurStr,
         total_points: countPts,
         granularity_label: "Komparasi Tahunan (2023 - 2026)",
         top_category: topCategory,
@@ -373,8 +838,13 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       branches_total: branchesTotal,
       hourly_distribution: hourlyDistribution,
       weekday_distribution: weekdayDistribution,
-      status_breakdown: { "Sukses": 98.4, "Gagal Nomor": 0.8, "Gagal Saldo": 0.5, "Timeout Provider": 0.3 }
-    };
+      status_breakdown: {
+        "Sukses": overallSuksesPct,
+        "Gagal Nomor": Number((gagalTot * 0.55).toFixed(1)),
+        "Gagal Saldo": Number((gagalTot * 0.25).toFixed(1)),
+        "Timeout Provider": Number((gagalTot * 0.20).toFixed(1))
+      }
+    }, kategori, operator, tipe, targetBrands, allYms, dataAll);
   }
 
   // 3. GRANULARITAS 12 BULAN DI 1 TAHUN (User pilih Tahun spesifik dan Bulan = 'ALL')
@@ -396,8 +866,10 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
   filteredYms.forEach(ym => {
     const [y, m] = ym.split("-");
     const mName = MONTH_NAMES[m] || m;
-    const isCurMtd = (ym === "2026-10");
-    const label = isCurMtd ? `${mName} (MTD-4h)` : mName;
+    const sampleItem = (dataAll[targetBrands[0]] && dataAll[targetBrands[0]][ym]) ? dataAll[targetBrands[0]][ym] : null;
+    const isCurMtd = sampleItem ? sampleItem.is_mtd : (ym === "2026-10");
+    const numDays = sampleItem ? (sampleItem.active_days || sampleItem.days_count || (sampleItem.daily && sampleItem.daily.length) || 13) : 13;
+    const label = isCurMtd ? `${mName} (MTD-${numDays}h)` : mName;
 
     let ymTrx = 0;
     let ymCust = 0;
@@ -413,7 +885,7 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
 
       ymTrx += item.trx_count || 0;
       ymCust += item.active_customers || 0;
-      
+
       const bDaily = item.daily || [];
       const bDayCust = bDaily.length > 0
         ? (bDaily.reduce((acc, d) => acc + (d.cust || 0), 0) / bDaily.length)
@@ -421,7 +893,7 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       ymDailyCust += bDayCust;
 
       ymSuksesSum += item.sukses_pct || 98.4;
-      ymDurSum += item.avg_dur_sec || 3.0;
+      ymDurSum += item.avg_dur_sec || 23.0;
 
       Object.entries(item.categories || {}).forEach(([cat, cVal]) => {
         ymCats[cat] = (ymCats[cat] || 0) + cVal;
@@ -434,13 +906,12 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       });
     });
 
-    const sampleB = dataAll[targetBrands[0]] && dataAll[targetBrands[0]][ym];
-    const numDays = (sampleB && sampleB.days_count) ? sampleB.days_count : 30;
-
     const dailyTrx = numDays > 0 ? Math.round(ymTrx / numDays) : 0;
     const avgDayCust = Math.round(ymDailyCust / targetBrands.length);
     // TPM Harian = Rata-rata Trx / Hari dibagi Rata-rata Customer / Hari (standar modul #daily)
     const tpm = avgDayCust > 0 ? Number((dailyTrx / avgDayCust).toFixed(2)) : 0;
+    const avgSukses = Number((ymSuksesSum / targetBrands.length).toFixed(1));
+    const avgDur = Number((ymDurSum / targetBrands.length).toFixed(1));
 
     totTrx += ymTrx;
     totCust += avgDayCust;
@@ -455,8 +926,9 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       daily_trx: dailyTrx,
       customers: avgDayCust,
       tpm: tpm,
-      sukses_pct: Number((ymSuksesSum / targetBrands.length).toFixed(1)),
-      dur_sec: Number((ymDurSum / targetBrands.length).toFixed(1)),
+      sukses_pct: avgSukses,
+      dur_sec: avgDur,
+      dur_str: formatDurationSec(avgDur),
       categories: ymCats,
       branches: ymBranches
     });
@@ -467,6 +939,10 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
   const avgMonthlyCust = Math.round(totCust / countPts);
   const overallDailyTrx = totDaysSum > 0 ? Math.round(totTrx / totDaysSum) : 0;
   const avgTpm = avgMonthlyCust > 0 ? Number((overallDailyTrx / avgMonthlyCust).toFixed(2)) : 0;
+
+  const overallSuksesPct = Number((timeline.reduce((acc, t) => acc + (t.sukses_pct || 98.0), 0) / countPts).toFixed(1));
+  const overallDurSec = Number((timeline.reduce((acc, t) => acc + (t.dur_sec || 23.0), 0) / countPts).toFixed(1));
+  const overallDurStr = formatDurationSec(overallDurSec);
 
   const hourlyHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
   const hourlyWeights = [
@@ -485,12 +961,14 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
     trx: Math.round((avgMonthlyTrx / 4.3) * weekdayWeights[i])
   }));
 
-  const topCategory = Object.keys(categoriesTotal).length > 0 
-    ? Object.entries(categoriesTotal).sort((a,b) => b[1] - a[1])[0][0] : "EWALLET";
-  const topBranch = Object.keys(branchesTotal).length > 0 
-    ? Object.entries(branchesTotal).sort((a,b) => b[1] - a[1])[0][0] : "BSD";
+  const topCategory = Object.keys(categoriesTotal).length > 0
+    ? Object.entries(categoriesTotal).sort((a, b) => b[1] - a[1])[0][0] : "EWALLET";
+  const topBranch = Object.keys(branchesTotal).length > 0
+    ? Object.entries(branchesTotal).sort((a, b) => b[1] - a[1])[0][0] : "BSD";
 
-  return {
+  const gagalTot = Math.max(0, Number((100 - overallSuksesPct).toFixed(1)));
+
+  return _applyProductFiltersClient({
     ok: true,
     brand: brandUpper,
     year, month,
@@ -502,6 +980,10 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
       avg_monthly_trx: avgMonthlyTrx,
       avg_monthly_cust: avgMonthlyCust,
       avg_tpm: avgTpm,
+      avg_sukses_pct: overallSuksesPct,
+      avg_sukses_str: overallSuksesPct.toFixed(1) + "%",
+      avg_dur_sec: overallDurSec,
+      avg_dur_str: overallDurStr,
       total_points: countPts,
       granularity_label: `Tren 12 Bulan (Tahun ${year})`,
       top_category: topCategory,
@@ -512,8 +994,257 @@ function filterGoldDataLocal(dataAll, brand, year, month) {
     branches_total: branchesTotal,
     hourly_distribution: hourlyDistribution,
     weekday_distribution: weekdayDistribution,
-    status_breakdown: { "Sukses": 98.4, "Gagal Nomor": 0.8, "Gagal Saldo": 0.5, "Timeout Provider": 0.3 }
-  };
+    status_breakdown: {
+      "Sukses": overallSuksesPct,
+      "Gagal Nomor": Number((gagalTot * 0.55).toFixed(1)),
+      "Gagal Saldo": Number((gagalTot * 0.25).toFixed(1)),
+      "Timeout Provider": Number((gagalTot * 0.20).toFixed(1))
+    }
+  }, kategori, operator, tipe, targetBrands, filteredYms, dataAll);
+}
+
+// ── ENGINE FILTER PRODUK CLIENT-SIDE ──
+function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tipe = "ALL", targetBrands = [], targetYms = [], dataAll = {}) {
+  if (kategori === "ALL" && operator === "ALL" && tipe === "ALL") return res;
+
+  const summary = res.summary || {};
+  const timeline = res.timeline || [];
+  const categoriesTotal = res.categories_total || {};
+  const granularity = res.granularity || "monthly";
+
+  const targetCat = (kategori && kategori !== "ALL") ? kategori.toUpperCase().trim() : null;
+  const targetOp = (operator && operator !== "ALL") ? operator.toUpperCase().trim() : null;
+  const targetTipe = (tipe && tipe !== "ALL") ? tipe.toUpperCase().trim() : null;
+
+  let perfKey = null;
+  let targetVal = null;
+  if (targetTipe) {
+    perfKey = "tipes_perf";
+    targetVal = targetTipe;
+  } else if (targetOp) {
+    perfKey = "operators_perf";
+    targetVal = targetOp;
+  } else if (targetCat) {
+    perfKey = "categories_perf";
+    targetVal = targetCat;
+  }
+
+  const lblParts = [];
+  if (targetCat) {
+    lblParts.push(`Kat: ${targetCat}`);
+    summary.top_category = targetCat;
+  }
+  if (targetOp) lblParts.push(`Op: ${targetOp}`);
+  if (targetTipe) lblParts.push(`Tipe: ${targetTipe}`);
+  if (lblParts.length > 0) {
+    summary.granularity_label = (summary.granularity_label || "") + " • " + lblParts.join(" • ");
+  }
+
+  if ((targetTipe || targetOp || targetCat) && res.modules_scorecard) {
+    let mList = [...res.modules_scorecard];
+    if (targetTipe) {
+      mList = mList.filter(m => {
+        if (targetTipe === "CHIP" || targetTipe === "H2H") {
+          return (m.tipe || "").toUpperCase() === targetTipe;
+        }
+        if (m.tipes && Object.keys(m.tipes).some(k => k.toUpperCase() === targetTipe)) return true;
+        return (m.tipe_produk || "").toUpperCase() === targetTipe;
+      });
+    }
+    if (targetOp) {
+      mList = mList.filter(m => (m.operator || "").toUpperCase() === targetOp || (m.operators && Object.keys(m.operators).some(k => k.toUpperCase() === targetOp)));
+    }
+    if (targetCat) {
+      mList = mList.filter(m => {
+        const topK = (m.kategori || getCategoryForOperator(m.operator) || "").toUpperCase();
+        if (topK === targetCat) return true;
+        if ((targetCat === "GAME" || targetCat === "VOUCHER GAME") && (topK === "GAME" || topK === "VOUCHER GAME")) return true;
+        if ((targetCat === "PLN" || targetCat === "TOKEN PLN") && (topK === "PLN" || topK === "TOKEN PLN")) return true;
+        if (m.operators) {
+          for (const op of Object.keys(m.operators)) {
+            const opCat = getCategoryForOperator(op).toUpperCase();
+            if (opCat === targetCat) return true;
+            if ((targetCat === "GAME" || targetCat === "VOUCHER GAME") && (opCat === "GAME" || opCat === "VOUCHER GAME")) return true;
+            if ((targetCat === "PLN" || targetCat === "TOKEN PLN") && (opCat === "PLN" || opCat === "TOKEN PLN")) return true;
+          }
+        }
+        return false;
+      });
+    }
+
+    // Recalculate top failing (Opsi A: Sukses Rate Terburuk, min trx >= 10)
+    let failingCands = mList.filter(m => (m.gagal || 0) > 0 && (m.trx || 0) >= 10);
+    if (failingCands.length < 3) {
+      failingCands = mList.filter(m => (m.gagal || 0) > 0);
+    }
+    failingCands.sort((a, b) => (a.sukses_pct - b.sukses_pct) || (b.gagal - a.gagal));
+    let topFailing = failingCands.slice(0, 3);
+    if (topFailing.length < 3) {
+      const extra = mList.filter(m => !topFailing.includes(m)).sort((a, b) => (a.sukses_pct - b.sukses_pct) || (b.gagal - a.gagal));
+      topFailing = topFailing.concat(extra.slice(0, 3 - topFailing.length));
+    }
+    res.top_failing_modules = topFailing;
+
+    // Recalculate top slowest
+    let slowCands = mList.filter(m => (m.sukses || 0) > 0 && (m.trx || 0) >= 5);
+    if (slowCands.length < 3) slowCands = mList.filter(m => (m.sukses || 0) > 0);
+    slowCands.sort((a, b) => (b.avg_speed || 0) - (a.avg_speed || 0));
+    res.top_slowest_modules = slowCands.slice(0, 3);
+
+    // Recalculate summary
+    res.modules_summary = {
+      total_modules: mList.length,
+      baik_count: mList.filter(m => m.status === "BAIK" || m.status === "PRIMA").length,
+      cukup_count: mList.filter(m => m.status === "CUKUP" || m.status === "WASPADA").length,
+      kurang_count: mList.filter(m => m.status === "KURANG" || m.status === "GANGGUAN").length,
+      prima_count: mList.filter(m => m.status === "BAIK" || m.status === "PRIMA").length,
+      waspada_count: mList.filter(m => m.status === "CUKUP" || m.status === "WASPADA").length,
+      gangguan_count: mList.filter(m => m.status === "KURANG" || m.status === "GANGGUAN").length,
+      chip_count: mList.filter(m => m.tipe === "CHIP").length,
+      h2h_count: mList.filter(m => m.tipe === "H2H").length
+    };
+  }
+
+  let filtTrx = 0;
+  let filtSukses = 0;
+  let filtWeightedDur = 0.0;
+  let hasPerfData = false;
+
+  if (perfKey && targetVal) {
+    targetBrands.forEach(b => {
+      targetYms.forEach(ym => {
+        const ymData = (dataAll[b] && dataAll[b][ym]) || {};
+        const perfDict = ymData[perfKey] || {};
+        let matched = null;
+        for (const [k, v] of Object.entries(perfDict)) {
+          if (k.toUpperCase() === targetVal || (perfKey === "categories_perf" && k.toUpperCase().includes(targetVal)) || (perfKey === "tipes_perf" && (k.toUpperCase().includes(targetVal) || targetVal.includes(k.toUpperCase())))) {
+            matched = v;
+            break;
+          }
+        }
+        if (matched) {
+          hasPerfData = true;
+          const tCount = matched.trx || 0;
+          const sCount = matched.trx_sukses || 0;
+          const avgDur = matched.avg_dur_sec || 0.0;
+          filtTrx += tCount;
+          filtSukses += sCount;
+          filtWeightedDur += (avgDur * sCount);
+        }
+      });
+    });
+  }
+
+  if (!hasPerfData && targetCat && categoriesTotal[targetCat]) {
+    filtTrx = categoriesTotal[targetCat];
+    filtSukses = filtTrx;
+    hasPerfData = true;
+  }
+
+  if (hasPerfData && filtTrx > 0) {
+    const filtSukPct = Number((filtSukses / filtTrx * 100).toFixed(1));
+    const filtAvgDur = filtSukses > 0 ? Number((filtWeightedDur / filtSukses).toFixed(1)) : (summary.avg_dur_sec || 21.0);
+
+    summary.total_trx = filtTrx;
+    summary.total_sukses = filtSukses;
+    const countPts = timeline.length || 1;
+    summary.daily_trx_avg = Math.round(filtSukses / countPts);
+    summary.avg_monthly_trx = Math.round(filtTrx / countPts);
+    summary.avg_sukses_pct = filtSukPct;
+    summary.avg_sukses_str = `${filtSukPct.toFixed(1)}%`;
+    summary.avg_dur_sec = filtAvgDur;
+    summary.avg_dur_str = formatDurationSec(filtAvgDur);
+
+    const gagalTot = Math.max(0, Number((100 - filtSukPct).toFixed(1)));
+    res.status_breakdown = {
+      "Sukses": filtSukPct,
+      "Gagal Nomor": Number((gagalTot * 0.55).toFixed(1)),
+      "Gagal Saldo": Number((gagalTot * 0.25).toFixed(1)),
+      "Timeout Provider": Number((gagalTot * 0.20).toFixed(1))
+    };
+  }
+
+  if (granularity === "daily" && perfKey && targetVal) {
+    const targetYm = targetYms[0] || `${res.year || "2026"}-${String(res.month || "10").padStart(2, "0")}`;
+    timeline.forEach(t => {
+      const dNum = String(t.day || 1);
+      let dTrx = 0;
+      let dSuk = 0;
+      let dDurSum = 0.0;
+      let dFound = false;
+
+      targetBrands.forEach(b => {
+        const ymData = (dataAll[b] && dataAll[b][targetYm]) || {};
+        const perfDict = ymData[perfKey] || {};
+        for (const [k, v] of Object.entries(perfDict)) {
+          if (k.toUpperCase() === targetVal || (perfKey === "categories_perf" && k.toUpperCase().includes(targetVal)) || (perfKey === "tipes_perf" && (k.toUpperCase().includes(targetVal) || targetVal.includes(k.toUpperCase())))) {
+            const dMap = v.daily || {};
+            const dInfo = dMap[dNum] || dMap[parseInt(dNum, 10)];
+            if (dInfo) {
+              dFound = true;
+              dTrx += dInfo.trx || 0;
+              dSuk += dInfo.trx_sukses || 0;
+              dDurSum += ((dInfo.dur_sec || 0.0) * (dInfo.trx_sukses || 0));
+            }
+            break;
+          }
+        }
+      });
+
+      if (dFound && dTrx > 0) {
+        t.trx = dTrx;
+        t.daily_trx = dSuk;
+        t.sukses_pct = Number((dSuk / dTrx * 100).toFixed(1));
+        const dSec = dSuk > 0 ? Number((dDurSum / dSuk).toFixed(1)) : (summary.avg_dur_sec || 21.0);
+        t.dur_sec = dSec;
+        t.dur_str = formatDurationSec(dSec);
+      } else if (targetCat) {
+        const cVal = (t.categories && t.categories[targetCat]) || 0;
+        t.trx = cVal;
+        t.daily_trx = cVal;
+      }
+    });
+  } else if (granularity === "monthly" && perfKey && targetVal) {
+    timeline.forEach(t => {
+      const ym = t.ym;
+      let mTrx = 0;
+      let mSuk = 0;
+      let mDurSum = 0.0;
+      let mFound = false;
+
+      targetBrands.forEach(b => {
+        const ymData = (dataAll[b] && dataAll[b][ym]) || {};
+        const perfDict = ymData[perfKey] || {};
+        for (const [k, v] of Object.entries(perfDict)) {
+          if (k.toUpperCase() === targetVal || (perfKey === "categories_perf" && k.toUpperCase().includes(targetVal)) || (perfKey === "tipes_perf" && (k.toUpperCase().includes(targetVal) || targetVal.includes(k.toUpperCase())))) {
+            mFound = true;
+            mTrx += v.trx || 0;
+            mSuk += v.trx_sukses || 0;
+            mDurSum += ((v.avg_dur_sec || 0.0) * (v.trx_sukses || 0));
+            break;
+          }
+        }
+      });
+
+      if (mFound && mTrx > 0) {
+        t.trx = mTrx;
+        t.trx_sukses = mSuk;
+        const numDays = t.days_count || 30;
+        t.daily_trx = Math.round(mSuk / numDays);
+        t.sukses_pct = Number((mSuk / mTrx * 100).toFixed(1));
+        const dSec = mSuk > 0 ? Number((mDurSum / mSuk).toFixed(1)) : (summary.avg_dur_sec || 21.0);
+        t.dur_sec = dSec;
+        t.dur_str = formatDurationSec(dSec);
+      } else if (targetCat) {
+        const cVal = (t.categories && t.categories[targetCat]) || 0;
+        t.trx = cVal;
+        const numDays = t.days_count || 30;
+        t.daily_trx = Math.round(cVal / numDays);
+      }
+    });
+  }
+
+  return res;
 }
 
 function renderCurrentTabCharts(data) {
@@ -521,6 +1252,8 @@ function renderCurrentTabCharts(data) {
     renderDistribusiTab(data);
   } else if (currentAnalisaTab === "service") {
     renderServiceTab(data);
+  } else if (currentAnalisaTab === "supplier") {
+    renderSupplierTab(data);
   } else if (currentAnalisaTab === "lain") {
     renderLainTab(data);
   }
@@ -528,10 +1261,15 @@ function renderCurrentTabCharts(data) {
 
 // ── ENTRY POINTS DARI ROUTER ──
 function loadAnalisa() {
+  updateProductFilterDropdowns();
   const hash = window.location.hash || "#analisa";
-  if (hash === "#analisa-service") {
+  if (hash.includes("tab=service") || hash === "#analisa-service") {
     switchAnalisaTab("service");
-  } else if (hash === "#analisa-lain") {
+  } else if (hash.includes("tab=supplier") || hash === "#analisa-supplier") {
+    switchAnalisaTab("supplier");
+  } else if (hash.includes("tab=profit") || hash === "#analisa-profit") {
+    switchAnalisaTab("profit");
+  } else if (hash.includes("tab=lain") || hash === "#analisa-lain") {
     switchAnalisaTab("lain");
   } else {
     switchAnalisaTab("distribusi");
@@ -544,6 +1282,14 @@ function loadAnalisaDistribusi() {
 
 function loadAnalisaService() {
   switchAnalisaTab("service");
+}
+
+function loadAnalisaSupplier() {
+  switchAnalisaTab("supplier");
+}
+
+function loadAnalisaProfit() {
+  switchAnalisaTab("profit");
 }
 
 function loadAnalisaLain() {
@@ -568,11 +1314,11 @@ function renderDistribusiTab(data) {
   const elSubTrx = document.getElementById("dist-stat-trx-sub");
   if (elSubTrx) {
     if (isDaily) {
-      elSubTrx.textContent = "Rata-rata Trx / Hari (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total)";
+      elSubTrx.textContent = "Total Sebulan (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total)";
     } else if (isYearly) {
-      elSubTrx.textContent = "Daily Trx Rerata Tahunan (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total)";
+      elSubTrx.textContent = "Total Semua (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total)";
     } else {
-      elSubTrx.textContent = "Daily Trx Rerata (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total Trx)";
+      elSubTrx.textContent = "Total Setahun (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total Trx)";
     }
   }
 
@@ -633,8 +1379,8 @@ function renderDistTrendChart(timeline, brandColor, isDaily) {
   const trxData = timeline.map(t => isDaily ? t.trx : t.daily_trx);
   const custData = timeline.map(t => t.customers);
 
-  const barLabel = isDaily 
-    ? "Transaksi Harian (Trx)" 
+  const barLabel = isDaily
+    ? "Transaksi Harian (Trx)"
     : "Daily Trx (Total Trx / Hari Cut-off)";
 
   chartInstances["distTrend"] = new Chart(ctx, {
@@ -837,43 +1583,215 @@ function renderServiceTab(data) {
 
   // 1. KPI Cards
   const elSukses = document.getElementById("serv-stat-sukses");
-  if (elSukses) elSukses.textContent = "98.5%";
+  if (elSukses) {
+    if (summary.avg_sukses_str) {
+      elSukses.textContent = summary.avg_sukses_str;
+    } else if (summary.avg_sukses_pct != null) {
+      elSukses.textContent = `${Number(summary.avg_sukses_pct).toFixed(1)}%`;
+    } else if (timeline.length > 0 && timeline[0].sukses_pct != null) {
+      elSukses.textContent = `${Number(timeline[0].sukses_pct).toFixed(1)}%`;
+    } else {
+      elSukses.textContent = "98.0%";
+    }
+  }
 
   const elDurasi = document.getElementById("serv-stat-durasi");
-  if (elDurasi) elDurasi.textContent = "00:03";
+  if (elDurasi) {
+    if (summary.avg_dur_str) {
+      elDurasi.textContent = summary.avg_dur_str;
+    } else if (summary.avg_dur_sec != null) {
+      elDurasi.textContent = formatDurationSec(summary.avg_dur_sec);
+    } else if (timeline.length > 0 && timeline[0].dur_str) {
+      elDurasi.textContent = timeline[0].dur_str;
+    } else if (timeline.length > 0 && timeline[0].dur_sec != null) {
+      elDurasi.textContent = formatDurationSec(timeline[0].dur_sec);
+    } else {
+      elDurasi.textContent = "00:21";
+    }
+  }
 
   const elKategori = document.getElementById("serv-stat-kategori");
-  if (elKategori) elKategori.textContent = summary.top_category || "EWALLET";
+  if (elKategori) {
+    if (activeFilters.tipe !== "ALL" && activeFilters.operator !== "ALL") {
+      elKategori.textContent = `${activeFilters.operator} (${activeFilters.tipe})`;
+    } else if (activeFilters.tipe !== "ALL") {
+      elKategori.textContent = activeFilters.tipe;
+    } else if (activeFilters.operator !== "ALL") {
+      elKategori.textContent = activeFilters.operator;
+    } else if (activeFilters.kategori !== "ALL") {
+      elKategori.textContent = activeFilters.kategori;
+    } else {
+      elKategori.textContent = summary.top_category || "EWALLET";
+    }
+  }
 
   const elTotal = document.getElementById("serv-stat-total");
-  if (elTotal) elTotal.textContent = (summary.total_trx || 0).toLocaleString("id-ID");
+  if (elTotal) {
+    elTotal.textContent = (summary.total_trx || 0).toLocaleString("id-ID");
+  }
 
   const elSubTotal = document.getElementById("serv-stat-total-sub");
-  if (elSubTotal) elSubTotal.textContent = summary.granularity_label || "Akumulasi Periode Terpilih";
+  if (elSubTotal) {
+    if (activeFilters.tipe !== "ALL" && activeFilters.operator !== "ALL") {
+      elSubTotal.textContent = `Volume ${activeFilters.operator} (${activeFilters.tipe}) Terfilter`;
+    } else if (activeFilters.tipe !== "ALL") {
+      elSubTotal.textContent = `Volume ${activeFilters.tipe} Terfilter`;
+    } else if (activeFilters.operator !== "ALL") {
+      elSubTotal.textContent = `Volume ${activeFilters.operator} Terfilter`;
+    } else if (activeFilters.kategori !== "ALL") {
+      elSubTotal.textContent = `Volume ${activeFilters.kategori} Terfilter`;
+    } else {
+      elSubTotal.textContent = summary.granularity_label || "Akumulasi Periode Terpilih";
+    }
+  }
 
   // Update Dynamic Chart Title
   const elTitle = document.getElementById("serv-trend-title");
   if (elTitle) {
+    let filterLabel = "Kategori Produk";
+    if (activeFilters.tipe !== "ALL" && activeFilters.operator !== "ALL") {
+      filterLabel = `${activeFilters.operator} (${activeFilters.tipe})`;
+    } else if (activeFilters.tipe !== "ALL") {
+      filterLabel = `Tipe ${activeFilters.tipe}`;
+    } else if (activeFilters.operator !== "ALL") {
+      filterLabel = `Operator ${activeFilters.operator}`;
+    } else if (activeFilters.kategori !== "ALL") {
+      filterLabel = `Kategori ${activeFilters.kategori}`;
+    }
     if (isDaily) {
-      elTitle.textContent = `Tren Kategori Produk Harian (${summary.granularity_label})`;
+      elTitle.textContent = `Tren Volume ${filterLabel} Harian (${summary.granularity_label || ""})`;
     } else if (isYearly) {
-      elTitle.textContent = `Tren Kategori Produk Tahunan (2023 - 2026)`;
+      elTitle.textContent = `Tren Volume ${filterLabel} Tahunan (2023 - 2026)`;
     } else {
-      elTitle.textContent = `Tren 12 Bulan Kategori Produk (Tahun ${data.year})`;
+      elTitle.textContent = `Tren 12 Bulan Volume ${filterLabel} (Tahun ${data.year})`;
     }
   }
 
-  // 2. Chart S1: Tren Kategori Produk
-  renderServTrendChart(timeline);
-
-  // 3. Chart S2: Market Share Kategori Produk (% Share Donut)
-  renderServShareChart(categoriesTotal);
-
-  // 4. Chart S3: Kualitas Layanan (% Sukses Rate)
+  // 1. Chart S1: Tren Kualitas Sukses Layanan (% Sukses Rate) — Full-width memanjang di bawah KPI Card
   renderServSuksesRateChart(timeline);
 
-  // 5. Chart S4: Ranking Volume per Kategori Produk
-  renderServRankingChart(categoriesTotal);
+  // 2. Chart S2: Tren Rata-rata Durasi Kecepatan (Sukses Only) — Chart Baru Full-width memanjang
+  renderServDurasiChart(timeline);
+
+  // 3. Chart S3: Tren Penjualan per Kategori Produk
+  renderServTrendChart(timeline);
+}
+
+function renderServSuksesRateChart(timeline) {
+  const ctx = document.getElementById("chart-serv-sukses-rate");
+  if (!ctx) return;
+  destroyChart("servSuksesRate");
+
+  const labels = timeline.map(t => t.label);
+  const rates = timeline.map(t => t.sukses_pct != null ? t.sukses_pct : 98.0);
+  const minRate = rates.length ? Math.min(...rates) : 95;
+  const yMin = Math.max(70, Math.floor(minRate - 2));
+
+  chartInstances["servSuksesRate"] = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "% Sukses Rate",
+          data: rates,
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.12)",
+          borderWidth: 2.5,
+          pointRadius: timeline.length > 20 ? 3 : 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#10b981",
+          fill: true,
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: context => ` Success Rate: ${context.parsed.y.toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          min: yMin,
+          max: 100,
+          ticks: { callback: v => `${v}%` },
+          title: { display: true, text: "% Sukses Rate" }
+        }
+      }
+    }
+  });
+}
+
+function renderServDurasiChart(timeline) {
+  const ctx = document.getElementById("chart-serv-durasi");
+  if (!ctx) return;
+  destroyChart("servDurasi");
+
+  const labels = timeline.map(t => t.label);
+  const durValues = timeline.map(t => {
+    if (t.dur_sec != null && !isNaN(t.dur_sec)) {
+      return Number(Number(t.dur_sec).toFixed(1));
+    }
+    return 21.0;
+  });
+
+  const minDur = durValues.length ? Math.min(...durValues) : 15;
+  const maxDur = durValues.length ? Math.max(...durValues) : 30;
+  const yMin = Math.max(0, Math.floor(minDur - 3));
+  const yMax = Math.ceil(maxDur + 3);
+
+  chartInstances["servDurasi"] = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Avg Durasi Kecepatan (Detik)",
+          data: durValues,
+          borderColor: "#06b6d4",
+          backgroundColor: "rgba(6, 182, 212, 0.12)",
+          borderWidth: 2.5,
+          pointRadius: timeline.length > 20 ? 3 : 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#06b6d4",
+          fill: true,
+          tension: 0.35
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: context => {
+              const sec = context.parsed.y;
+              return ` Avg Durasi: ${sec.toFixed(1)} detik (${formatDurationSec(sec)})`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          min: yMin,
+          max: yMax,
+          ticks: { callback: v => `${v}s` },
+          title: { display: true, text: "Durasi (Detik)" }
+        }
+      }
+    }
+  });
 }
 
 function renderServTrendChart(timeline) {
@@ -882,11 +1800,88 @@ function renderServTrendChart(timeline) {
   destroyChart("servTrend");
 
   const labels = timeline.map(t => t.label);
+
+  const hasTipe = activeFilters.tipe !== "ALL";
+  const hasOp = activeFilters.operator !== "ALL";
+  const hasCat = activeFilters.kategori !== "ALL";
+
+  if (hasTipe || hasOp || hasCat) {
+    let label = "Volume Terfilter";
+    let color = "#2563eb";
+    if (hasTipe && hasOp) {
+      label = `Volume ${activeFilters.operator} (${activeFilters.tipe})`;
+      color = "#8b5cf6";
+    } else if (hasTipe) {
+      label = `Volume ${activeFilters.tipe}`;
+      const tipeColors = {
+        "DATA": "#06b6d4",
+        "MOBILE DATA": "#06b6d4",
+        "INJECT": "#f59e0b",
+        "NOMINAL": "#10b981",
+        "BEBAS NOMINAL": "#3b82f6",
+        "REGULER": "#64748b"
+      };
+      color = tipeColors[activeFilters.tipe] || "#0ea5e9";
+    } else if (hasOp) {
+      label = `Volume ${activeFilters.operator}`;
+      color = "#3b82f6";
+    } else if (hasCat) {
+      const cat = activeFilters.kategori;
+      label = `Volume ${cat}`;
+      const catColors = {
+        "EWALLET": "#0284c7",
+        "TELCO": "#10b981",
+        "TOKEN PLN": "#8b5cf6",
+        "PPOB": "#f59e0b",
+        "VOUCHER GAME": "#ec4899",
+        "TRANSFER STOK": "#64748b"
+      };
+      color = catColors[cat] || "#2563eb";
+    }
+
+    const dataValues = timeline.map(t => (t.daily_trx != null ? t.daily_trx : (t.trx || 0)));
+
+    chartInstances["servTrend"] = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: label,
+            data: dataValues,
+            backgroundColor: color,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top", labels: { usePointStyle: true, font: { family: "inherit", size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: context => ` ${context.dataset.label}: ${Math.round(context.parsed.y).toLocaleString("id-ID")} trx`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: {
+            ticks: { callback: v => Number(v).toLocaleString("id-ID") },
+            title: { display: true, text: "Jumlah Transaksi" }
+          }
+        }
+      }
+    });
+    return;
+  }
+
   const ewData = timeline.map(t => (t.categories && t.categories["EWALLET"]) || 0);
   const telData = timeline.map(t => (t.categories && t.categories["TELCO"]) || 0);
-  const plnData = timeline.map(t => (t.categories && t.categories["PLN"]) || 0);
+  const plnData = timeline.map(t => (t.categories && (t.categories["PLN"] || t.categories["TOKEN PLN"])) || 0);
   const ppData = timeline.map(t => (t.categories && t.categories["PPOB"]) || 0);
-  const gmData = timeline.map(t => (t.categories && t.categories["GAME"]) || 0);
+  const gmData = timeline.map(t => (t.categories && (t.categories["GAME"] || t.categories["VOUCHER GAME"])) || 0);
 
   chartInstances["servTrend"] = new Chart(ctx, {
     type: "bar",
@@ -923,141 +1918,32 @@ function renderServTrendChart(timeline) {
   });
 }
 
-function renderServShareChart(categoriesTotal) {
-  const ctx = document.getElementById("chart-serv-produk");
-  if (!ctx) return;
-  destroyChart("servShare");
+// =============================================================================
+// 3. TAB: ANALISA SUPPLIER (EVALUASI VENDOR H2H & MODEM POOL CHIP)
+// =============================================================================
+function renderSupplierTab(data) {
+  const summary = data.modules_summary || {};
+  const scorecard = data.modules_scorecard || [];
 
-  const labels = Object.keys(categoriesTotal);
-  const values = Object.values(categoriesTotal);
-  const palette = ["#0284c7", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#64748b"];
+  // Update Mini KPI Cards khusus Supplier
+  const elTotal = document.getElementById("supp-stat-total");
+  if (elTotal) elTotal.textContent = `${summary.total_modules || scorecard.length} Modul`;
 
-  chartInstances["servShare"] = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          data: values,
-          backgroundColor: palette.slice(0, labels.length),
-          borderWidth: 2,
-          hoverOffset: 6
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "right", labels: { boxWidth: 12, font: { family: "inherit", size: 11.5 } } },
-        tooltip: {
-          callbacks: {
-            label: context => {
-              const val = context.parsed;
-              const total = context.dataset.data.reduce((a, b) => a + b, 0);
-              const pct = total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
-              return ` ${context.label}: ${val.toLocaleString("id-ID")} (${pct}%)`;
-            }
-          }
-        }
-      },
-      cutout: "62%"
-    }
-  });
-}
+  const elPrima = document.getElementById("supp-stat-prima");
+  if (elPrima) elPrima.textContent = `${summary.baik_count != null ? summary.baik_count : (summary.prima_count || 0)} Modul`;
 
-function renderServSuksesRateChart(timeline) {
-  const ctx = document.getElementById("chart-serv-sukses-rate");
-  if (!ctx) return;
-  destroyChart("servSuksesRate");
+  const elWaspada = document.getElementById("supp-stat-waspada");
+  if (elWaspada) elWaspada.textContent = `${summary.cukup_count != null ? summary.cukup_count : (summary.waspada_count || 0)} Modul`;
 
-  const labels = timeline.map(t => t.label);
-  const rates = timeline.map(t => t.sukses_pct || 98.5);
+  const elGangguan = document.getElementById("supp-stat-gangguan");
+  if (elGangguan) elGangguan.textContent = `${summary.kurang_count != null ? summary.kurang_count : (summary.gangguan_count || 0)} Modul`;
 
-  chartInstances["servSuksesRate"] = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "% Sukses Rate",
-          data: rates,
-          borderColor: "#10b981",
-          backgroundColor: "rgba(16, 185, 129, 0.12)",
-          borderWidth: 2.5,
-          pointRadius: timeline.length > 20 ? 3 : 4,
-          fill: true,
-          tension: 0.3
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => ` Success: ${context.parsed.y.toFixed(1)}%`
-          }
-        }
-      },
-      scales: {
-        x: { grid: { display: false } },
-        y: {
-          min: 95,
-          max: 100,
-          ticks: { callback: v => `${v}%` },
-          title: { display: true, text: "% Sukses" }
-        }
-      }
-    }
-  });
-}
-
-function renderServRankingChart(categoriesTotal) {
-  const ctx = document.getElementById("chart-serv-ranking");
-  if (!ctx) return;
-  destroyChart("servRanking");
-
-  const sortedPairs = Object.entries(categoriesTotal).sort((a, b) => b[1] - a[1]);
-  const labels = sortedPairs.map(p => p[0]);
-  const values = sortedPairs.map(p => p[1]);
-
-  chartInstances["servRanking"] = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Volume Transaksi",
-          data: values,
-          backgroundColor: ["#0284c7", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899"],
-          borderRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => ` ${context.parsed.y.toLocaleString("id-ID")} trx`
-          }
-        }
-      },
-      scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: v => Number(v).toLocaleString("id-ID") } }
-      }
-    }
-  });
+  // Render Quadrant Top 3 & Tabel Scorecard
+  renderServModuleEvaluation(data);
 }
 
 // =============================================================================
-// 3. TAB: ANALISA LAIN LAIN (PEAK HOURS, STATUS, DLL)
+// 4. TAB: ANALISA LAIN LAIN (PEAK HOURS, STATUS, DLL)
 // =============================================================================
 function renderLainTab(data) {
   const hourly = data.hourly_distribution || [];
@@ -1193,11 +2079,376 @@ function renderLainWeekdayChart(weekday) {
   });
 }
 
+// =============================================================================
+// EVALUASI KESEHATAN MODUL & SUPPLIER SLA (TOP PERINGATAN + TABEL EVALUASI)
+// =============================================================================
+
+let currentModulesScorecard = [];
+let currentModuleFilterTipe = "ALL";
+let currentModuleSearchQuery = "";
+let currentModuleSortKey = "trx";
+let currentModuleSortDir = "desc";
+
+const SVG_SORT_NEUTRAL = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.35;"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>`;
+const SVG_SORT_ASC = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #0284c7;"><path d="m18 15-6-6-6 6"/></svg>`;
+const SVG_SORT_DESC = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #0284c7;"><path d="m6 9 6 6 6-6"/></svg>`;
+
+function updateSortHeaderIcons() {
+  const sortKeys = ["nama_modul", "tipe", "operator", "trx", "sukses", "gagal", "sukses_pct", "avg_speed", "status"];
+  sortKeys.forEach(key => {
+    const el = document.getElementById(`sort-icon-${key}`);
+    if (el) {
+      if (currentModuleSortKey === key) {
+        el.innerHTML = currentModuleSortDir === "asc" ? SVG_SORT_ASC : SVG_SORT_DESC;
+      } else {
+        el.innerHTML = SVG_SORT_NEUTRAL;
+      }
+    }
+  });
+
+  const sortSel = document.getElementById("select-serv-module-sort");
+  if (sortSel) {
+    let selVal = `${currentModuleSortKey}_${currentModuleSortDir}`;
+    if (currentModuleSortKey === "nama_modul") selVal = `name_${currentModuleSortDir}`;
+    if (currentModuleSortKey === "avg_speed") selVal = `speed_${currentModuleSortDir}`;
+    if (currentModuleSortKey === "status") selVal = `status_${currentModuleSortDir}`;
+    if (Array.from(sortSel.options).some(o => o.value === selVal)) {
+      sortSel.value = selVal;
+    }
+  }
+}
+
+function sortModuleTable(colKey) {
+  if (currentModuleSortKey === colKey) {
+    currentModuleSortDir = currentModuleSortDir === "desc" ? "asc" : "desc";
+  } else {
+    currentModuleSortKey = colKey;
+    if (["nama_modul", "tipe", "operator", "status"].includes(colKey)) {
+      currentModuleSortDir = "asc";
+    } else {
+      currentModuleSortDir = "desc";
+    }
+  }
+  renderModuleScorecardTable();
+}
+window.sortModuleTable = sortModuleTable;
+
+function onSelectModuleSort(val) {
+  if (!val) return;
+  if (val.startsWith("name_")) {
+    currentModuleSortKey = "nama_modul";
+    currentModuleSortDir = val.split("_")[1];
+  } else if (val.startsWith("speed_")) {
+    currentModuleSortKey = "avg_speed";
+    currentModuleSortDir = val.split("_")[1];
+  } else if (val.startsWith("status_")) {
+    currentModuleSortKey = "status";
+    currentModuleSortDir = val.split("_")[1];
+  } else {
+    const parts = val.split("_");
+    currentModuleSortDir = parts.pop();
+    currentModuleSortKey = parts.join("_");
+  }
+  renderModuleScorecardTable();
+}
+window.onSelectModuleSort = onSelectModuleSort;
+
+function renderServModuleEvaluation(data) {
+  const topFailing = data.top_failing_modules || [];
+  const topSlowest = data.top_slowest_modules || [];
+  currentModulesScorecard = data.modules_scorecard || [];
+
+  // Render Top 3 Failing Modules
+  renderTopFailingModules(topFailing);
+
+  // Render Top 3 Slowest Modules
+  renderTopSlowestModules(topSlowest);
+
+  // Render Table
+  renderModuleScorecardTable();
+}
+
+function renderTopFailingModules(list) {
+  const container = document.getElementById("serv-top-failing-list");
+  if (!container) return;
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12.5px; background: rgba(0,0,0,0.02); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+        <span>Tidak ada modul dengan kendala kegagalan signifikan pada periode ini.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const medals = ["#1", "#2", "#3"];
+  const rankColors = ["#ef4444", "#f97316", "#eab308"];
+
+  const html = list.map((m, idx) => {
+    const isChip = m.tipe === "CHIP";
+    const tipeBadge = isChip
+      ? `<span class="badge" style="background: #fdf4ff; color: #a21caf; border: 1px solid #f5d0fe; font-size: 10px; padding: 1px 6px;">CHIP</span>`
+      : `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 10px; padding: 1px 6px;">H2H</span>`;
+
+    const opBadge = (m.operator && m.operator !== "-" && m.operator !== "LAINNYA")
+      ? `<span class="badge" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-size: 10px; padding: 1px 6px; font-weight: 600;">${m.operator}</span>`
+      : "";
+
+    let statusBadge = "";
+    if (m.status === "KURANG" || m.status === "GANGGUAN") {
+      statusBadge = `<span class="badge" style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#dc2626;"></span>KURANG</span>`;
+    } else if (m.status === "CUKUP" || m.status === "WASPADA") {
+      statusBadge = `<span class="badge" style="background: #fef9c3; color: #854d0e; border: 1px solid #fde047; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#ca8a04;"></span>CUKUP</span>`;
+    } else {
+      statusBadge = `<span class="badge" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#16a34a;"></span>BAIK</span>`;
+    }
+
+    return `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid ${rankColors[idx] || '#ef4444'}; border-radius: 8px; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 16px; font-family: var(--font-mono); font-weight: 800; min-width: 22px;">${medals[idx] || '#' + (idx + 1)}</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong style="font-size: 13.5px; color: var(--text-main); font-family: var(--font-heading);">${m.nama_modul}</strong>
+              ${tipeBadge}
+              ${opBadge}
+              ${statusBadge}
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+              Total Trx: <span style="font-family: var(--font-mono);">${Number(m.trx || 0).toLocaleString("id-ID")}</span> • Speed: <span style="font-family: var(--font-mono);">${m.avg_speed || 0}s</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 13.5px; font-weight: 800; color: ${m.sukses_pct < 95 ? '#dc2626' : (m.sukses_pct < 98 ? '#ca8a04' : '#16a34a')}; font-family: var(--font-mono);">
+            ${Number(m.sukses_pct || 0).toFixed(1)}% Sukses
+          </div>
+          <div style="font-size: 11.5px; color: #dc2626; font-family: var(--font-mono); font-weight: 600; margin-top: 2px;">
+            ${Number(m.gagal || 0).toLocaleString("id-ID")} Gagal
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  container.innerHTML = html;
+}
+
+function renderTopSlowestModules(list) {
+  const container = document.getElementById("serv-top-slowest-list");
+  if (!container) return;
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12.5px; background: rgba(0,0,0,0.02); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+        <span>Seluruh modul beroperasi dalam performa kecepatan optimal.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const medals = ["#1", "#2", "#3"];
+  const rankColors = ["#f59e0b", "#fb923c", "#facc15"];
+
+  const html = list.map((m, idx) => {
+    const isChip = m.tipe === "CHIP";
+    const tipeBadge = isChip
+      ? `<span class="badge" style="background: #fdf4ff; color: #a21caf; border: 1px solid #f5d0fe; font-size: 10px; padding: 1px 6px;">CHIP</span>`
+      : `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 10px; padding: 1px 6px;">H2H</span>`;
+
+    const opBadge = (m.operator && m.operator !== "-" && m.operator !== "LAINNYA")
+      ? `<span class="badge" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-size: 10px; padding: 1px 6px; font-weight: 600;">${m.operator}</span>`
+      : "";
+
+    let statusBadge = "";
+    if (m.status === "KURANG" || m.status === "GANGGUAN") {
+      statusBadge = `<span class="badge" style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#dc2626;"></span>KURANG</span>`;
+    } else if (m.status === "CUKUP" || m.status === "WASPADA") {
+      statusBadge = `<span class="badge" style="background: #fef9c3; color: #854d0e; border: 1px solid #fde047; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#ca8a04;"></span>CUKUP</span>`;
+    } else {
+      statusBadge = `<span class="badge" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#16a34a;"></span>BAIK</span>`;
+    }
+
+    return `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid ${rankColors[idx] || '#f59e0b'}; border-radius: 8px; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 16px; font-family: var(--font-mono); font-weight: 800; min-width: 22px;">${medals[idx] || '#' + (idx + 1)}</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong style="font-size: 13.5px; color: var(--text-main); font-family: var(--font-heading);">${m.nama_modul}</strong>
+              ${tipeBadge}
+              ${opBadge}
+              ${statusBadge}
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+              Total Trx: <span style="font-family: var(--font-mono);">${Number(m.trx || 0).toLocaleString("id-ID")}</span> • Sukses: <span style="font-family: var(--font-mono); color: #16a34a;">${Number(m.sukses_pct || 0).toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 13.5px; font-weight: 700; color: #b45309; font-family: var(--font-mono);">
+            ${Number(m.avg_speed || 0).toFixed(1)}s
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">
+            (${m.dur_str || "00:00"})
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  container.innerHTML = html;
+}
+
+function renderModuleScorecardTable() {
+  const tbody = document.getElementById("table-serv-modules-body");
+  const countBadge = document.getElementById("badge-serv-module-count");
+  if (!tbody) return;
+
+  let filtered = [...currentModulesScorecard];
+
+  // Filter Tipe (CHIP / H2H)
+  if (currentModuleFilterTipe !== "ALL") {
+    filtered = filtered.filter(m => (m.tipe || "").toUpperCase() === currentModuleFilterTipe.toUpperCase());
+  }
+
+  // Filter Search Query
+  if (currentModuleSearchQuery) {
+    filtered = filtered.filter(m => {
+      const q = currentModuleSearchQuery;
+      return (m.nama_modul && m.nama_modul.toLowerCase().includes(q)) ||
+        (m.modul_id && m.modul_id.toLowerCase().includes(q)) ||
+        (m.operator && m.operator.toLowerCase().includes(q));
+    });
+  }
+
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} Modul`;
+  }
+
+  updateSortHeaderIcons();
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align: center; padding: 28px; color: var(--text-muted); font-size: 13px;">
+          Tidak ada data modul yang sesuai dengan kriteria filter yang dipilih.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  // Sort data sesuai kolom aktif dan arah sort
+  filtered.sort((a, b) => {
+    const mult = currentModuleSortDir === "asc" ? 1 : -1;
+    if (currentModuleSortKey === "status") {
+      // Prioritas Kritis: KURANG/GANGGUAN (0) -> CUKUP/WASPADA (1) -> BAIK/PRIMA (2)
+      const statusWeight = (s) => {
+        const str = (s || "").toUpperCase();
+        if (str.includes("KURANG") || str.includes("GANGGUAN")) return 0;
+        if (str.includes("CUKUP") || str.includes("WASPADA")) return 1;
+        return 2;
+      };
+      const wA = statusWeight(a.status);
+      const wB = statusWeight(b.status);
+      if (wA !== wB) return (wA - wB) * mult;
+      return ((a.sukses_pct || 0) - (b.sukses_pct || 0)) * mult;
+    }
+
+    if (["trx", "sukses", "gagal", "sukses_pct", "avg_speed"].includes(currentModuleSortKey)) {
+      const vA = Number(a[currentModuleSortKey] || 0);
+      const vB = Number(b[currentModuleSortKey] || 0);
+      if (vA !== vB) return (vA - vB) * mult;
+      return (Number(b.trx || 0) - Number(a.trx || 0));
+    }
+
+    // String columns: nama_modul, tipe, operator
+    const sA = String(a[currentModuleSortKey] || "").toLowerCase();
+    const sB = String(b[currentModuleSortKey] || "").toLowerCase();
+    if (sA !== sB) return sA.localeCompare(sB, "id-ID") * mult;
+    return (Number(b.trx || 0) - Number(a.trx || 0));
+  });
+
+  const rowsHtml = filtered.map((m, idx) => {
+    const isChip = m.tipe === "CHIP";
+    const tipeBadge = isChip
+      ? `<span class="badge" style="background: #fdf4ff; color: #a21caf; border: 1px solid #f5d0fe; font-size: 10.5px; padding: 2px 8px; font-weight: 700;">CHIP</span>`
+      : `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 10.5px; padding: 2px 8px; font-weight: 700;">H2H</span>`;
+
+    const opCell = (m.operator && m.operator !== "-" && m.operator !== "LAINNYA")
+      ? `<span class="badge" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-size: 10.5px; padding: 2px 7px; font-weight: 600;">${m.operator}</span>`
+      : `<span style="color: var(--text-muted); font-size: 11px;">-</span>`;
+
+    let statusBadge = "";
+    if (m.status === "KURANG" || m.status === "GANGGUAN") {
+      statusBadge = `<span class="badge" style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#dc2626;"></span>KURANG</span>`;
+    } else if (m.status === "CUKUP" || m.status === "WASPADA") {
+      statusBadge = `<span class="badge" style="background: #fef9c3; color: #854d0e; border: 1px solid #fde047; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#ca8a04;"></span>CUKUP</span>`;
+    } else {
+      statusBadge = `<span class="badge" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px; height:6px; border-radius:50%; background:#16a34a;"></span>BAIK</span>`;
+    }
+
+    const pctColor = m.sukses_pct < 95.0 ? "#dc2626" : (m.sukses_pct < 98.0 ? "#ca8a04" : "#16a34a");
+    const speedColor = m.avg_speed > 30.0 ? "#dc2626" : (m.avg_speed > 15.0 ? "#ca8a04" : "var(--text-main)");
+    const gagalColor = m.gagal > 0 ? "#dc2626" : "var(--text-muted)";
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s ease;" onmouseover="this.style.background='rgba(0,0,0,0.02)'" onmouseout="this.style.background='transparent'">
+        <td style="padding: 10px 12px; text-align: center; color: var(--text-muted); font-family: var(--font-mono); font-size: 11.5px;">${idx + 1}</td>
+        <td style="padding: 10px 12px;">
+          <div style="font-weight: 700; color: var(--text-main); font-size: 13px;">${m.nama_modul}</div>
+          ${m.modul_id && m.modul_id !== m.nama_modul ? `<div style="font-size: 10.5px; color: var(--text-muted); font-family: var(--font-mono);">${m.modul_id}</div>` : ''}
+        </td>
+        <td style="padding: 10px 12px; text-align: center;">${tipeBadge}</td>
+        <td style="padding: 10px 12px; text-align: center;">${opCell}</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono); font-weight: 600;">${Number(m.trx || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono); font-weight: 600; color: #16a34a;">${Number(m.sukses || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono); font-weight: 600; color: ${gagalColor};">${Number(m.gagal || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${pctColor};">${Number(m.sukses_pct || 0).toFixed(1)}%</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono); font-weight: 600; color: ${speedColor};">
+          ${Number(m.avg_speed || 0).toFixed(1)}s <span style="font-size: 10.5px; color: var(--text-muted);">(${m.dur_str || '00:00'})</span>
+        </td>
+        <td style="padding: 10px 12px; text-align: center;">${statusBadge}</td>
+      </tr>
+    `;
+  }).join("");
+
+  tbody.innerHTML = rowsHtml;
+}
+
+window.filterModuleTable = function (tipe, btn) {
+  currentModuleFilterTipe = tipe;
+  const container = document.getElementById("table-mod-filter-group");
+  if (container) {
+    container.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+  }
+  if (btn) btn.classList.add("active");
+  renderModuleScorecardTable();
+};
+
+window.onSearchModule = function (query) {
+  currentModuleSearchQuery = (query || "").trim().toLowerCase();
+  renderModuleScorecardTable();
+};
+
 // Export global function
 window.loadAnalisa = loadAnalisa;
 window.loadAnalisaDistribusi = loadAnalisaDistribusi;
 window.loadAnalisaService = loadAnalisaService;
+window.loadAnalisaSupplier = loadAnalisaSupplier;
+window.loadAnalisaProfit = loadAnalisaProfit;
 window.loadAnalisaLain = loadAnalisaLain;
 window.switchAnalisaTab = switchAnalisaTab;
 window.setPillFilter = setPillFilter;
+window.setProductFilter = setProductFilter;
+window.resetProductFilters = resetProductFilters;
+window.updateProductFilterDropdowns = updateProductFilterDropdowns;
 window.fetchAndRenderAnalisa = fetchAndRenderAnalisa;
+window.renderServModuleEvaluation = renderServModuleEvaluation;
+window.filterModuleTable = window.filterModuleTable;
+window.onSearchModule = window.onSearchModule;
+window.sortModuleTable = sortModuleTable;
+window.onSelectModuleSort = onSelectModuleSort;

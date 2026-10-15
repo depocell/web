@@ -1,0 +1,1256 @@
+<!-- PAGES/ADMIN/INDEX.HTML — Menu Utama Admin Data & Master Hub -->
+
+<div style="display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px;">
+
+  <!-- HEADER TITLE & NAVIGATION SUB-TABS -->
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Admin Data Center</h2>
+      </div>
+    </div>
+
+    <!-- SUB-TAB SWITCHER BUTTONS -->
+    <div
+      style="display: flex; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; padding: 4px; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); flex-wrap: wrap;">
+      <button type="button" id="tab-btn-ingestion" onclick="switchAdminTab('ingestion')"
+        class="admin-subtab-btn active">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        <span> Ingestion &amp; Radar TSV</span>
+      </button>
+      <button type="button" id="tab-btn-pivot" onclick="switchAdminTab('pivot')" class="admin-subtab-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="3" y1="15" x2="21" y2="15"></line>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+          <line x1="15" y1="3" x2="15" y2="21"></line>
+        </svg>
+        <span> Pivot Transaksi</span>
+      </button>
+      <button type="button" id="tab-btn-master" onclick="switchAdminTab('master')" class="admin-subtab-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span> Master Agen &amp; Reseller</span>
+      </button>
+      <button type="button" id="tab-btn-products" onclick="switchAdminTab('products')" class="admin-subtab-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+          </path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <span> Master Produk &amp; Kategori</span>
+      </button>
+      <button type="button" id="tab-btn-system" onclick="switchAdminTab('system')" class="admin-subtab-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span> Status Freshness Sistem</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- GLOBAL BRAND SWITCHER RIBBON (Tampil untuk Tab Pivot, Master, Products) -->
+  <div id="admin-global-brand-ribbon" class="card-box"
+    style="display: none; padding: 10px 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: var(--surface-card); border-left: 4px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        Pilih Brand:
+      </span>
+      <div class="unified-brand-switcher">
+        <button type="button" id="admin-global-brand-astaga" onclick="switchAdminGlobalBrand('ASTAGA')"
+          class="unified-brand-btn active" data-brand="ASTAGA">
+          <span class="brand-dot"></span>
+          ASTAGA
+        </button>
+        <button type="button" id="admin-global-brand-okipay" onclick="switchAdminGlobalBrand('OKIPAY')"
+          class="unified-brand-btn" data-brand="OKIPAY">
+          <span class="brand-dot"></span>
+          OKIPAY
+        </button>
+      </div>
+    </div>
+
+    <div style="font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+      <span>Menampilkan data:</span>
+      <span id="admin-global-brand-badge" class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; padding: 3px 12px; border-radius: 6px; font-size: 12px;">
+        ASTAGA
+      </span>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: INGESTION & CONDITIONAL UPSERT -->
+  <!-- ========================================================================= -->
+  <div id="view-admin-ingestion" style="display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- ATURAN CONDITIONAL UPSERT BANNER -->
+    <div class="card-box"
+      style="padding: 16px 20px; background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid var(--primary);">
+      <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <div style="font-size: 13px; line-height: 1.5; flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <strong style="color: var(--text-main);">Aturan Conditional Upsert Terpasang:</strong>
+            <button type="button" onclick="loadAdminStatus(true)" class="btn-system-refresh"
+              title="Pindai ulang folder C:\RAW DATA untuk file TSV baru">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Pindai Radar TSV</span>
+            </button>
+          </div>
+          <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin-top: 8px;">
+            <div>
+              <strong style="color: #2563eb;">A. ASTAGA:</strong>
+              <span style="color: var(--text-muted);">Eliminasi Harga Jual 0, Eliminasi Akun Internal / Takeout (AR00037, AR00009, AR20408), Eliminasi Status
+                (Saldo Tidak Cukup, Diluar Wilayah, Tujuan Salah).</span>
+            </div>
+            <div>
+              <strong style="color: #0891b2;">B. OKIPAY:</strong>
+              <span style="color: var(--text-muted);">Eliminasi Harga Jual 0, Eliminasi Harga Jual 1, Eliminasi Status
+                (Saldo Tidak Cukup, Diluar Wilayah, Tujuan Salah).</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BRAND CARDS CONTAINER (WATERMARK & RADAR) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;"
+      id="admin-cards-container">
+      <div class="card-box" style="padding: 30px; text-align: center; color: var(--text-muted);">
+        Memindai status raw data dan radar incoming TSV...
+      </div>
+    </div>
+
+    <!-- LIVE EXECUTION CONSOLE -->
+    <div class="card-box" id="admin-console-box"
+      style="display: none; padding: 0; overflow: hidden; border: 1px solid var(--surface-border);">
+      <div
+        style="padding: 14px 18px; background: var(--surface-card); border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="console-spinner"
+            style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 8px #16a34a;">
+          </div>
+          <strong style="font-size: 13.5px;" id="console-title">Live Pipeline Execution</strong>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);" id="console-percent">0%</div>
+      </div>
+
+      <div style="width: 100%; height: 4px; background: rgba(0,0,0,0.06); position: relative;">
+        <div id="console-progress-bar"
+          style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+      </div>
+
+      <div id="console-terminal"
+        style="background: #0f172a; color: #f8fafc; font-family: var(--font-mono); font-size: 12px; padding: 16px; min-height: 180px; max-height: 320px; overflow-y: auto; line-height: 1.6;">
+        <div style="color: #94a3b8;">Menunggu eksekusi job...</div>
+      </div>
+    </div>
+
+    <!-- AUDIT MASTER: KODE BARU TERDETEKSI DI TRANSAKSI (UNMAPPED RESELLER & PRODUK) -->
+    <div id="admin-unmapped-audit-section" class="card-box"
+      style="display: none; padding: 0; overflow: hidden; border: 1px solid #fde68a; background: var(--surface-card);">
+      <div onclick="toggleAdminUnmappedAudit()"
+        style="padding: 14px 18px; background: rgba(245, 158, 11, 0.08); border-bottom: 1px solid #fde68a; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="display:inline-flex; align-items:center; color:#d97706;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </span>
+          <div>
+            <strong style="color: #b45309; font-size: 13.5px;">Audit Master: Kode Baru Terdeteksi di Transaksi</strong>
+            <span style="font-size: 12px; color: #92400e; margin-left: 6px;">(Muncul di transaksi hasil Ingestion tapi belum ada di Master)</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge" id="admin-unmapped-total-badge"
+            style="background: #fde68a; color: #92400e; font-weight: 700; padding: 4px 10px; border-radius: 6px;">0 Item</span>
+          <span id="admin-unmapped-toggle-icon" style="font-size: 12px; font-weight: 600; color: #b45309;">▼ Buka Detail</span>
+        </div>
+      </div>
+
+      <!-- DETAIL ACCORDION CONTENT -->
+      <div id="admin-unmapped-dropdown-content" style="padding: 18px; display: block;">
+        <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+          Berikut adalah daftar kode reseller dan produk yang terdeteksi aktif pada data transaksi, namun belum terdaftar di tabel master. Silakan klik tombol <strong>+ Tambah</strong> untuk mendaftarkannya secara langsung ke Master Agen atau Master Produk.
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+          <!-- Container ASTAGA -->
+          <div id="admin-unmapped-box-astaga"
+            style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 8px; padding: 14px;">
+            <div
+              style="font-weight: 700; font-size: 13px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #2563eb;">ASTAGA</span>
+              <span id="astaga-admin-unmapped-badge" class="badge" style="font-size: 11px;">0 item</span>
+            </div>
+            <div id="astaga-admin-unmapped-list" style="font-size: 12px; color: var(--text-main);"></div>
+          </div>
+
+          <!-- Container OKIPAY -->
+          <div id="admin-unmapped-box-okipay"
+            style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 8px; padding: 14px;">
+            <div
+              style="font-weight: 700; font-size: 13px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #0891b2;">OKIPAY</span>
+              <span id="okipay-admin-unmapped-badge" class="badge" style="font-size: 11px;">0 item</span>
+            </div>
+            <div id="okipay-admin-unmapped-list" style="font-size: 12px; color: var(--text-main);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: MASTER AGEN & RESELLER MLM HIERARCHY -->
+  <!-- ========================================================================= -->
+  <div id="view-admin-master" style="display: none; flex-direction: column; gap: 20px;">
+
+    <!-- RADAR TSV RESELLER MINGGUAN (C:\RAW DATA) -->
+    <div id="reseller-radar-container" class="card-box" style="padding: 12px 18px; background: rgba(8, 145, 178, 0.05); border-left: 4px solid #0891b2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; transition: all 0.3s ease;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span id="reseller-radar-icon-wrap" style="display:inline-flex; align-items:center; color:#0891b2;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="2"></circle>
+            <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
+          </svg>
+        </span>
+        <div style="font-size: 12.5px;">
+          <strong style="color: var(--text-main);">Radar TSV Reseller Mingguan (C:\RAW DATA):</strong>
+          <span id="reseller-radar-desc" style="color: var(--text-muted); margin-left: 6px;">Memeriksa ketersediaan file TSV...</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="reseller-radar-badge" class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700; padding: 4px 10px; border-radius: 6px;">Up-to-Date</span>
+        
+        <!-- Tombol Sync Utama (Hanya Menyala jika TSV Baru Terdeteksi) -->
+        <button type="button" id="reseller-radar-sync-btn" onclick="syncResellerTSV()" class="btn-primary" style="display: none; padding: 5px 14px; font-size: 12px; font-weight: 600; background: #0891b2; border: none; border-radius: 6px; cursor: pointer; align-items: center; gap: 5px; box-shadow: 0 1px 3px rgba(8,145,178,0.3);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span id="reseller-radar-sync-text">Sync Sekarang</span>
+        </button>
+
+        <!-- Tombol Sinkron Ulang Sekunder (Hanya jika ingin paksa re-sync) -->
+        <button type="button" id="reseller-radar-resync-btn" onclick="syncResellerTSV()" title="Paksa sinkronisasi ulang data TSV ke SQLite" style="display: none; padding: 4px 10px; font-size: 11.5px; font-weight: 600; background: transparent; border: 1px solid var(--surface-border); color: var(--text-muted); border-radius: 6px; cursor: pointer; align-items: center; gap: 5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span>Sinkron Ulang</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STAT KPI SUMMARY CARDS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;"
+      id="master-kpi-cards">
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Agen
+          (Induk)</div>
+        <div
+          style="font-size: 24px; font-weight: 800; color: var(--primary); font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-total-agents">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Entitas induk langsung di bawah
+          cabang</div>
+      </div>
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
+          Reseller (MLM)</div>
+        <div
+          style="font-size: 24px; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-total-resellers">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Seluruh toko downline &amp; agen
+          terdata</div>
+      </div>
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Agen
+          Terpetakan SCO</div>
+        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-mapped-sco">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Memiliki PIC tim sales aktif</div>
+      </div>
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Belum
+          Terpetakan (Unmapped)</div>
+        <div style="font-size: 24px; font-weight: 800; color: #eab308; font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-unmapped-sco">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Status NON SCO / Belum Dipetakan
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTER & ACTION TOOLBAR -->
+    <div class="card-box" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+
+      <!-- TOP ROW: BRAND SELECTOR & SEARCH & ACTIONS -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+
+        <!-- SEARCH INPUT (LEBIH LEGA KARENA BRAND SUDAH DIPUSATKAN DI ATAS) -->
+        <div style="flex: 1; max-width: 480px; min-width: 260px; position: relative;">
+          <input type="text" id="master-search-input" placeholder="Cari Kode Agen atau Nama Toko..."
+            onkeydown="if(event.key==='Enter') executeMasterFilter()"
+            style="width: 100%; padding: 8px 12px 8px 36px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" onclick="executeMasterFilter()" class="btn-primary"
+            style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px;">
+            <span>Filter Data</span>
+          </button>
+
+          <button type="button" onclick="syncResellerTSV()" class="btn-primary" id="btn-sync-reseller-tsv"
+            title="Pindai dan sinkronkan reseller/agen dari file TSV terbaru di C:\RAW DATA"
+            style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px; background: #0891b2; color: white; border: none; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+            <span id="btn-sync-reseller-text">Sync TSV Mingguan</span>
+          </button>
+
+          <button type="button" onclick="openAddAgentModal()" class="btn-primary"
+            title="Tambah agen induk baru ke master database"
+            style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px; background: #2563eb; color: white; border: none; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Tambah Agen</span>
+          </button>
+
+          <button type="button" onclick="exportMasterExcel()" class="btn-secondary"
+            title="Unduh file Excel master customer langsung dari SQLite"
+            style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px; background: #107c41; color: white; border: none;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Unduh Excel</span>
+          </button>
+        </div>
+
+      </div>
+
+
+      <!-- BOTTOM ROW: DROPDOWN SELECTORS -->
+      <div
+        style="display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 10px; border-top: 1px solid var(--surface-border);">
+
+        <!-- CABANG DROPDOWN -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Cabang:</label>
+          <select id="master-filter-cabang" onchange="executeMasterFilter()"
+            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px;">
+            <option value="ALL">Semua Cabang</option>
+          </select>
+        </div>
+
+        <!-- SCO DROPDOWN -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">SCO:</label>
+          <select id="master-filter-sco" onchange="executeMasterFilter()"
+            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px;">
+            <option value="ALL">Semua SCO</option>
+            <option value="UNMAPPED">Belum Dipetakan (UNMAPPED)</option>
+          </select>
+        </div>
+
+        <!-- TYPE DROPDOWN -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Tipe:</label>
+          <select id="master-filter-type" onchange="executeMasterFilter()"
+            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px;">
+            <option value="ALL">Semua Tipe</option>
+          </select>
+        </div>
+
+        <!-- RESET FILTER BUTTON -->
+        <button type="button" onclick="resetMasterFilter()"
+          style="margin-left: auto; background: none; border: none; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">
+          Reset Filter
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- DATA TABLE CONTAINER -->
+    <div class="card-box" style="padding: 0; overflow: hidden; border: 1px solid var(--surface-border);">
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="master-agents-table"
+          style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr
+              style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
+              <th style="padding: 12px 16px; width: 260px;">AGEN (ID &amp; NAMA)</th>
+              <th style="padding: 12px 14px; width: 150px;">CABANG &amp; TIPE</th>
+              <th style="padding: 12px 14px; width: 170px;">SALES TEAM (SCO &amp; DSO)</th>
+              <th style="padding: 12px 14px; width: 190px;">JADWAL &amp; LOKASI</th>
+              <th style="padding: 12px 14px; width: 140px; text-align: center;">DOWNLINE (MLM)</th>
+              <th style="padding: 12px 16px; width: 110px; text-align: center;">AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="master-agents-tbody">
+            <tr>
+              <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted);">
+                Memuat data master agen...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINATION CONTROLS -->
+      <div
+        style="padding: 12px 20px; background: var(--surface-card); border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 12.5px; color: var(--text-muted);" id="master-pagination-info">
+          Menampilkan 0 - 0 dari 0 agen
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label style="font-size: 12px; color: var(--text-muted);">Baris per hal:</label>
+            <select id="master-page-size" onchange="changeMasterPageSize()"
+              style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-size: 12px; color: var(--text-main);">
+              <option value="15">15</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button type="button" id="master-btn-prev" onclick="goToMasterPage(-1)" class="btn-page-nav" disabled>
+              ‹ Prev
+            </button>
+            <span style="font-size: 12px; font-weight: 600; padding: 0 6px;" id="master-page-current">Hal 1 / 1</span>
+            <button type="button" id="master-btn-next" onclick="goToMasterPage(1)" class="btn-page-nav" disabled>
+              Next ›
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: MASTER PRODUK & KATEGORI -->
+  <!-- ========================================================================= -->
+  <div id="view-admin-products" style="display: none; flex-direction: column; gap: 20px;">
+
+    <!-- STAT KPI SUMMARY CARDS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;"
+      id="product-kpi-cards">
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
+          Produk</div>
+        <div
+          style="font-size: 24px; font-weight: 800; color: var(--primary); font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-total-products">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Item SKU terdaftar di sistem</div>
+      </div>
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
+          Kategori</div>
+        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-total-categories">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">TELCO, EWALLET, PLN, PPOB, dll</div>
+      </div>
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
+          Operator</div>
+        <div style="font-size: 24px; font-weight: 800; color: #0891b2; font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-total-operators">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Provider telekomunikasi &amp;
+          merchant</div>
+      </div>
+      <div class="card-box" style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Unmapped /
+          Belum Kategori</div>
+        <div style="font-size: 24px; font-weight: 800; color: #eab308; font-family: var(--font-mono); margin-top: 4px;"
+          id="kpi-unmapped-categories">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Produk dengan kategori LAINNYA</div>
+      </div>
+    </div>
+
+    <!-- FILTER & ACTION TOOLBAR -->
+    <div class="card-box" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+
+      <!-- TOP ROW: BRAND SELECTOR & SEARCH & ACTIONS -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+
+        <!-- SEARCH INPUT (LEBIH LEGA KARENA BRAND SUDAH DIPUSATKAN DI ATAS) -->
+        <div style="flex: 1; max-width: 480px; min-width: 260px; position: relative;">
+          <input type="text" id="product-search-input" placeholder="Cari Kode Produk atau Nama Produk..."
+            onkeydown="if(event.key==='Enter') executeProductFilter()"
+            style="width: 100%; padding: 8px 12px 8px 36px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" onclick="executeProductFilter()" class="btn-primary"
+            style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px;">
+            <span>Filter Produk</span>
+          </button>
+
+          <button type="button" onclick="openAddProductModal()" class="btn-primary"
+            title="Tambah produk baru ke master database"
+            style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px; background: #2563eb; color: white; border: none; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Tambah Produk</span>
+          </button>
+
+          <button type="button" onclick="exportProductExcel()" class="btn-secondary"
+            title="Unduh file Excel master produk langsung dari SQLite"
+            style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px; background: #107c41; color: white; border: none;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Unduh Excel</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM ROW: DROPDOWN SELECTORS -->
+      <div
+        style="display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 10px; border-top: 1px solid var(--surface-border);">
+
+        <!-- KATEGORI DROPDOWN -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Kategori:</label>
+          <select id="prod-filter-kategori" onchange="executeProductFilter()"
+            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px;">
+            <option value="ALL">Semua Kategori</option>
+          </select>
+        </div>
+
+        <!-- OPERATOR DROPDOWN -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Operator:</label>
+          <select id="prod-filter-operator" onchange="executeProductFilter()"
+            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px;">
+            <option value="ALL">Semua Operator</option>
+          </select>
+        </div>
+
+        <!-- PAKET DROPDOWN -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Paket:</label>
+          <select id="prod-filter-paket" onchange="executeProductFilter()"
+            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px;">
+            <option value="ALL">Semua Paket</option>
+          </select>
+        </div>
+
+        <!-- RESET FILTER BUTTON -->
+        <button type="button" onclick="resetProductFilter()"
+          style="margin-left: auto; background: none; border: none; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">
+          Reset Filter
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- DATA TABLE CONTAINER -->
+    <div class="card-box" style="padding: 0; overflow: hidden; border: 1px solid var(--surface-border);">
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="master-products-table"
+          style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr
+              style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
+              <th style="padding: 12px 16px; width: 340px;">KODE &amp; NAMA PRODUK</th>
+              <th style="padding: 12px 14px; width: 160px;">KATEGORI</th>
+              <th style="padding: 12px 14px; width: 180px;">OPERATOR / PROVIDER</th>
+              <th style="padding: 12px 14px; width: 170px;">PAKET / JENIS PRODUK</th>
+              <th style="padding: 12px 16px; width: 100px; text-align: center;">AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="master-products-tbody">
+            <tr>
+              <td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted);">
+                Memuat data master produk...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINATION CONTROLS -->
+      <div
+        style="padding: 12px 20px; background: var(--surface-card); border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 12.5px; color: var(--text-muted);" id="product-pagination-info">
+          Menampilkan 0 - 0 dari 0 produk
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label style="font-size: 12px; color: var(--text-muted);">Baris per hal:</label>
+            <select id="product-page-size" onchange="changeProductPageSize()"
+              style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-size: 12px; color: var(--text-main);">
+              <option value="15">15</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button type="button" id="product-btn-prev" onclick="goToProductPage(-1)" class="btn-page-nav" disabled>
+              ‹ Prev
+            </button>
+            <span style="font-size: 12px; font-weight: 600; padding: 0 6px;" id="product-page-current">Hal 1 / 1</span>
+            <button type="button" id="product-btn-next" onclick="goToProductPage(1)" class="btn-page-nav" disabled>
+              Next ›
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 4: PIVOT TRANSAKSI DINAMIS -->
+  <!-- ========================================================================= -->
+  <div id="view-admin-pivot" style="display: none; flex-direction: column; gap: 20px;">
+    <!-- Konten Pivot dimuat dinamis dari /pages/transaksi/index.html -->
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 5: STATUS FRESHNESS & SISTEM PENGATURAN -->
+  <!-- ========================================================================= -->
+  <div id="view-admin-system" style="display: none; flex-direction: column; gap: 20px;">
+    <!-- Konten Freshness dimuat dinamis dari /pages/settings/index.html -->
+  </div>
+
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- MODAL: EDIT DATA AGEN & PEMETAAN SALES (SCO & DSO) -->
+<!-- ========================================================================= -->
+<div id="modal-edit-agent" class="admin-modal-backdrop" style="display: none;">
+  <div class="admin-modal-box" style="max-height: 90vh; overflow-y: auto;">
+
+    <!-- MODAL HEADER -->
+    <div
+      style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div
+          style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);" id="modal-agent-title">Edit Data Agen
+          </h3>
+          <p style="font-size: 11.5px; color: var(--text-muted);">Sinkronisasi profil agen dan propagasi otomatis ke
+            seluruh downline</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeEditAgentModal()"
+        style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+    </div>
+
+    <!-- MODAL BODY -->
+    <form id="form-edit-agent" onsubmit="submitEditAgent(event)"
+      style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+      <input type="hidden" id="edit-agent-brand">
+
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kode
+            Agen (ID)</label>
+          <input type="text" id="edit-agent-id" readonly
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-family: var(--font-mono); font-weight: 700; color: var(--primary); cursor: not-allowed;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nama
+            Agen / Toko</label>
+          <input type="text" id="edit-agent-nama" required
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang
+            Induk</label>
+          <select id="edit-agent-cabang" onchange="handleCabangSelectChange(this)" required
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
+            <!-- Populated dinamis -->
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tipe
+            Reseller</label>
+          <select id="edit-agent-type" onchange="handleTypeSelectChange(this)"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
+            <option value="Limit">Limit (Plafon Saldo)</option>
+            <option value="Non Limit">Non Limit (Eks-Limit / Konvensional)</option>
+            <option value="Prima">Prima (Reguler / Tanpa Plafon)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ROW LIMIT SALDO & LOKASI -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+            Limit Saldo (Plafon Kredit)
+          </label>
+          <div style="position: relative; margin-top: 4px;">
+            <span style="position: absolute; left: 10px; top: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted);">Rp</span>
+            <input type="text" id="edit-agent-limit" placeholder="0" oninput="handleLimitInput(this)"
+              style="width: 100%; padding: 8px 10px 8px 34px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 700; font-family: var(--font-mono);">
+          </div>
+          <div id="limit-hint" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+            Plafon saldo minus (otomatis 0 untuk Non Limit / Prima)
+          </div>
+        </div>
+        <div>
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Lokasi /
+            Wilayah</label>
+          <input type="text" id="edit-agent-location" placeholder="misal: TANGERANG SELATAN"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">SCO
+            (Sales Collection Officer)</label>
+          <select id="edit-agent-sco" onchange="handleScoSelectChange(this)"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
+            <option value="NON SCO">NON SCO (Belum Dipetakan)</option>
+            <option value="__NEW__">+ Input SCO Baru...</option>
+          </select>
+          <input type="text" id="edit-agent-sco-custom" placeholder="Ketik nama SCO baru..."
+            style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">DSO
+            (Direct Sales Officer)</label>
+          <select id="edit-agent-dso" onchange="handleDsoSelectChange(this)"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
+            <option value="-">- (Non-DSO / Tanpa DSO)</option>
+            <option value="__NEW__">+ Input DSO Baru...</option>
+          </select>
+          <input type="text" id="edit-agent-dso-custom" placeholder="Ketik nama DSO baru..."
+            style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
+        </div>
+      </div>
+
+      <div>
+        <label
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Jadwal
+          Kunjungan</label>
+        <select id="edit-agent-jadwal" onchange="handleJadwalSelectChange(this)"
+          style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
+          <option value="-">- (Tanpa Jadwal / Non-Kunjungan)</option>
+          <option value="Senin,Kamis">Senin, Kamis</option>
+          <option value="Selasa,Jum'at">Selasa, Jum'at</option>
+          <option value="Rabu,Sabtu">Rabu, Sabtu</option>
+          <option value="__NEW__">+ Input Jadwal Lain...</option>
+        </select>
+        <input type="text" id="edit-agent-jadwal-custom" placeholder="Ketik jadwal kustom..."
+          style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
+      </div>
+
+      <!-- PROPAGATION NOTICE -->
+      <div
+        style="background: rgba(37, 99, 235, 0.05); border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 12px; color: #1e40af; line-height: 1.5;">
+        <strong style="display:flex; align-items:center; gap:5px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          Propagasi Hierarki Otomatis:
+        </strong>
+        <div style="margin-top: 2px;">
+          Mengubah <strong>Cabang Induk</strong> di form ini akan otomatis memperbarui seluruh toko downline yang
+          bernaung di bawah agen ini dan langsung menyinkronkan Parquet Cache.
+        </div>
+      </div>
+
+      <!-- MODAL ACTIONS -->
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 6px;">
+        <button type="button" onclick="closeEditAgentModal()"
+          style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
+          Batal
+        </button>
+        <button type="submit" id="btn-save-agent" class="btn-primary"
+          style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          Simpan Perubahan
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- MODAL: DOWNLINE TREE INSPECTOR -->
+<!-- ========================================================================= -->
+<div id="modal-downlines" class="admin-modal-backdrop" style="display: none;">
+  <div class="admin-modal-box" style="max-width: 780px;">
+
+    <!-- MODAL HEADER -->
+    <div
+      style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div
+          style="width: 32px; height: 32px; border-radius: 8px; background: #f0fdf4; display: flex; align-items: center; justify-content: center; color: #16a34a;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);" id="modal-downline-title">Pohon
+            Hierarki Downline</h3>
+          <p style="font-size: 11.5px; color: var(--text-muted);" id="modal-downline-subtitle">Daftar toko reseller yang
+            bernaung di bawah agen ini</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeDownlinesModal()"
+        style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+    </div>
+
+    <!-- MODAL BODY: DOWNLINE TABLE -->
+    <div style="padding: 16px 20px; max-height: 440px; overflow-y: auto;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+        <thead>
+          <tr
+            style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
+            <th style="padding: 8px 12px; width: 120px;">KODE RESELLER</th>
+            <th style="padding: 8px 12px;">NAMA TOKO</th>
+            <th style="padding: 8px 12px; width: 110px;">UPLINE LANGSUNG</th>
+            <th style="padding: 8px 12px; width: 100px;">LEVELING</th>
+            <th style="padding: 8px 12px; width: 110px; text-align: right;">SALDO (RP)</th>
+          </tr>
+        </thead>
+        <tbody id="modal-downlines-tbody">
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+              Memuat data downline...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MODAL FOOTER -->
+    <div
+      style="padding: 12px 20px; background: var(--surface-card); border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-size: 12px; color: var(--text-muted);" id="modal-downline-footer-info">
+        Total downline terdaftar
+      </div>
+      <button type="button" onclick="closeDownlinesModal()" class="btn-secondary"
+        style="padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer;">
+        Tutup
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: EDIT MASTER PRODUK & KATEGORI -->
+<!-- ========================================================================= -->
+<div id="modal-edit-product" class="admin-modal-backdrop" style="display: none;">
+  <div class="admin-modal-box">
+
+    <!-- MODAL HEADER -->
+    <div
+      style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div
+          style="width: 32px; height: 32px; border-radius: 8px; background: #fef3c7; display: flex; align-items: center; justify-content: center; color: #d97706; font-size: 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);" id="modal-product-title">Edit Master
+            Produk</h3>
+          <p style="font-size: 11.5px; color: var(--text-muted);">Pemetaan kategori, operator, dan pengelompokan produk
+          </p>
+        </div>
+      </div>
+      <button type="button" onclick="closeEditProductModal()"
+        style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+    </div>
+
+    <!-- MODAL BODY -->
+    <form id="form-edit-product" onsubmit="submitEditProduct(event)"
+      style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+      <input type="hidden" id="edit-prod-brand">
+
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kode
+            Produk</label>
+          <input type="text" id="edit-prod-kode" readonly
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-family: var(--font-mono); font-weight: 700; color: var(--primary); cursor: not-allowed;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nama
+            Produk</label>
+          <input type="text" id="edit-prod-nama" required
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label
+              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kategori</label>
+            <button type="button" onclick="toggleCustomField('kategori')" id="btn-toggle-custom-kategori"
+              style="background: none; border: none; font-size: 11px; color: var(--primary); cursor: pointer; text-decoration: underline; padding: 0;">
+              + Ketik Manual
+            </button>
+          </div>
+          <select id="edit-prod-kategori-select" onchange="handleKategoriSelectChange(this)"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; font-size: 13px;">
+          </select>
+          <input type="text" id="edit-prod-kategori-custom" placeholder="Ketik kategori baru..."
+            style="display: none; width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; font-size: 13px;">
+          <input type="hidden" id="edit-prod-kategori">
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label
+              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Operator /
+              Provider</label>
+            <button type="button" onclick="toggleCustomField('operator')" id="btn-toggle-custom-operator"
+              style="background: none; border: none; font-size: 11px; color: var(--primary); cursor: pointer; text-decoration: underline; padding: 0;">
+              + Ketik Manual
+            </button>
+          </div>
+          <select id="edit-prod-operator-select" onchange="handleOperatorSelectChange(this)"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; font-size: 13px;">
+          </select>
+          <input type="text" id="edit-prod-operator-custom" placeholder="Ketik operator baru..."
+            style="display: none; width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; font-size: 13px;">
+          <input type="hidden" id="edit-prod-operator">
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Paket / Jenis Produk</label>
+          <button type="button" onclick="toggleCustomField('paket')" id="btn-toggle-custom-paket"
+            style="background: none; border: none; font-size: 11px; color: var(--primary); cursor: pointer; text-decoration: underline; padding: 0;">
+            + Ketik Manual
+          </button>
+        </div>
+        <select id="edit-prod-paket-select" onchange="handlePaketSelectChange(this)"
+          style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px;">
+        </select>
+        <input type="text" id="edit-prod-paket-custom" placeholder="misal: DATA, REGULER, NOMINAL, PPOB, dll"
+          style="display: none; width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px;">
+        <input type="hidden" id="edit-prod-paket">
+      </div>
+
+      <!-- SINKRONISASI PARQUET NOTICE -->
+      <div
+        style="background: rgba(16, 185, 129, 0.05); border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px; font-size: 12px; color: #065f46; line-height: 1.5;">
+        <strong style="display:flex; align-items:center; gap:5px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          Sinkronisasi Instan:
+        </strong>
+        <div style="margin-top: 2px;">
+          Perubahan kategori dan operator langsung menyinkronkan <strong>Parquet Cache</strong> &amp; <strong>RAM
+            Engine</strong>. Laporan harian, pivot, dan radar langsung menggunakan pengelompokan terbaru tanpa restart
+          server.
+        </div>
+      </div>
+
+      <!-- MODAL ACTIONS -->
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 6px;">
+        <button type="button" onclick="closeEditProductModal()"
+          style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
+          Batal
+        </button>
+        <button type="submit" id="btn-save-product" class="btn-primary"
+          style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          Simpan Produk
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<style>
+  .admin-subtab-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .admin-subtab-btn:hover {
+    color: var(--text-main);
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  .admin-subtab-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  }
+
+  .btn-brand-pill {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-brand-pill.active {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+  }
+
+  .btn-page-nav {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-bg);
+    color: var(--text-main);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-page-nav:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .admin-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+  }
+
+  .admin-modal-box {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    animation: modalFadeIn 0.2s ease-out;
+  }
+
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .badge-cabang {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  .badge-sco {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  .badge-warning {
+    background: #fefce8;
+    color: #ca8a04;
+    border: 1px solid #fef08a;
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  .btn-badge-downlines {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-badge-downlines:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .btn-sm-edit {
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    color: var(--primary);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-sm-edit:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+  }
+
+  .btn-system-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--primary);
+    background: var(--surface);
+    border: 1px solid var(--primary-border);
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-system-refresh:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .btn-system-refresh:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-system-refresh svg {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+
+  .btn-system-refresh:hover svg {
+    transform: rotate(180deg);
+  }
+</style>

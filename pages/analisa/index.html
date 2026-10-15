@@ -1,53 +1,100 @@
 <!-- PAGES/ANALISA/INDEX.HTML — Dashboard Analisa (Chart Only, Tren Bulanan 2023-2026) -->
 
-<div style="display: flex; flex-direction: column; gap: 20px; font-family: var(--font-sans);">
+<div id="analisa-view-container" style="display: flex; flex-direction: column; gap: 20px; font-family: var(--font-sans);">
 
   <!-- TOP HEADER & TITLE STRIP (Google Aesthetics & Plus Jakarta Sans) -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
     <div>
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <h2 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin: 0; color: var(--text-main);">
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <h2
+          style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">
           Dashboard Analisa
         </h2>
-        <span class="badge" style="font-family: var(--font-mono); font-size: 11px; background: #e0f2fe; color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.25); font-weight: 700; padding: 3px 8px; border-radius: 6px;">
-          CHART ONLY • 2023-2026
-        </span>
       </div>
-      <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">
-        Eksplorasi visual grafis tren bulanan multi-tahun (2023 s/d bulan terakhir) tanpa tabel data.
+      <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px; margin-bottom: 0;">
+        Eksplorasi visualisasi grafis tren bulanan
       </p>
     </div>
 
-    <!-- Tombol Refresh Visual -->
-    <div>
-      <button type="button" onclick="fetchAndRenderAnalisa()" class="btn-refresh-pills" title="Muat ulang data grafik">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-        <span>Refresh Chart</span>
-      </button>
+    <!-- SUB-TAB SWITCHER BUTTONS (TWO-TIER NAVIGATION) & ACTIONS -->
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div
+        style="display: flex; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; padding: 4px; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); flex-wrap: wrap;">
+        <button type="button" id="tab-btn-distribusi" onclick="switchAnalisaTab('distribusi')"
+          class="analisa-subtab-btn active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Analisa Distribusi</span>
+        </button>
+        <button type="button" id="tab-btn-service" onclick="switchAnalisaTab('service')" class="analisa-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+            </path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span>Analisa Service</span>
+        </button>
+        <button type="button" id="tab-btn-supplier" onclick="switchAnalisaTab('supplier')" class="analisa-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          <span>Analisa Supplier</span>
+        </button>
+        <button type="button" id="tab-btn-profit" onclick="switchAnalisaTab('profit')" class="analisa-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <span>Analisa Revenue &amp; Profit</span>
+        </button>
+        <button type="button" id="tab-btn-lain" onclick="switchAnalisaTab('lain')" class="analisa-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Analisa Lain Lain</span>
+        </button>
+      </div>
+
     </div>
   </div>
 
   <!-- ========================================================================= -->
   <!-- FILTER CONTROL PANEL (100% PILLS ONLY — BRAND, TAHUN & BULAN)             -->
   <!-- ========================================================================= -->
-  <div class="card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; background: var(--surface);">
-    
-    <!-- 1. Pills Brand -->
+  <div class="card"
+    style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; background: var(--surface);">
+
+    <!-- 1. Pills Brand (Unified Capsule dengan Dot Pulse) -->
     <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
       <span class="filter-pill-label">BRAND:</span>
-      <div class="pill-group" id="pills-brand">
-        <button type="button" class="filter-pill active" data-brand="ASTAGA" onclick="setPillFilter('brand', 'ASTAGA')">
+      <div class="unified-brand-switcher" id="pills-brand">
+        <button type="button" class="unified-brand-btn filter-pill active" data-brand="ASTAGA" onclick="setPillFilter('brand', 'ASTAGA')">
+          <span class="brand-dot"></span>
           ASTAGA
         </button>
-        <button type="button" class="filter-pill" data-brand="OKIPAY" onclick="setPillFilter('brand', 'OKIPAY')">
+        <button type="button" class="unified-brand-btn filter-pill" data-brand="OKIPAY" onclick="setPillFilter('brand', 'OKIPAY')">
+          <span class="brand-dot"></span>
           OKIPAY
         </button>
-        <button type="button" class="filter-pill" data-brand="ALL" onclick="setPillFilter('brand', 'ALL')">
-          SEMUA (GABUNGAN)
+        <button type="button" class="unified-brand-btn filter-pill" data-brand="ALL" onclick="setPillFilter('brand', 'ALL')">
+          <span class="brand-dot" style="background: #8b5cf6;"></span>
+          SEMUA
         </button>
       </div>
     </div>
@@ -57,7 +104,7 @@
       <span class="filter-pill-label">TAHUN:</span>
       <div class="pill-group" id="pills-year">
         <button type="button" class="filter-pill active" data-year="ALL" onclick="setPillFilter('year', 'ALL')">
-          Semua (2023 - 2026)
+          Semua
         </button>
         <button type="button" class="filter-pill" data-year="2026" onclick="setPillFilter('year', '2026')">
           2026
@@ -96,58 +143,120 @@
       </div>
     </div>
 
-  </div>
+    <!-- 4. Filter Master Produk (Kategori, Operator, Tipe) -->
+    <div id="filter-master-produk-container"
+      style="display: none; flex-direction: column; gap: 12px; border-top: 1px dashed var(--surface-border); padding-top: 14px;">
+      <!-- Baris Kategori -->
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        <span class="filter-pill-label">KATEGORI:</span>
+        <div class="pill-group" id="pills-kategori">
+          <button type="button" class="filter-pill active" data-kategori="ALL"
+            onclick="setProductFilter('kategori', 'ALL')">
+            Semua Kategori
+          </button>
+          <button type="button" class="filter-pill" data-kategori="EWALLET"
+            onclick="setProductFilter('kategori', 'EWALLET')">
+            EWALLET
+          </button>
+          <button type="button" class="filter-pill" data-kategori="TELCO"
+            onclick="setProductFilter('kategori', 'TELCO')">
+            TELCO
+          </button>
+          <button type="button" class="filter-pill" data-kategori="TOKEN PLN"
+            onclick="setProductFilter('kategori', 'TOKEN PLN')">
+            TOKEN PLN
+          </button>
+          <button type="button" class="filter-pill" data-kategori="PPOB" onclick="setProductFilter('kategori', 'PPOB')">
+            PPOB
+          </button>
+          <button type="button" class="filter-pill" data-kategori="VOUCHER GAME"
+            onclick="setProductFilter('kategori', 'VOUCHER GAME')">
+            GAME
+          </button>
+          <button type="button" class="filter-pill" data-kategori="TRANSFER STOK"
+            onclick="setProductFilter('kategori', 'TRANSFER STOK')">
+            TRANSFER STOK
+          </button>
+        </div>
+      </div>
 
-  <!-- NAVIGATION TABS SUB-ANALISA -->
-  <div class="card" style="padding: 6px 10px; background: var(--surface);">
-    <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="analisa-main-tabs">
-      <button type="button" class="analisa-nav-tab active" id="tab-btn-distribusi" onclick="switchAnalisaTab('distribusi')">
-        <span style="font-size: 15px;">👥</span>
-        <span style="font-family: var(--font-heading); font-weight: 700;">Analisa Distribusi</span>
-        <span class="tab-badge-desc">Relasi Trx &amp; Customer (2023-2026)</span>
-      </button>
+      <!-- Baris Operator & Tipe -->
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        <span class="filter-pill-label">OPERATOR:</span>
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+          <!-- Select Operator -->
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <select id="filter-prod-operator" class="product-filter-select"
+              onchange="setProductFilter('operator', this.value)">
+              <option value="ALL">Semua Operator</option>
+            </select>
+          </div>
 
-      <button type="button" class="analisa-nav-tab" id="tab-btn-service" onclick="switchAnalisaTab('service')">
-        <span style="font-size: 15px;">📦</span>
-        <span style="font-family: var(--font-heading); font-weight: 700;">Analisa Service</span>
-        <span class="tab-badge-desc">Relasi Trx &amp; Product (2023-2026)</span>
-      </button>
+          <!-- Select Tipe / Paket (Khusus Tab Service) -->
+          <div id="filter-prod-tipe-wrap" style="display: flex; align-items: center; gap: 7px;">
+            <label for="filter-prod-tipe"
+              style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Tipe
+              / Paket:</label>
+            <select id="filter-prod-tipe" class="product-filter-select" onchange="setProductFilter('tipe', this.value)">
+              <option value="ALL">Semua Tipe</option>
+            </select>
+          </div>
 
-      <button type="button" class="analisa-nav-tab" id="tab-btn-lain" onclick="switchAnalisaTab('lain')">
-        <span style="font-size: 15px;">📈</span>
-        <span style="font-family: var(--font-heading); font-weight: 700;">Analisa Lain Lain</span>
-        <span class="tab-badge-desc">Peak Hours &amp; Status</span>
-      </button>
+          <!-- Reset Filter Button -->
+          <button type="button" id="btn-reset-prod-filter" onclick="resetProductFilters()" class="filter-pill"
+            style="font-size: 11px; padding: 4px 12px; display: none; background: #fee2e2; color: #b91c1c; border-color: #fca5a5; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            <span>Reset Filter</span>
+          </button>
+        </div>
+      </div>
     </div>
+
   </div>
+
 
   <!-- ========================================================================= -->
   <!-- 1. TAB: ANALISA DISTRIBUSI (RELASI TRX & CUSTOMER BY YEAR BY MONTH)      -->
   <!-- ========================================================================= -->
-  <div id="section-analisa-distribusi" class="analisa-tab-content active" style="display: flex; flex-direction: column; gap: 20px;">
-    
+  <div id="section-analisa-distribusi" class="analisa-tab-content active"
+    style="display: flex; flex-direction: column; gap: 20px;">
+
     <!-- Mini KPI Cards: Distribusi & Customer (Numbers in Roboto Mono) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #0284c7;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Transaksi Terfilter</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Daily Transaksi</div>
         <div id="dist-stat-trx" class="kpi-num" style="color: #0284c7;">-</div>
-        <div id="dist-stat-trx-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Akumulasi Periode Terpilih</div>
+        <div id="dist-stat-trx-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Akumulasi
+          Periode Terpilih</div>
       </div>
-      
+
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #10b981;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Rata-rata Customer Aktif</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Rata-rata Customer Aktif</div>
         <div id="dist-stat-member" class="kpi-num" style="color: #10b981;">-</div>
-        <div id="dist-stat-member-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Customer Aktif / Bulan</div>
+        <div id="dist-stat-member-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Customer
+          Aktif / Bulan</div>
       </div>
 
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #8b5cf6;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Rata-rata Daily Trx / Member</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Rata-rata Daily Trx / Member</div>
         <div id="dist-stat-tpm" class="kpi-num" style="color: #8b5cf6;">-</div>
-        <div id="dist-stat-tpm-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Trx / Hari per Customer Aktif</div>
+        <div id="dist-stat-tpm-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Trx / Hari per
+          Customer Aktif</div>
       </div>
 
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #f59e0b;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Top Cabang / Channel</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Top Cabang / Channel</div>
         <div id="dist-stat-top-cabang" class="kpi-num" style="color: #f59e0b;">-</div>
         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Porsi Transaksi Tertinggi</div>
       </div>
@@ -155,9 +264,11 @@
 
     <!-- Chart D1: Tren Transaksi & Customer Aktif (Harian / 12 Bulan / Multi-Tahun) -->
     <div class="card" style="padding: 22px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h3 id="dist-trend-title" style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+          <h3 id="dist-trend-title"
+            style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
             Volume Daily Trx Sukses vs Customer Aktif
           </h3>
           <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
@@ -166,10 +277,12 @@
         </div>
         <div style="font-size: 12px; color: var(--text-muted); display: flex; gap: 14px; align-items: center;">
           <span style="display: flex; align-items: center; gap: 6px;">
-            <span style="display:inline-block; width:12px; height:12px; background:#0284c7; border-radius:3px;"></span> Daily Trx Sukses (Bar)
+            <span style="display:inline-block; width:12px; height:12px; background:#0284c7; border-radius:3px;"></span>
+            Daily Trx Sukses (Bar)
           </span>
           <span style="display: flex; align-items: center; gap: 6px;">
-            <span style="display:inline-block; width:14px; height:3px; background:#f59e0b; border-radius:2px;"></span> Customer Aktif (Line)
+            <span style="display:inline-block; width:14px; height:3px; background:#f59e0b; border-radius:2px;"></span>
+            Customer Aktif (Line)
           </span>
         </div>
       </div>
@@ -180,7 +293,7 @@
 
     <!-- Row 2: Dua Grafik Analitikal Distribusi (Chart Only) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px;">
-      
+
       <!-- Chart D2: Kontribusi Volume per Cabang / Channel -->
       <div class="card" style="padding: 20px;">
         <div style="margin-bottom: 14px;">
@@ -233,40 +346,99 @@
   <!-- ========================================================================= -->
   <!-- 2. TAB: ANALISA SERVICE (RELASI TRX & PRODUCT BY YEAR BY MONTH)          -->
   <!-- ========================================================================= -->
-  <div id="section-analisa-service" class="analisa-tab-content" style="display: none; flex-direction: column; gap: 20px;">
-    
+  <div id="section-analisa-service" class="analisa-tab-content"
+    style="display: none; flex-direction: column; gap: 20px;">
+
+
     <!-- Mini KPI Cards: Service & Produk -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #10b981;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Success Rate Layanan</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Success Rate Layanan</div>
         <div id="serv-stat-sukses" class="kpi-num" style="color: #10b981;">-</div>
         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Tingkat Keberhasilan Transaksi</div>
       </div>
-      
+
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #06b6d4;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Avg Durasi Kecepatan</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Avg Durasi Kecepatan</div>
         <div id="serv-stat-durasi" class="kpi-num" style="color: #06b6d4;">-</div>
         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Rata-rata Speed Transaksi</div>
       </div>
 
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #8b5cf6;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Dominan Kategori</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Dominan Kategori</div>
         <div id="serv-stat-kategori" class="kpi-num" style="color: #8b5cf6;">-</div>
         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Porsi Kategori Terbesar</div>
       </div>
 
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #ec4899;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Transaksi Service</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Total Transaksi Service</div>
         <div id="serv-stat-total" class="kpi-num" style="color: #ec4899;">-</div>
-        <div id="serv-stat-total-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Akumulasi Periode Terpilih</div>
+        <div id="serv-stat-total-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Akumulasi
+          Periode Terpilih</div>
       </div>
     </div>
 
-    <!-- Chart S1: Tren Penjualan Produk (Harian / 12 Bulan / Multi-Tahun) -->
+    <!-- 1. CHART MEMANJANG (FULL-WIDTH): Tren Kualitas Sukses Layanan (% Sukses Rate) -->
     <div class="card" style="padding: 22px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h3 id="serv-trend-title" style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+          <h3 id="serv-sukses-title"
+            style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+            Tren Kualitas Sukses Layanan (% Sukses Rate)
+          </h3>
+          <p id="serv-sukses-sub" style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
+            Persentase keberhasilan transaksi layanan dari waktu ke waktu (Target SLA ≥ 98%)
+          </p>
+        </div>
+        <span class="badge"
+          style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; font-family: var(--font-mono); font-size: 11.5px;">
+          SLA METRIC
+        </span>
+      </div>
+      <div style="position: relative; height: 280px; width: 100%;">
+        <canvas id="chart-serv-sukses-rate"></canvas>
+      </div>
+    </div>
+
+    <!-- 2. CHART MEMANJANG (FULL-WIDTH): Tren Rata-rata Durasi Kecepatan (Sukses Only) -->
+    <div class="card" style="padding: 22px;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 id="serv-durasi-title"
+            style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+            Tren Rata-rata Durasi Kecepatan Transaksi (Sukses Only)
+          </h3>
+          <p id="serv-durasi-sub" style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
+            Rata-rata waktu eksekusi transaksi sukses dari entry time sampai finish status (detik)
+          </p>
+        </div>
+        <span class="badge"
+          style="background: rgba(6, 182, 212, 0.12); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); font-weight: 700; font-family: var(--font-mono); font-size: 11.5px;">
+          SPEED TELEMETRY
+        </span>
+      </div>
+      <div style="position: relative; height: 280px; width: 100%;">
+        <canvas id="chart-serv-durasi"></canvas>
+      </div>
+    </div>
+
+    <!-- 3. CHART: Tren Penjualan per Kategori Produk (Harian / 12 Bulan / Multi-Tahun) -->
+    <div class="card" style="padding: 22px;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 id="serv-trend-title"
+            style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
             Tren Penjualan per Kategori Produk
           </h3>
           <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
@@ -274,58 +446,278 @@
           </p>
         </div>
       </div>
-      <div style="position: relative; height: 340px; width: 100%;">
+      <div style="position: relative; height: 320px; width: 100%;">
         <canvas id="chart-serv-trend"></canvas>
       </div>
     </div>
 
-    <!-- Row 2: Dua Grafik Analitikal Produk (Chart Only) -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px;">
-      
-      <!-- Chart S2: Market Share Kategori Produk (% Share Donut) -->
-      <div class="card" style="padding: 20px;">
-        <div style="margin-bottom: 14px;">
-          <h3 style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0;">
-            Market Share Kategori Produk (% Share)
-          </h3>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
-            Pergeseran dominasi kategori produk pada periode terfilter
-          </p>
-        </div>
-        <div style="position: relative; height: 300px; width: 100%;">
-          <canvas id="chart-serv-produk"></canvas>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 3. TAB: ANALISA SUPPLIER (EVALUASI VENDOR H2H & MODEM POOL CHIP)          -->
+  <!-- ========================================================================= -->
+  <div id="section-analisa-supplier" class="analisa-tab-content"
+    style="display: none; flex-direction: column; gap: 20px;">
+
+    <!-- Mini KPI Cards: Ringkasan Modul & Supplier SLA -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #0284c7;">
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Total Modul Terdaftar</div>
+        <div id="supp-stat-total" class="kpi-num" style="color: #0284c7;">-</div>
+        <div id="supp-stat-total-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Modul Aktif
+          Beroperasi</div>
+      </div>
+
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #16a34a;">
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Status Baik (SLA &ge; 98%)</div>
+        <div id="supp-stat-prima" class="kpi-num" style="color: #16a34a;">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Sukses &ge;98% &amp; Speed &lt;15s
         </div>
       </div>
 
-      <!-- Chart S3: Kualitas Layanan (% Sukses Rate per Bulan) -->
-      <div class="card" style="padding: 20px;">
-        <div style="margin-bottom: 14px;">
-          <h3 style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0;">
-            Tren Kualitas Sukses Layanan (% Sukses Rate)
-          </h3>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
-            Stabilitas persentase transaksi berhasil dari bulan ke bulan
-          </p>
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #ca8a04;">
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Status Cukup (Waspada)</div>
+        <div id="supp-stat-waspada" class="kpi-num" style="color: #ca8a04;">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Sukses 95-97.9% / Speed 15-30s</div>
+      </div>
+
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #dc2626;">
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Status Kurang (Perlu Tindakan)</div>
+        <div id="supp-stat-gangguan" class="kpi-num" style="color: #dc2626;">-</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Sukses &lt;95% atau Speed &gt;30s
         </div>
-        <div style="position: relative; height: 300px; width: 100%;">
-          <canvas id="chart-serv-sukses-rate"></canvas>
+      </div>
+    </div>
+
+
+    <!-- Row Peringatan: Top 3 Modul Gagal & Top 3 Modul Paling Lemot -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px;">
+
+      <!-- Card Peringatan 1: Top 3 Sering Gagal -->
+      <div class="card"
+        style="padding: 20px; border-top: 4px solid #ef4444; background: linear-gradient(180deg, #fef2f2 0%, var(--surface) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: #b91c1c;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <h3
+                style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0; color: #b91c1c;">
+                Top 3 Modul Paling Sering Gagal
+              </h3>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0 0 0;">
+              Modul dengan rasio sukses terendah &amp; tingkat kegagalan kritis (min. 10 trx)
+            </p>
+          </div>
+          <span class="badge"
+            style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-size: 10.5px; font-weight: 700;">
+            FAIL AUDIT
+          </span>
+        </div>
+        <div id="serv-top-failing-list" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12.5px; color: var(--text-muted); padding: 12px; text-align: center;">Memuat data...
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Peringatan 2: Top 3 Paling Lemot -->
+      <div class="card"
+        style="padding: 20px; border-top: 4px solid #f59e0b; background: linear-gradient(180deg, #fffbeb 0%, var(--surface) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: #b45309;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <h3
+                style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0; color: #b45309;">
+                Top 3 Modul Paling Lemot
+              </h3>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0 0 0;">
+              Modul dengan rata-rata detik durasi tertinggi (transaksi sukses only)
+            </p>
+          </div>
+          <span class="badge"
+            style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 10.5px; font-weight: 700;">
+            SPEED AUDIT
+          </span>
+        </div>
+        <div id="serv-top-slowest-list" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12.5px; color: var(--text-muted); padding: 12px; text-align: center;">Memuat data...
+          </div>
         </div>
       </div>
 
     </div>
 
-    <!-- Chart S4: Ranking Volume Kategori Produk -->
-    <div class="card" style="padding: 20px;">
-      <div style="margin-bottom: 14px;">
-        <h3 style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0;">
-          Volume Transaksi per Kategori Produk
-        </h3>
-        <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
-          Perbandingan kuantitas transaksi antar kelompok produk
-        </p>
+    <!-- Tabel Evaluasi Supplier / Modul Layanan -->
+    <div class="card" style="padding: 22px;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h3
+              style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+              Tabel Evaluasi Supplier / Modul
+            </h3>
+            <span id="badge-serv-module-count" class="badge"
+              style="background: #e0f2fe; color: #0284c7; font-family: var(--font-mono); font-size: 11px; font-weight: 700;">
+              0 Modul
+            </span>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
+            Evaluasi kesehatan SLA: Sukses Rate, kecepatan eksekusi, serta klasifikasi performa modul supplier
+          </p>
+        </div>
+
+        <!-- Filter Sub-Pills Tabel (Semua / H2H / CHIP), Sort Dropdown & Search Box -->
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div class="pill-group" id="table-mod-filter-group" style="margin: 0;">
+            <button type="button" class="filter-pill active" onclick="filterModuleTable('ALL', this)"
+              style="font-size: 11px; padding: 4px 12px;">
+              Semua Modul
+            </button>
+            <button type="button" class="filter-pill" onclick="filterModuleTable('H2H', this)"
+              style="font-size: 11px; padding: 4px 12px;">
+              H2H (Supplier)
+            </button>
+            <button type="button" class="filter-pill" onclick="filterModuleTable('CHIP', this)"
+              style="font-size: 11px; padding: 4px 12px;">
+              CHIP (Modem Pool)
+            </button>
+          </div>
+
+          <!-- Sort Dropdown Modul -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="select-serv-module-sort"
+              style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">SORT:</label>
+            <select id="select-serv-module-sort" class="product-filter-select"
+              onchange="onSelectModuleSort(this.value)"
+              style="padding: 4px 10px; font-size: 11.5px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-main); font-weight: 600;">
+              <option value="trx_desc">Total Trx (Terbanyak)</option>
+              <option value="trx_asc">Total Trx (Terkecil)</option>
+              <option value="sukses_pct_asc">% Sukses (Terendah / Kritis)</option>
+              <option value="sukses_pct_desc">% Sukses (Tertinggi)</option>
+              <option value="gagal_desc">Gagal (Terbanyak)</option>
+              <option value="gagal_asc">Gagal (Terkecil)</option>
+              <option value="speed_desc">Speed (Terlambat)</option>
+              <option value="speed_asc">Speed (Tercepat)</option>
+              <option value="name_asc">Nama Modul (A-Z)</option>
+              <option value="name_desc">Nama Modul (Z-A)</option>
+              <option value="status_asc">Status SLA (Prioritas Kritis)</option>
+              <option value="status_desc">Status SLA (Prioritas Prima)</option>
+            </select>
+          </div>
+
+          <!-- Search Input Modul -->
+          <div style="position: relative;">
+            <input type="text" id="search-serv-module" placeholder="Cari modul..." oninput="onSearchModule(this.value)"
+              style="padding: 5px 10px 5px 28px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; background: var(--surface); color: var(--text-main); width: 140px;">
+            <svg style="position: absolute; left: 8px; top: 7px; width: 13px; height: 13px; color: var(--text-muted);"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+        </div>
       </div>
-      <div style="position: relative; height: 260px; width: 100%;">
-        <canvas id="chart-serv-ranking"></canvas>
+
+
+      <!-- Table Container -->
+      <div
+        style="overflow-x: auto; max-height: 480px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+        <table id="table-serv-modules"
+          style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+          <thead
+            style="background: var(--surface-card); position: sticky; top: 0; z-index: 2; border-bottom: 2px solid var(--border);">
+            <tr>
+              <th style="padding: 10px 12px; font-weight: 700; width: 40px; text-align: center;">No</th>
+              <th onclick="sortModuleTable('nama_modul')" title="Klik untuk mengurutkan Nama Modul"
+                style="padding: 10px 12px; font-weight: 700; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span>Nama Modul</span>
+                  <span id="sort-icon-nama_modul" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('tipe')" title="Klik untuk mengurutkan Tipe Modul"
+                style="padding: 10px 12px; font-weight: 700; width: 75px; text-align: center; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                  <span>Tipe</span>
+                  <span id="sort-icon-tipe" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('operator')" title="Klik untuk mengurutkan Operator"
+                style="padding: 10px 12px; font-weight: 700; width: 110px; text-align: center; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                  <span>Operator</span>
+                  <span id="sort-icon-operator" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('trx')" title="Klik untuk mengurutkan Total Transaksi"
+                style="padding: 10px 12px; font-weight: 700; text-align: right; width: 105px; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                  <span>Total Trx</span>
+                  <span id="sort-icon-trx" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('sukses')" title="Klik untuk mengurutkan Transaksi Sukses"
+                style="padding: 10px 12px; font-weight: 700; text-align: right; width: 95px; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                  <span>Sukses</span>
+                  <span id="sort-icon-sukses" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('gagal')" title="Klik untuk mengurutkan Transaksi Gagal"
+                style="padding: 10px 12px; font-weight: 700; text-align: right; width: 85px; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                  <span>Gagal</span>
+                  <span id="sort-icon-gagal" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('sukses_pct')" title="Klik untuk mengurutkan % Sukses"
+                style="padding: 10px 12px; font-weight: 700; text-align: right; width: 95px; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                  <span>% Sukses</span>
+                  <span id="sort-icon-sukses_pct" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('avg_speed')" title="Klik untuk mengurutkan Avg Speed"
+                style="padding: 10px 12px; font-weight: 700; text-align: right; width: 125px; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                  <span>Avg Speed</span>
+                  <span id="sort-icon-avg_speed" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+              <th onclick="sortModuleTable('status')" title="Klik untuk mengurutkan Status SLA"
+                style="padding: 10px 12px; font-weight: 700; text-align: center; width: 130px; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                  <span>Status SLA</span>
+                  <span id="sort-icon-status" style="display: inline-flex; align-items: center;"></span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="table-serv-modules-body">
+            <tr>
+              <td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);">Memuat data modul...
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -335,29 +727,38 @@
   <!-- 3. TAB: ANALISA LAIN LAIN (PEAK HOURS, STATUS, DLL)                      -->
   <!-- ========================================================================= -->
   <div id="section-analisa-lain" class="analisa-tab-content" style="display: none; flex-direction: column; gap: 20px;">
-    
+
     <!-- Mini KPI Cards: Pola Waktu & Status -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #f59e0b;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Peak Hours Transaksi</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Peak Hours Transaksi</div>
         <div id="lain-stat-peak" class="kpi-num" style="color: #f59e0b;">19:00 - 21:00</div>
         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Jam Puncak Transaksi Terpadat</div>
       </div>
-      
+
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #10b981;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Tingkat Keberhasilan</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Tingkat Keberhasilan</div>
         <div id="lain-stat-sukses-rate" class="kpi-num" style="color: #10b981;">98.4%</div>
         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Total Transaksi Sukses</div>
       </div>
 
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #ef4444;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Tingkat Kendala / Reject</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Tingkat Kendala / Reject</div>
         <div id="lain-stat-gagal-rate" class="kpi-num" style="color: #ef4444;">1.6%</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Gagal Nomor, Saldo, &amp; Timeout</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Gagal Nomor, Saldo, &amp; Timeout
+        </div>
       </div>
 
       <div class="card" style="padding: 16px 20px; border-left: 4px solid #6366f1;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Hari Terpadat</div>
+        <div
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Hari Terpadat</div>
         <div id="lain-stat-hari" class="kpi-num" style="color: #6366f1;">Sabtu &amp; Jumat</div>
         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Lonjakan Transaksi Mingguan</div>
       </div>
@@ -366,7 +767,8 @@
     <!-- Chart L1: Pola Jam Sibuk (Hourly Peak 00:00 - 23:00) -->
     <div class="card" style="padding: 22px;">
       <div style="margin-bottom: 16px;">
-        <h3 style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+        <h3
+          style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
           Pola Jam Sibuk Transaksi (Hourly Distribution 24 Jam)
         </h3>
         <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
@@ -380,7 +782,7 @@
 
     <!-- Row 2: Status Breakdown & Pola Hari Mingguan -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px;">
-      
+
       <!-- Chart L2: Breakdown Status Transaksi -->
       <div class="card" style="padding: 20px;">
         <div style="margin-bottom: 14px;">
@@ -415,6 +817,207 @@
 
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- 5. TAB: ANALISA REVENUE & PROFIT (MURNI LABA SERVER & MARKUP OTOMAX)       -->
+  <!-- ========================================================================= -->
+  <div id="section-analisa-profit" class="analisa-tab-content"
+    style="display: none; flex-direction: column; gap: 20px;">
+
+    <!-- FINANCIAL STRIP SUMMARY (Opsi 3: 1 Container Terpadu, Ramping & Elegan) -->
+    <div class="card" style="padding: 12px 18px; display: grid; grid-template-columns: repeat(6, 1fr); align-items: center; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); background: var(--surface-card);">
+      
+      <!-- Col 1: Gross Revenue -->
+      <div style="padding: 4px 14px 4px 6px; border-right: 1px solid var(--border);">
+        <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #2563eb;"></span>
+          Gross Revenue
+        </div>
+        <div id="profit-kpi-revenue" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #1e3a8a; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Total Omset Penjualan Kotor">Rp 0</div>
+        <div id="profit-kpi-daily-rev" style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Rp 0 / hari</div>
+      </div>
+
+      <!-- Col 2: Total Modal (HPP) -->
+      <div style="padding: 4px 14px; border-right: 1px solid var(--border);">
+        <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #64748b;"></span>
+          Total Modal (HPP)
+        </div>
+        <div id="profit-kpi-modal" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #334155; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="HPP Pembelian ke Supplier">Rp 0</div>
+        <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Ke Supplier</div>
+      </div>
+
+      <!-- Col 3: Gross Profit -->
+      <div style="padding: 4px 14px; border-right: 1px solid var(--border);">
+        <div style="font-size: 11px; font-weight: 700; color: #0891b2; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #0891b2;"></span>
+          Gross Profit
+        </div>
+        <div id="profit-kpi-gross" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #0e7490; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Gross Margin Kotor">Rp 0</div>
+        <div id="profit-kpi-gross-margin" style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Margin: 0%</div>
+      </div>
+
+      <!-- Col 4: Komisi Upline (Markup) -->
+      <div style="padding: 4px 14px; border-right: 1px solid var(--border);">
+        <div style="font-size: 11px; font-weight: 700; color: #d97706; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #f59e0b;"></span>
+          Komisi Upline
+        </div>
+        <div id="profit-kpi-markup" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #b45309; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Rabat Reseller (Bukan Laba Server)">Rp 0</div>
+        <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Rabat Reseller</div>
+      </div>
+
+      <!-- Col 5: Net Profit Server (Hero Highlight) -->
+      <div style="padding: 4px 14px; border-right: 1px solid var(--border); background: rgba(16, 185, 129, 0.05); border-radius: 6px;">
+        <div style="font-size: 11px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
+          Net Profit Server
+        </div>
+        <div id="profit-kpi-net" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #047857; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Keuntungan Bersih Murni Milik Server">Rp 0</div>
+        <div id="profit-kpi-net-margin" style="font-size: 10.5px; color: #059669; font-weight: 700; margin-top: 1px; white-space: nowrap;">Margin: 0%</div>
+      </div>
+
+      <!-- Col 6: Yield per Trx -->
+      <div style="padding: 4px 6px 4px 14px;">
+        <div style="font-size: 11px; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #8b5cf6;"></span>
+          Yield / Trx
+        </div>
+        <div id="profit-kpi-yield" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #6d28d9; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Rata-rata Laba per Trx Sukses">Rp 0</div>
+        <div id="profit-kpi-daily-net" style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Rp 0 / hari</div>
+      </div>
+
+    </div>
+
+
+    <!-- MAIN CHART: TREN BULANAN REVENUE & PROFIT -->
+    <div class="card" style="padding: 22px;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+        <div>
+          <h3
+            style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+            Tren Bulanan Revenue, Komisi Upline &amp; Net Profit Server (2026)
+          </h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
+            Evolusi Omset, Rabat Downline, dan Keuntungan Bersih Riil Server OtomaX
+          </p>
+        </div>
+        <span class="badge"
+          style="background: #ecfdf5; color: #059669; font-weight: 700; font-size: 11.5px; border: 1px solid #a7f3d0;">
+          Net Profit = (Jual - Markup) - Beli
+        </span>
+      </div>
+      <div style="position: relative; height: 350px; width: 100%;">
+        <canvas id="chart-profit-monthly"></canvas>
+      </div>
+    </div>
+
+    <!-- BREAKDOWN PER KATEGORI PRODUK -->
+    <div class="card" style="padding: 22px;">
+      <div style="margin-bottom: 16px;">
+        <h3
+          style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
+          Analisa Kontribusi Margin &amp; Laba Bersih per Kategori Produk
+        </h3>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
+          Porsi Transaksi, Omset Kotor, Komisi Rabat, Net Profit Bersih, dan Yield per Trx
+        </p>
+      </div>
+      <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
+        <table id="table-profit-category"
+          style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+          <thead style="background: var(--surface-card); border-bottom: 2px solid var(--border);">
+            <tr>
+              <th style="padding: 10px 14px; font-weight: 700;">Kategori Produk</th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">Total Trx</th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">% Porsi Trx</th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">Gross Revenue (Jual)</th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">Total Modal (Beli)</th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right; color: #b45309;">Komisi Upline</th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right; color: #059669;">Net Profit Server
+              </th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">% Porsi Profit</th>
+              <th style="padding: 10px 14px; font-weight: 700; text-align: right; color: #7c3aed;">Yield / Trx</th>
+            </tr>
+          </thead>
+          <tbody id="table-profit-category-body">
+            <tr>
+              <td colspan="9" style="text-align: center; padding: 24px; color: var(--text-muted);">Memuat data analisa
+                profit...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DUA GRID: TOP 10 PRODUK & TOP 10 RESELLER KONTRIBUTOR NET PROFIT -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px;">
+
+      <!-- Top 10 Produk Kontributor Net Profit -->
+      <div class="card" style="padding: 20px;">
+        <div style="margin-bottom: 14px;">
+          <h3
+            style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0; color: var(--text-main);">
+            Top 10 Produk Penghasil Net Profit Terbesar
+          </h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+            Produk penyumbang laba bersih murni server tertinggi
+          </p>
+        </div>
+        <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead style="background: var(--surface-card); border-bottom: 1px solid var(--border);">
+              <tr>
+                <th style="padding: 8px 10px; font-weight: 700;">Produk</th>
+                <th style="padding: 8px 10px; font-weight: 700; text-align: right;">Trx</th>
+                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #059669;">Net Profit</th>
+                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #7c3aed;">Yield / Trx</th>
+              </tr>
+            </thead>
+            <tbody id="table-top-products-body">
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 18px; color: var(--text-muted);">Memuat data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top 10 Reseller Kontributor Net Profit -->
+      <div class="card" style="padding: 20px;">
+        <div style="margin-bottom: 14px;">
+          <h3
+            style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0; color: var(--text-main);">
+            Top 10 Reseller Kontributor Net Profit Terbesar
+          </h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+            Mitra reseller yang menghasilkan laba bersih server terbanyak
+          </p>
+        </div>
+        <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead style="background: var(--surface-card); border-bottom: 1px solid var(--border);">
+              <tr>
+                <th style="padding: 8px 10px; font-weight: 700;">Reseller</th>
+                <th style="padding: 8px 10px; font-weight: 700;">Cabang</th>
+                <th style="padding: 8px 10px; font-weight: 700; text-align: right;">Trx</th>
+                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #059669;">Net Profit</th>
+                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #7c3aed;">Yield / Trx</th>
+              </tr>
+            </thead>
+            <tbody id="table-top-resellers-body">
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 18px; color: var(--text-muted);">Memuat data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
 </div>
 
 <!-- STYLES KHUSUS ANALISA DASHBOARD & PILLS FILTER (Sesuai WALKTHROUGH.md) -->
@@ -427,7 +1030,7 @@
     margin-top: 6px;
     letter-spacing: -0.5px;
   }
-  
+
   .filter-pill-label {
     font-family: var(--font-heading);
     font-size: 11px;
@@ -473,6 +1076,12 @@
     box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
   }
 
+  .filter-pill.active[data-brand="OKIPAY"] {
+    background: #dc2626 !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.3) !important;
+  }
+
   .btn-refresh-pills {
     padding: 7px 14px;
     border-radius: 8px;
@@ -495,41 +1104,48 @@
     border-color: var(--primary);
   }
 
-  .analisa-nav-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+  .analisa-subtab-btn {
     padding: 8px 16px;
     border-radius: 8px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: var(--text-muted);
     font-size: 13px;
     font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
   }
 
-  .analisa-nav-tab:hover {
-    background: var(--table-header);
+  .analisa-subtab-btn:hover {
     color: var(--text-main);
+    background: rgba(0, 0, 0, 0.03);
   }
 
-  .analisa-nav-tab.active {
-    background: var(--table-header);
-    color: var(--primary);
-    border-color: var(--surface-border);
-    font-weight: 700;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  .analisa-subtab-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
   }
 
-  .tab-badge-desc {
+  .product-filter-select {
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-main);
     font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 500;
-    opacity: 0.75;
-    background: rgba(0,0,0,0.05);
-    padding: 2px 7px;
-    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+
+  .product-filter-select:hover,
+  .product-filter-select:focus {
+    border-color: var(--primary);
   }
 </style>

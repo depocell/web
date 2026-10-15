@@ -1,6 +1,6 @@
 # 🚀 WALKTHROUGH & STATUS PROYEK: WEB REPORT BI
 
-Dokumen ini adalah rekam jejak resmi status pengerjaan dan **STANDAR ACUAN (GUIDELINES)** sistem **WEB REPORT (`c:\WEB REPORT`)** per **06 Oktober 2026**. 
+Dokumen ini adalah rekam jejak resmi status pengerjaan dan **STANDAR ACUAN (GUIDELINES)** sistem **WEB REPORT (`c:\WEB REPORT`)** per **08 Oktober 2026**. 
 
 Semua agen / sesi AI **WAJIB** membaca dan mengikuti standar arsitektur, UI/typography, dan alur kerja di dokumen ini agar pengerjaan antar modul tetap seragam, konsisten, dan bebas konflik.
 
@@ -11,6 +11,7 @@ Semua agen / sesi AI **WAJIB** membaca dan mengikuti standar arsitektur, UI/typo
 ### A. MENU UTAMA
 | Modul | Halaman / Hash | Status | Deskripsi Singkat |
 | :--- | :--- | :---: | :--- |
+| **Admin Data & Master Hub** | `#admin` | **DONE** ✅ | Ingestion radar & conditional upsert TSV OtomaX (auto-backup, takeout harga 0, takeout AR00037 ASTAGA, whitelist OP00037 OKIPAY). **Master Agen & Reseller** via SQLite `master_data.db` (hierarki MLM 28k+ downline, 4 kolom baru: Limit Saldo, Markup, Tgl Daftar, Tgl Aktivitas Terakhir, fitur `+ Tambah Agen`, edit propagasi cabang, export Excel). **Master Produk & Kategori** (composite PK `(brand, kode_produk)` isolasi 395 SKU kembar, 3.579 SKU ASTAGA, 2.193 SKU OKIPAY, fitur `+ Tambah Produk`, live edit, sync Parquet & RAM). |
 | **Overview Dashboard** | `#overview` | **DONE** ✅ | Tren perbandingan harian cabang, ringkasan brand, dan Audit Master widget otomatis. |
 | **Daily Summary Report** | `#daily` | **DONE** ✅ | Laporan harian performa cabang & produk, grafik Chart.js berlabel angka, tombol Download PNG HD. |
 | **SCO Executive Suite** | `#sco` | **DONE** ✅ | Portal SCO, auto-generate Parquet ke JSON, auto-push ke GitHub Pages (`depocell/SCO`). |
@@ -94,9 +95,10 @@ Hanya ada 2 file sentral yang menghubungkan modul dengan aplikasi utama:
    * Tambahkan entri navigasi di `#sidebar` `templates/shell.html`.
    * Daftarkan route hash di objek `ROUTES` pada `static/js/app.js`.
 
-### 3. Master Data & Cache Parquet Sifatnya Read-Only
-* Master Excel `MASTER/CUSTOMER_ASTAGA.xlsx` dan Parquet di `.cache/` hanya untuk dibaca saat kalkulasi. 
-* Jangan mengedit atau menimpa file master Excel secara otomatis dari engine tanpa instruksi eksplisit dari user.
+### 3. Master Data Terpusat (SQLite + Parquet Hub)
+* Master Customer dan Master Produk resmi kini terpusat di satu database relasional `MASTER/master_data.db` (SQLite) dan di-cache dalam format Parquet (`.cache/cust_*.parquet`, `.cache/prod_*.parquet`).
+* Seluruh engine analitikal membaca langsung dari Parquet/SQLite tanpa ketergantungan pada file Excel manual (`CUSTOMER_ASTAGA.xlsx`, `CUSTOMER_OKI.xlsx`, `PRODUCT_ASTAGA.xlsx`, `PRODUCT_OKI.xlsx`). File Excel lama berstatus arsip pasif / backup.
+* Pembaruan data customer dan produk dilakukan langsung melalui antarmuka Web Admin (`#admin`), yang secara otomatis memvalidasi hierarki pohon MLM, mempropagasi perubahan cabang ke downline, menyelaraskan pemetaan kategori/operator produk, dan memperbarui Parquet Cache & RAM Engine secara realtime.
 
 ### 4. Peran Chat Utama (Control Room)
 * Chat utama bertindak sebagai **Integrator / Quality Control**.
@@ -111,7 +113,20 @@ Hanya ada 2 file sentral yang menghubungkan modul dengan aplikasi utama:
 3. **Agen Induk Engine (`engines/agen_engine.py`)**: Agregasi performa reseller ke Agen Induk, ranking produktivitas agen, filtering cabang.
 4. **Fisik & DSO Engine (`engines/fisik_engine.py`)**: Parsing rekapan penjualan fisik (.ttx) dan evaluasi performa DSO.
 5. **SCO Suite Engine (`engines/sco_engine.py`)**: Ekstraksi presisi 51 baris KPI SCO dari sheet `KPI_SCO` (bukan DSO), export `data_sco.json` dan `data_reseller.json`.
-6. **Pivot Engine (`engines/pivot_engine.py`)**: Agregasi transaksi multidimensi super cepat dengan cache terisolasi `cust_full_{brand}.parquet`.
+6. **Pivot Engine (`engines/pivot_engine.py`)**: Agregasi transaksi multidimensi super cepat dengan cache terisolasi `cust_full_{brand}.parquet` dan `prod_full_{brand}.parquet`.
+7. **Master Data Hub (`engines/master_data_engine.py`)**: Database terpusat `MASTER/master_data.db` (SQLite) + Parquet cache (`cust_astaga.parquet` & `cust_okipay.parquet`). Menyelesaikan hierarki pohon MLM 28.460 reseller dalam 0.63s, mengelola mapping Agen Induk, SCO/DSO, jadwal, dan auto-propagasi cabang ke seluruh downline secara instan. Fitur ekspor Excel resmi langsung dari database.
+8. **Master Product Engine (`engines/master_product_engine.py`)**: Database master produk di `MASTER/master_data.db` (tabel `products` dengan composite PK `(brand, kode_produk)`). Menampung 3.579 SKU ASTAGA dan 2.193 SKU OKIPAY tanpa konflik 395 kode identik. Menyediakan full text search, filter kategori/operator/paket, editor live via Web Admin, auto-sync ke `.cache/prod_*.parquet`, dan zero Excel dependency pada `product_engine.py` & `pivot_engine.py`.
+9. **Admin Ingestion Engine (`engines/admin_engine.py`)**: Radar monitoring file TSV OtomaX harian di `C:\RAW DATA`, conditional upsert (filtering zero price, takeout internal AR00037, whitelist OP00037), auto-backup `.xlsx.bak`, auto-rebuild Parquet cache bulanan & tahunan secara bertahap di thread background.
+
+---
+
+## 🌙 ROADMAP SINKRONISASI MALAM HARI (MULTI-AGEN COLLABORATION)
+
+Fokus integrasi antar-agen di tiap halaman (`pages/*`) agar alurnya 100% konsisten dengan arsitektur baru:
+1. **Zero Excel Dependency**: Pastikan seluruh controller JS dan backend engine halaman (`#daily`, `#sco`, `#reseller`, `#agen`, `#transaksi`, `#analisa`) mengambil data dari Parquet Cache / SQLite, bukan membaca ulang Excel mentah.
+2. **Kesesuaian 4 Kolom Baru**: Pemanfaatan kolom `limit_saldo`, `markup`, `tgl_daftar`, dan `tgl_aktivitas_terakhir` di modul Reseller & Agen.
+3. **Kesesuaian Kategori Produk Baru**: Pastikan filter dropdown kategori & operator di seluruh halaman analitikal mencocokkan taksonomi resmi dari tabel `products`.
+4. **Verifikasi Responsifitas & Kecepatan**: Semua endpoint API halaman wajib merespons di bawah 50ms berkat hierarki cache RAM & Parquet.
 
 ---
 
@@ -128,4 +143,4 @@ Akses dashboard: **`http://localhost:8000`**
 
 ---
 
-*Terakhir diperbarui: 06 Oktober 2026 — Tim Arsitektur & IT Management WEB REPORT.*
+*Terakhir diperbarui: 08 Oktober 2026 (Penyelesaian Modul Admin Data & Master Hub) — Tim Arsitektur & IT Management WEB REPORT.*

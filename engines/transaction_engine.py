@@ -57,68 +57,116 @@ BRAND_CONFIG = {
 UNIFIED_COLS = ["trx_id", "tgl_entry", "product_id", "qty",
                 "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
 
+COLUMN_ALIASES = {
+    "trx_id": {"TRX_ID", "TRX ID", "TRXID", "ID", "NO TRX", "NO_TRX"},
+    "tgl_entry": {"TGL.ENTRY", "TGL ENTRY", "TGL ENTRI", "TGL", "TGL_ENTRY", "DATE", "TANGGAL"},
+    "product_id": {"PRODUCT_ID", "KODE PRODUK", "PRODUCT", "PRODUK", "PROD", "PROD_ID", "PRODUK_ID", "KODE_PRODUK"},
+    "qty": {"QTY", "JUMLAH"},
+    "ar_id": {"AR_ID", "KODE RESELLER", "AR ID", "ARID", "KODE_RESELLER", "RESELLER_ID"},
+    "modul_id": {"MODUL_ID", "MODUL", "KODE MODUL"},
+    "status": {"STATUS", "STAT", "STATUS TRX"},
+    "tgl_stat": {"TGL.STAT", "TGL STAT", "TGL_STAT"},
+    "beli": {"BELI", "HARGA BELI", "HRG BELI", "HARGA_BELI"},
+    "jual": {"JUAL", "HARGA JUAL", "HRG JUAL", "HARGA_JUAL", "RP"},
+}
+
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def _cache_path(brand: str, year: str) -> str:
     return os.path.join(CACHE_DIR, f"trx_{brand.lower()}_{year}.parquet")
 
 
-def _detect_sheet_name(xlsx_path: str, col_map: dict) -> str | None:
+def _detect_sheet_and_header(xlsx_path: str) -> tuple[str | None, int]:
     """
-    Deteksi nama sheet GROSS menggunakan openpyxl read_only (hanya baca 1 baris header).
-    Cepat karena hanya parsing header, tidak membaca seluruh data.
+    Deteksi nama sheet transaksi dan baris index header (0-indexed).
+    Mendukung format GROSS (2026), NET/transaksi bersih (2025, dsb),
+    serta file dengan offset header (misal header di baris 2).
+    Abaikan sheet ringkasan pivot (yang berisi 'SUM OF', 'COUNT OF').
     """
-    wanted_upper = {k.upper() for k in col_map.keys()}
+    id_aliases = COLUMN_ALIASES["trx_id"]
+    prod_aliases = COLUMN_ALIASES["product_id"]
+    ar_aliases = COLUMN_ALIASES["ar_id"]
+
     try:
         wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
-        for sheet_name in wb.sheetnames:
-            ws = wb[sheet_name]
-            header = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), None)
-            if not header:
-                continue
-            cols = {str(h).strip().upper() for h in header if h}
-            # Sheet valid kalau mengandung TRX_ID atau TRX ID
-            if "TRX_ID" in cols or "TRX ID" in cols:
-                wb.close()
-                return sheet_name
+        best_candidate = None
+        for s in wb.sheetnames:
+            ws = wb[s]
+            for row_idx, row in enumerate(ws.iter_rows(min_row=1, max_row=5, values_only=True)):
+                row_vals = [str(x).strip().upper() for x in row if x is not None]
+                if any("SUM OF" in x or "COUNT OF" in x for x in row_vals):
+                    continue
+                has_id = any(x in id_aliases for x in row_vals)
+                has_prod = any(x in prod_aliases for x in row_vals)
+                has_ar = any(x in ar_aliases for x in row_vals)
+                if has_id and (has_prod or has_ar):
+                    best_candidate = (s, row_idx)
+                    break
+            if best_candidate and any(k in s.upper() for k in ["GROSS", "NET", "BERSIH"]):
+                break
         wb.close()
+        if best_candidate:
+            return best_candidate
     except Exception as e:
         print(f"  [WARN] Gagal deteksi sheet {os.path.basename(xlsx_path)}: {e}")
-    return None
+    return (None, 0)
 
 
-def _read_gross_fast(xlsx_path: str, col_map: dict) -> pd.DataFrame:
+def _detect_sheet_name(xlsx_path: str, col_map: dict = None) -> str | None:
+    """Wrapper kompatibilitas mundur untuk deteksi nama sheet."""
+    s, _ = _detect_sheet_and_header(xlsx_path)
+    return s
+
+
+def _read_gross_fast(xlsx_path: str, col_map: dict = None) -> pd.DataFrame:
     """
-    Hybrid: openpyxl read_only untuk deteksi sheet (1 header row saja),
-    lalu calamine untuk baca data penuh — 7-8x lebih cepat dari openpyxl penuh.
+    Hybrid: openpyxl read_only untuk deteksi sheet dan header,
+    lalu calamine untuk baca data penuh — mendukung 2026, 2025, dan data historis.
     """
-    # Step 1: Deteksi nama sheet
-    target_sheet = _detect_sheet_name(xlsx_path, col_map)
+    target_sheet, header_row = _detect_sheet_and_header(xlsx_path)
     if target_sheet is None:
-        print(f"  [SKIP] Sheet GROSS tidak ditemukan: {os.path.basename(xlsx_path)}")
+        print(f"  [SKIP] Sheet transaksi tidak ditemukan: {os.path.basename(xlsx_path)}")
         return pd.DataFrame()
 
-    # Step 2: Baca data dengan calamine (Rust-based, jauh lebih cepat)
-    src_cols = list(col_map.keys())
     try:
         df = pd.read_excel(
             xlsx_path,
             sheet_name=target_sheet,
             engine="calamine",
-            usecols=src_cols,
+            header=header_row,
         )
     except Exception as e:
         print(f"  [ERROR] calamine gagal baca {os.path.basename(xlsx_path)}: {e}")
         return pd.DataFrame()
 
-    # Rename ke unified columns
-    df.columns = [str(c).strip() for c in df.columns]
-    df = df.rename(columns=col_map)
+    if df.empty:
+        return df
+
+    # Map kolom secara fleksibel
+    col_mapping = {}
+    for col in df.columns:
+        norm = str(col).strip().upper()
+        for target, aliases in COLUMN_ALIASES.items():
+            if norm in aliases and target not in col_mapping.values():
+                col_mapping[col] = target
+                break
+    df = df.rename(columns=col_mapping)
 
     # Pastikan semua unified columns ada
     for col in UNIFIED_COLS:
         if col not in df.columns:
             df[col] = None
+
+    # Default status & tgl_stat untuk file transaksi bersih (seperti data < 2026)
+    if df["status"].isna().all() or (df["status"].astype(str).str.strip() == "").all():
+        df["status"] = "Sukses"
+    else:
+        df["status"] = df["status"].fillna("Sukses")
+
+    if df["tgl_stat"].isna().all() or (df["tgl_stat"].astype(str).str.strip() == "").all():
+        df["tgl_stat"] = df["tgl_entry"]
+    else:
+        df["tgl_stat"] = df["tgl_stat"].fillna(df["tgl_entry"])
 
     df = df[UNIFIED_COLS]
 
@@ -224,6 +272,14 @@ def build_cache(brand: str, year: str, force: bool = False) -> dict:
                     if col in df.columns:
                         df[col] = df[col].astype(str).str.replace("\xa0", "", regex=False).str.strip()
 
+                # Aturan Conditional: Buang Hrg. Jual 0 dan Hrg. Jual 1 untuk OKIPAY
+                if brand == "OKIPAY" and "jual" in df.columns:
+                    df = df[(df["jual"] != 0) & (df["jual"] != 1)]
+
+                # Aturan Takeout Akun Internal ASTAGA: AR00037, AR00009, AR20408
+                if brand == "ASTAGA" and "ar_id" in df.columns:
+                    df = df[~df["ar_id"].astype(str).str.strip().str.upper().isin(["AR00037", "AR00009", "AR20408"])]
+
                 # Simpan mini-cache
                 df.to_parquet(mini, index=False)
                 frames.append(df)
@@ -237,6 +293,14 @@ def build_cache(brand: str, year: str, force: bool = False) -> dict:
         return {"success": False, "error": "Tidak ada data berhasil dibaca."}
 
     combined = pd.concat(frames, ignore_index=True)
+
+    # Aturan Conditional: Pastikan OKIPAY bersih dari jual == 0 dan jual == 1
+    if brand == "OKIPAY" and "jual" in combined.columns:
+        combined = combined[(combined["jual"] != 0) & (combined["jual"] != 1)]
+
+    # Aturan Takeout Akun Internal ASTAGA: AR00037, AR00009, AR20408
+    if brand == "ASTAGA" and "ar_id" in combined.columns:
+        combined = combined[~combined["ar_id"].astype(str).str.strip().str.upper().isin(["AR00037", "AR00009", "AR20408"])]
 
     # Pastikan tipe data konsisten di combined
     for col in ["tgl_entry", "tgl_stat"]:
@@ -297,6 +361,8 @@ def load(brand: str, year: str) -> pd.DataFrame:
 
     # 3. Muat ke RAM & pre-hitung kolom pembantu (ym, is_sukses)
     df = pd.read_parquet(path)
+    if brand == "ASTAGA" and "ar_id" in df.columns:
+        df = df[~df["ar_id"].astype(str).str.strip().str.upper().isin(["AR00037", "AR00009", "AR20408"])]
     if "is_sukses" not in df.columns and "status" in df.columns:
         df["is_sukses"] = df["status"].astype(str).str.lower().str.contains("sukses", na=False)
     if "ym" not in df.columns and "tgl_entry" in df.columns:

@@ -14,6 +14,10 @@ function formatInt(num) {
   return Number(num).toLocaleString("id-ID", { maximumFractionDigits: 0 });
 }
 
+function onPivotYearChange() {
+  loadPivotOptions();
+}
+
 function switchPivotSubPage(sub) {
   pivotSubPage = sub || "product";
   loadPivotOptions();
@@ -21,11 +25,28 @@ function switchPivotSubPage(sub) {
 
 async function loadPivotOptions() {
   try {
-    const res = await fetch(`/api/pivot/options?brand=${pivotBrand}&type=${pivotSubPage}`);
+    const yearSel = document.getElementById("piv-filter-year");
+    const yearVal = yearSel ? yearSel.value : "2026";
+    const res = await fetch(`/api/pivot/options?brand=${pivotBrand}&year=${yearVal}&type=${pivotSubPage}`);
     const json = await res.json();
     if (!json.ok || !json.data) return;
 
     const d = json.data;
+
+    // 0. Populate Years
+    if (yearSel && d.years && d.years.length > 0) {
+      const prevYear = yearSel.value || "2026";
+      yearSel.innerHTML = "";
+      d.years.forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = y;
+        yearSel.appendChild(opt);
+      });
+      if (d.years.includes(prevYear)) {
+        yearSel.value = prevYear;
+      }
+    }
 
     // 1. Populate Row Dimension
     const rowSel = document.getElementById("piv-row-dim");
@@ -159,6 +180,8 @@ async function loadPivotOptions() {
 }
 
 async function runPivot() {
+  const yearSel = document.getElementById("piv-filter-year");
+  const yearVal = yearSel ? yearSel.value : "2026";
   const rowDim = document.getElementById("piv-row-dim").value;
   const colDim = document.getElementById("piv-col-dim").value;
   const metric = document.getElementById("piv-metric").value;
@@ -179,6 +202,7 @@ async function runPivot() {
   try {
     const params = new URLSearchParams({
       brand: pivotBrand,
+      year: yearVal,
       type: pivotSubPage,
       row: rowDim,
       col: colDim,
@@ -259,12 +283,12 @@ function renderPivotTable(data, metric) {
         data.columns.forEach(col => {
           const val = r[col] || 0;
           let formatted = formatInt(val);
-          if (metric.includes("jual") || metric.includes("beli") || metric.includes("margin")) {
+          if (metric.includes("jual") || metric.includes("beli") || metric.includes("margin") || metric.includes("price") || metric.includes("arpu")) {
             formatted = formatMoney(val);
           } else if (metric === "daily_trx") {
             formatted = formatInt(Math.round(val));
-          } else if (metric === "sukses_pct") {
-            formatted = `${Number(val).toFixed(1)}%`;
+          } else if (metric === "sukses_pct" || metric === "margin_pct") {
+            formatted = `${Number(val).toFixed(2)}%`;
           }
           bodyHtml += `<td class="text-right">${formatted}</td>`;
         });
@@ -279,12 +303,12 @@ function renderPivotTable(data, metric) {
       data.columns.forEach(col => {
         const val = tot[col] || 0;
         let formatted = formatInt(val);
-        if (metric.includes("jual") || metric.includes("beli") || metric.includes("margin")) {
+        if (metric.includes("jual") || metric.includes("beli") || metric.includes("margin") || metric.includes("price") || metric.includes("arpu")) {
           formatted = formatMoney(val);
         } else if (metric === "daily_trx") {
           formatted = formatInt(Math.round(val));
-        } else if (metric === "sukses_pct") {
-          formatted = `${Number(val).toFixed(1)}%`;
+        } else if (metric === "sukses_pct" || metric === "margin_pct") {
+          formatted = `${Number(val).toFixed(2)}%`;
         }
         footHtml += `<td class="text-right">${formatted}</td>`;
       });
@@ -301,11 +325,11 @@ function renderPivotTable(data, metric) {
         <th>${rowLabelText}</th>
         <th class="text-right">Total Trx</th>
         <th class="text-right" style="color: #2563eb;">Daily Trx</th>
-        <th class="text-right">Omzet Jual</th>
-        <th class="text-right" style="color: #0284c7;">Daily Revenue</th>
-        <th class="text-right">Margin (Laba)</th>
-        <th class="text-right" style="color: #16a34a;">Daily Margin</th>
-        <th class="text-right">Total Qty</th>
+        <th class="text-right" style="color: #4338ca;">Harga Dasar</th>
+        <th class="text-right" style="color: #0284c7;">Net ARPU</th>
+        <th class="text-right">Revenue Bersih</th>
+        <th class="text-right" style="color: #16a34a;">Net Profit</th>
+        <th class="text-right" style="color: #16a34a;">Margin %</th>
         <th class="text-right">% Sukses</th>
       </tr>
     `;
@@ -321,12 +345,12 @@ function renderPivotTable(data, metric) {
             <td class="font-semibold">${r._row_label}</td>
             <td class="text-right">${formatInt(r.trx_count)}</td>
             <td class="text-right" style="color: #2563eb; font-weight: 600;">${formatInt(Math.round(r.daily_trx))}</td>
-            <td class="text-right">${formatMoney(r.jual_sum)}</td>
-            <td class="text-right" style="color: #0284c7; font-weight: 600;">${formatMoney(r.daily_jual)}</td>
-            <td class="text-right">${formatMoney(r.margin_sum)}</td>
-            <td class="text-right" style="color: #16a34a; font-weight: 700;">${formatMoney(r.daily_margin)}</td>
-            <td class="text-right">${formatInt(r.qty_sum)}</td>
-            <td class="text-right">${r.sukses_pct.toFixed(1)}%</td>
+            <td class="text-right" style="color: #4338ca; font-weight: 600;">${formatMoney(r.base_price_avg)}</td>
+            <td class="text-right" style="color: #0284c7; font-weight: 700;">${formatMoney(r.net_arpu)}</td>
+            <td class="text-right">${formatMoney(r.base_price_sum)}</td>
+            <td class="text-right" style="color: #16a34a; font-weight: 700;">${formatMoney(r.margin_sum)}</td>
+            <td class="text-right" style="color: #16a34a; font-weight: 600;">${(r.margin_pct || 0).toFixed(2)}%</td>
+            <td class="text-right">${(r.sukses_pct || 0).toFixed(1)}%</td>
           </tr>
         `;
       });
@@ -340,12 +364,12 @@ function renderPivotTable(data, metric) {
           <td>TOTAL</td>
           <td class="text-right">${formatInt(tot.trx_count)}</td>
           <td class="text-right" style="color: #2563eb; font-weight: 800;">${formatInt(Math.round(tot.daily_trx))}</td>
-          <td class="text-right">${formatMoney(tot.jual_sum)}</td>
-          <td class="text-right" style="color: #0284c7; font-weight: 800;">${formatMoney(tot.daily_jual)}</td>
-          <td class="text-right">${formatMoney(tot.margin_sum)}</td>
-          <td class="text-right" style="color: #16a34a; font-weight: 800;">${formatMoney(tot.daily_margin)}</td>
-          <td class="text-right">${formatInt(tot.qty_sum)}</td>
-          <td class="text-right">${tot.sukses_pct.toFixed(1)}%</td>
+          <td class="text-right" style="color: #4338ca; font-weight: 800;">${formatMoney(tot.base_price_avg)}</td>
+          <td class="text-right" style="color: #0284c7; font-weight: 800;">${formatMoney(tot.net_arpu)}</td>
+          <td class="text-right">${formatMoney(tot.base_price_sum)}</td>
+          <td class="text-right" style="color: #16a34a; font-weight: 800;">${formatMoney(tot.margin_sum)}</td>
+          <td class="text-right" style="color: #16a34a; font-weight: 800;">${(tot.margin_pct || 0).toFixed(2)}%</td>
+          <td class="text-right">${(tot.sukses_pct || 0).toFixed(1)}%</td>
         </tr>
       `;
     } else {
@@ -439,7 +463,7 @@ async function exportPivotExcel() {
   }
 }
 
-function exportPivotCSV() {
+async function exportPivotCSV() {
   const table = document.getElementById("piv-result-table");
   if (!table) return;
 
@@ -456,14 +480,19 @@ function exportPivotCSV() {
     csv.push(row.join(","));
   }
 
-  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csv.join("\n");
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `pivot_${pivotSubPage}_${pivotBrand}_${Date.now()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const filename = `pivot_${pivotSubPage}_${pivotBrand}_${Date.now()}.csv`;
+  const rawCsv = "\uFEFF" + csv.join("\n");
+  if (typeof window.saveFileSmart === "function") {
+    await window.saveFileSmart(filename, rawCsv, 'text/csv;charset=utf-8;');
+  } else {
+    const encodedUri = encodeURI("data:text/csv;charset=utf-8," + rawCsv);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 }
 
 function switchPivotBrand(b) {
@@ -471,12 +500,17 @@ function switchPivotBrand(b) {
   const btnA = document.getElementById("btn-piv-astaga");
   const btnO = document.getElementById("btn-piv-oki");
 
+  const activeBtn = b === "ASTAGA" ? btnA : btnO;
   if (b === "ASTAGA") {
-    btnA.className = "brand-btn active-brand-astaga";
-    btnO.className = "brand-btn";
+    if (btnA) btnA.classList.add("active");
+    if (btnO) btnO.classList.remove("active");
   } else {
-    btnA.className = "brand-btn";
-    btnO.className = "brand-btn active-brand-oki";
+    if (btnA) btnA.classList.remove("active");
+    if (btnO) btnO.classList.add("active");
+  }
+
+  if (window.triggerBrandSwitchVisual) {
+    window.triggerBrandSwitchVisual(b, activeBtn, "piv-result-card");
   }
 
   loadPivotOptions();

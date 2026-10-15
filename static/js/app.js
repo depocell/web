@@ -1,6 +1,12 @@
 // app.js — Single Shell Router & Navigation
 
 const ROUTES = {
+  "#admin": {
+    title: "Admin & Olah Data",
+    pageUrl: "/pages/admin/index.html",
+    scriptUrl: "/pages/admin/admin.js",
+    initFn: "loadAdmin"
+  },
   "#overview": {
     title: "Overview Dashboard",
     pageUrl: "/pages/home/index.html",
@@ -19,24 +25,6 @@ const ROUTES = {
     scriptUrl: "/pages/analisa/analisa.js",
     initFn: "loadAnalisa"
   },
-  "#analisa-distribusi": {
-    title: "Dashboard Analisa — Distribusi",
-    pageUrl: "/pages/analisa/index.html",
-    scriptUrl: "/pages/analisa/analisa.js",
-    initFn: "loadAnalisaDistribusi"
-  },
-  "#analisa-service": {
-    title: "Dashboard Analisa — Service",
-    pageUrl: "/pages/analisa/index.html",
-    scriptUrl: "/pages/analisa/analisa.js",
-    initFn: "loadAnalisaService"
-  },
-  "#analisa-lain": {
-    title: "Dashboard Analisa — Lain Lain",
-    pageUrl: "/pages/analisa/index.html",
-    scriptUrl: "/pages/analisa/analisa.js",
-    initFn: "loadAnalisaLain"
-  },
   "#sco": {
     title: "SCO Executive Suite",
     pageUrl: "/pages/sco/sco_view.html",
@@ -45,9 +33,9 @@ const ROUTES = {
   },
   "#reseller": {
     title: "Agen & Reseller",
-    pageUrl: "/pages/reseller/index.html",
-    scriptUrl: "/pages/reseller/reseller.js",
-    initFn: "loadReseller"
+    pageUrl: "/pages/agen/index.html",
+    scriptUrl: "/pages/agen/agen.js",
+    initFn: "loadAgen"
   },
   "#agen": {
     title: "Agen & Reseller",
@@ -60,18 +48,6 @@ const ROUTES = {
     pageUrl: "/pages/fisik/index.html",
     scriptUrl: "/pages/fisik/fisik.js",
     initFn: "loadFisik"
-  },
-  "#transaksi": {
-    title: "Pivot Transaksi Dinamis",
-    pageUrl: "/pages/transaksi/index.html",
-    scriptUrl: "/pages/transaksi/transaksi.js",
-    initFn: "loadTransaksi"
-  },
-  "#settings": {
-    title: "Sistem & Pengaturan",
-    pageUrl: "/pages/settings/index.html",
-    scriptUrl: "/pages/settings/settings.js",
-    initFn: "loadSettings"
   }
 };
 
@@ -95,9 +71,60 @@ function loadScript(url) {
     document.body.appendChild(script);
   });
 }
+window.loadScript = loadScript;
+
+function triggerBrandSwitchVisual(activeBrand, clickedEl, targetContainerId) {
+  // Trigger soft content reveal fade
+  const container = targetContainerId ? document.getElementById(targetContainerId) : (document.getElementById("content-area") || document.body);
+  if (container) {
+    container.classList.remove("brand-content-fade");
+    void container.offsetWidth;
+    container.classList.add("brand-content-fade");
+    setTimeout(() => {
+      container.classList.remove("brand-content-fade");
+    }, 350);
+  }
+}
+window.triggerBrandSwitchVisual = triggerBrandSwitchVisual;
 
 async function navigate() {
-  let hash = window.location.hash || "#overview";
+  let rawHash = window.location.hash || "#overview";
+  let [hash] = rawHash.split("?");
+
+  // Redirect legacy / bookmark routes to subtabs
+  if (hash === "#transaksi") {
+    window.location.replace("#admin?tab=pivot");
+    return;
+  }
+  if (hash === "#settings") {
+    window.location.replace("#admin?tab=system");
+    return;
+  }
+  if (hash === "#analisa-distribusi") {
+    window.location.replace("#analisa?tab=distribusi");
+    return;
+  }
+  if (hash === "#analisa-service") {
+    window.location.replace("#analisa?tab=service");
+    return;
+  }
+  if (hash === "#analisa-supplier") {
+    window.location.replace("#analisa?tab=supplier");
+    return;
+  }
+  if (hash === "#analisa-profit") {
+    window.location.replace("#analisa?tab=profit");
+    return;
+  }
+  if (hash === "#analisa-lain") {
+    window.location.replace("#analisa?tab=lain");
+    return;
+  }
+  if (hash === "#reseller") {
+    window.location.replace("#agen?tab=reseller");
+    return;
+  }
+
   if (!ROUTES[hash]) hash = "#overview";
 
   const route = ROUTES[hash];
@@ -106,27 +133,18 @@ async function navigate() {
   document.getElementById("page-title").textContent = route.title;
   document.title = `${route.title} — Web Report`;
 
-  // Update Active Link in Sidebar (highlight #reseller link for both #reseller and #agen, highlight #analisa for its sub-routes)
+  // Update Active Link in Sidebar
   document.querySelectorAll(".nav-link").forEach(link => {
     const href = link.getAttribute("href");
+    const [linkBase] = href ? href.split("?") : [""];
     if (
-      href === hash ||
-      ((hash === "#agen" || hash === "#reseller") && href === "#reseller") ||
-      (hash.startsWith("#analisa") && href === "#analisa")
+      linkBase === hash ||
+      ((hash === "#agen" || hash === "#reseller") && (linkBase === "#reseller" || linkBase === "#agen")) ||
+      (hash.startsWith("#analisa") && linkBase === "#analisa")
     ) {
       link.classList.add("active");
     } else {
       link.classList.remove("active");
-    }
-  });
-
-  // Update Active Sub-Link under Analisa
-  document.querySelectorAll(".nav-sub-link").forEach(subLink => {
-    const subHref = subLink.getAttribute("href");
-    if (subHref === hash || (hash === "#analisa" && subHref === "#analisa-distribusi")) {
-      subLink.classList.add("active");
-    } else {
-      subLink.classList.remove("active");
     }
   });
 
@@ -159,10 +177,250 @@ async function navigate() {
   }
 }
 
+function toggleSidebar() {
+  const isMobile = window.innerWidth <= 768;
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+
+  if (isMobile) {
+    sidebar.classList.toggle("open");
+    if (backdrop) backdrop.classList.toggle("active", sidebar.classList.contains("open"));
+  } else {
+    const isCollapsed = document.documentElement.classList.toggle("sidebar-collapsed");
+    localStorage.setItem("sidebar_collapsed", isCollapsed ? "true" : "false");
+  }
+}
+
+function closeSidebar() {
+  const isMobile = window.innerWidth <= 768;
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+
+  if (isMobile) {
+    sidebar.classList.remove("open");
+    if (backdrop) backdrop.classList.remove("active");
+  } else {
+    document.documentElement.classList.add("sidebar-collapsed");
+    localStorage.setItem("sidebar_collapsed", "true");
+  }
+}
+
+// ─── THEME TOGGLE (DARK / LIGHT MODE) ──────────────────────
+const SUN_SVG = `<svg class="theme-icon sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+
+const MOON_SVG = `<svg class="theme-icon moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+function getEffectiveTheme() {
+  const currentAttr = document.documentElement.getAttribute("data-theme");
+  if (currentAttr === "dark" || currentAttr === "light") {
+    return currentAttr;
+  }
+  const saved = localStorage.getItem("theme_preference");
+  if (saved === "dark" || saved === "light") {
+    return saved;
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+  return "light";
+}
+
+function updateThemeToggleUI(theme) {
+  const checkbox = document.getElementById("theme-toggle-checkbox");
+  const iconContainer = document.getElementById("theme-toggle-icon");
+  const labelText = document.getElementById("theme-toggle-text");
+
+  const isDark = theme === "dark";
+  if (checkbox) checkbox.checked = isDark;
+  if (iconContainer) iconContainer.innerHTML = isDark ? MOON_SVG : SUN_SVG;
+  if (labelText) labelText.textContent = isDark ? "Mode Gelap" : "Mode Terang";
+
+  // Sync with settings page if function exists
+  if (typeof window.updateThemeButtonActiveState === "function") {
+    window.updateThemeButtonActiveState(theme);
+  }
+}
+window.updateThemeToggleUI = updateThemeToggleUI;
+
+function toggleAppTheme(isDark) {
+  const theme = isDark ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("theme_preference", theme);
+  updateThemeToggleUI(theme);
+
+  // Dispatch custom event for charts or components that adapt dynamically
+  window.dispatchEvent(new CustomEvent("themechange", { detail: { theme } }));
+}
+window.toggleAppTheme = toggleAppTheme;
+
+function initThemeToggle() {
+  const effectiveTheme = getEffectiveTheme();
+  document.documentElement.setAttribute("data-theme", effectiveTheme);
+  updateThemeToggleUI(effectiveTheme);
+
+  const checkbox = document.getElementById("theme-toggle-checkbox");
+  if (checkbox) {
+    checkbox.addEventListener("change", (e) => {
+      toggleAppTheme(e.target.checked);
+    });
+  }
+
+  const toggleContainer = document.getElementById("sidebar-theme-toggle");
+  if (toggleContainer) {
+    toggleContainer.addEventListener("click", (e) => {
+      // If clicking directly on or inside label.theme-switch, checkbox change event handles it
+      if (e.target.closest(".theme-switch")) return;
+      if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        toggleAppTheme(checkbox.checked);
+      }
+    });
+
+    // Keyboard accessibility (Enter / Space)
+    toggleContainer.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (checkbox) {
+          checkbox.checked = !checkbox.checked;
+          toggleAppTheme(checkbox.checked);
+        }
+      }
+    });
+  }
+
+  // Listen to system theme changes if user has no stored preference
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+      if (!localStorage.getItem("theme_preference")) {
+        const newTheme = e.matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        updateThemeToggleUI(newTheme);
+      }
+    });
+  }
+}
+
 window.addEventListener("hashchange", navigate);
 document.addEventListener("DOMContentLoaded", () => {
   if (!window.location.hash) {
     window.location.hash = "#overview";
   }
+
+  // Initialize Theme Switch Toggle
+  initThemeToggle();
+
+  // Bind Sidebar Toggle & Collapse
+  const btnToggle = document.getElementById("btn-toggle-sidebar");
+  if (btnToggle) btnToggle.addEventListener("click", toggleSidebar);
+
+  const btnCollapse = document.getElementById("btn-collapse-sidebar");
+  if (btnCollapse) btnCollapse.addEventListener("click", toggleSidebar);
+
+  // Logo juga bisa diklik untuk toggle sidebar (expand/collapse)
+  const brandIcon = document.querySelector(".brand-header .brand-icon");
+  if (brandIcon) {
+    brandIcon.style.cursor = "pointer";
+    brandIcon.addEventListener("click", toggleSidebar);
+  }
+
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (backdrop) backdrop.addEventListener("click", closeSidebar);
+
+  // Global Keyboard Shortcuts: F5 / Ctrl+R untuk refresh di mode desktop app
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
+      e.preventDefault();
+      window.location.reload();
+    }
+  });
+
+  // Auto-close mobile drawer on nav click
+  document.querySelectorAll(".nav-link, .nav-sub-link").forEach(link => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
+    });
+  });
+
   navigate();
 });
+
+/**
+ * Smart file saver compatible with pywebview (Desktop App) and Standard Web Browsers
+ * @param {string} filename - Nama file beserta ekstensi (misal: "laporan.png", "data.csv")
+ * @param {string|Blob} content - String (text/csv/base64 dataURL) atau objek Blob
+ * @param {string} mimeType - MIME type file (misal: "image/png", "text/csv")
+ */
+window.saveFileSmart = async function(filename, content, mimeType = "application/octet-stream") {
+  // 1. Cek apakah berjalan di dalam pywebview desktop dengan native save_file API
+  if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.save_file === 'function') {
+    try {
+      let payload = content;
+      let isBase64 = false;
+
+      if (typeof content === 'string' && content.startsWith('data:')) {
+        payload = content;
+        isBase64 = true;
+      } else if (content instanceof Blob) {
+        payload = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(content);
+        });
+        isBase64 = true;
+      } else if (typeof content === 'string') {
+        payload = content;
+        isBase64 = false;
+      }
+
+      const res = await window.pywebview.api.save_file(filename, payload, isBase64);
+      if (res && res.success) {
+        return res;
+      }
+      if (res && res.cancelled) {
+        return res;
+      }
+    } catch (err) {
+      console.warn("[saveFileSmart] Native dialog error, fallback ke standard download:", err);
+    }
+  }
+
+  // 2. Fallback Standard Browser Download (<a download>)
+  let url = content;
+  let revoke = false;
+
+  if (content instanceof Blob) {
+    url = URL.createObjectURL(content);
+    revoke = true;
+  } else if (typeof content === 'string' && !content.startsWith('data:') && !content.startsWith('http') && !content.startsWith('blob:')) {
+    const blob = new Blob([content], { type: mimeType });
+    url = URL.createObjectURL(blob);
+    revoke = true;
+  }
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  if (revoke) {
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  return { success: true };
+};
+
+/**
+ * Smart URL downloader for backend endpoints (e.g. /api/admin/agents/export)
+ */
+window.downloadUrlSmart = function(url, filename) {
+  const link = document.createElement("a");
+  link.href = url;
+  if (filename) link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};

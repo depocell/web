@@ -5,17 +5,26 @@
 *.bak_*
 __pycache__/
 *.pyc
+scratch/
+MASTER/master.db
+MASTER/MASTER_PRODUCT_*.xlsx
+pages/sco_backup/
 
 # Heavy Excel files & local exports
 POWER_AR.xlsx
 POWER_OKI.xlsx
-*.png
 *.csv
 ~$*.xlsx
 Pivot_*.xlsx
 Reseller_*.xlsx
 0926_preview.xlsx
 desktop.ini
+
+# Ignore root-level raw dumps but keep UI icons in static/img
+/*.png
+!static/img/*.png
+!static/img/*.ico
+!pages/sco/*.png
 
 # Raw data
 RAW DATA/

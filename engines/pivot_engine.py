@@ -5,12 +5,23 @@ Menggabungkan data transaksi (parquet) dengan master customer (reseller & agen)
 untuk komputasi multidimensi real-time.
 """
 
+from typing import Dict, Any, List, Optional
 import os
 import time
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List
+import importlib
 import engines.transaction_engine as te
+import engines.metrics_engine as me
+try:
+    importlib.reload(me)
+except Exception:
+    pass
+import engines.profit_engine as pe_profit
+try:
+    importlib.reload(pe_profit)
+except Exception:
+    pass
 
 BASE_DIR   = os.path.dirname(os.path.dirname(__file__))
 MASTER_DIR = os.path.join(BASE_DIR, "MASTER")
@@ -18,27 +29,74 @@ MASTER_DIR = os.path.join(BASE_DIR, "MASTER")
 CACHE_DIR  = os.path.join(BASE_DIR, ".cache")
 
 _CUST_CACHE: Dict[str, pd.DataFrame] = {}
+_CUST_MTIME: Dict[str, float] = {}
 _PROD_CACHE: Dict[str, pd.DataFrame] = {}
+_PROD_MTIME: Dict[str, float] = {}
 _TRX_PREP_CACHE: Dict[str, Dict[str, Any]] = {}
 
+def clear_cache():
+    """Reset seluruh cache memori di pivot engine."""
+    _CUST_CACHE.clear()
+    _CUST_MTIME.clear()
+    _PROD_CACHE.clear()
+    _PROD_MTIME.clear()
+    _TRX_PREP_CACHE.clear()
+
 def get_customer_df(brand: str) -> pd.DataFrame:
-    """Load and cache customer master with relevant analysis columns using fast parquet cache."""
+    """Load and cache customer master with relevant analysis columns using fast parquet cache or SQLite."""
     brand = brand.upper()
+    db_path = os.path.join(MASTER_DIR, "master_data.db")
+    p_cache = os.path.join(CACHE_DIR, f"cust_full_{brand.lower()}.parquet")
+    db_mtime = os.path.getmtime(db_path) if os.path.exists(db_path) else 0
+    p_mtime = os.path.getmtime(p_cache) if os.path.exists(p_cache) else 0
+    curr_mtime = max(db_mtime, p_mtime)
+
+    if brand in _CUST_CACHE and _CUST_MTIME.get(brand, 0) >= curr_mtime and curr_mtime > 0:
+        return _CUST_CACHE[brand]
+
+    if os.path.exists(p_cache) and (db_mtime == 0 or p_mtime >= db_mtime):
+        try:
+            df = pd.read_parquet(p_cache)
+            _CUST_CACHE[brand] = df
+            _CUST_MTIME[brand] = curr_mtime
+            return df
+        except Exception:
+            pass
+
+    # 1. Coba baca dari database SQLite master_data.db
+    if os.path.exists(db_path):
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            query = """
+                SELECT 
+                    r.kode_reseller AS ar_id,
+                    r.nama_reseller AS reseller_name,
+                    r.grup AS [group],
+                    r.root_agen_id AS agen_id,
+                    COALESCE(a.nama_agen, r.root_agen_id) AS agen_name,
+                    COALESCE(a.type, 'Standard') AS tipe,
+                    COALESCE(r.cabang, a.cabang) AS cabang
+                FROM resellers r
+                LEFT JOIN agents a ON a.brand = r.brand AND a.agen_id = r.root_agen_id
+                WHERE r.brand = ?
+            """
+            cust_df = pd.read_sql_query(query, conn, params=(brand,))
+            conn.close()
+            if not cust_df.empty:
+                os.makedirs(CACHE_DIR, exist_ok=True)
+                cust_df.to_parquet(p_cache, index=False)
+                _CUST_CACHE[brand] = cust_df
+                _CUST_MTIME[brand] = os.path.getmtime(p_cache)
+                return cust_df
+        except Exception as e:
+            print(f"[WARN] pivot_engine SQLite read error: {e}")
+
+    # 2. Fallback lama ke Excel jika DB tidak ada
     file_name = "CUSTOMER_ASTAGA.xlsx" if brand == "ASTAGA" else "CUSTOMER_OKI.xlsx"
     path = os.path.join(MASTER_DIR, file_name)
     if not os.path.exists(path):
         return pd.DataFrame()
-
-    xlsx_mtime = os.path.getmtime(path)
-    p_cache = os.path.join(CACHE_DIR, f"cust_full_{brand.lower()}.parquet")
-
-    if brand in _CUST_CACHE and os.path.exists(p_cache) and os.path.getmtime(p_cache) >= xlsx_mtime:
-        return _CUST_CACHE[brand]
-
-    if os.path.exists(p_cache) and os.path.getmtime(p_cache) >= xlsx_mtime:
-        df = pd.read_parquet(p_cache)
-        _CUST_CACHE[brand] = df
-        return df
 
     try:
         engine_list = ["calamine", "openpyxl"]
@@ -124,56 +182,51 @@ def get_customer_df(brand: str) -> pd.DataFrame:
 
 
 def get_product_df(brand: str) -> pd.DataFrame:
-    """Load and cache full product master (Kode, Nama, Kategori, Operator, Paket, Type)."""
+    """Load and cache full product master (Kode, Nama, Kategori, Operator, Paket, Type) dari Parquet / SQLite."""
     brand = brand.upper()
-    file_name = "PRODUCT_ASTAGA.xlsx" if brand == "ASTAGA" else "PRODUCT_OKI.xlsx"
-    path = os.path.join(MASTER_DIR, file_name)
-    if not os.path.exists(path):
-        return pd.DataFrame()
-
-    xlsx_mtime = os.path.getmtime(path)
+    db_path = os.path.join(MASTER_DIR, "master_data.db")
     p_cache = os.path.join(CACHE_DIR, f"prod_full_{brand.lower()}.parquet")
+    db_mtime = os.path.getmtime(db_path) if os.path.exists(db_path) else 0
+    p_mtime = os.path.getmtime(p_cache) if os.path.exists(p_cache) else 0
+    curr_mtime = max(db_mtime, p_mtime)
 
-    if brand in _PROD_CACHE and os.path.exists(p_cache) and os.path.getmtime(p_cache) >= xlsx_mtime:
+    if brand in _PROD_CACHE and _PROD_MTIME.get(brand, 0) >= curr_mtime and curr_mtime > 0 and not _PROD_CACHE[brand].empty:
         return _PROD_CACHE[brand]
 
-    if os.path.exists(p_cache) and os.path.getmtime(p_cache) >= xlsx_mtime:
-        df = pd.read_parquet(p_cache)
-        _PROD_CACHE[brand] = df
-        return df
+    if os.path.exists(p_cache):
+        try:
+            df = pd.read_parquet(p_cache)
+            _PROD_CACHE[brand] = df
+            _PROD_MTIME[brand] = curr_mtime
+            return df
+        except Exception:
+            pass
 
-    try:
-        sheet = "Product" if brand == "ASTAGA" else "Sheet1"
-        df = pd.read_excel(path, sheet_name=sheet, engine="openpyxl")
-        df.columns = [str(c).strip() for c in df.columns]
+    # Fallback ke SQLite master_data.db
+    if os.path.exists(db_path):
+        try:
+            import sqlite3
+            with sqlite3.connect(db_path) as conn:
+                df = pd.read_sql_query("""
+                    SELECT kode_produk AS product_id,
+                           nama_produk AS product_name,
+                           kategori,
+                           operator,
+                           paket
+                    FROM products
+                    WHERE brand = ? AND is_active = 1
+                """, conn, params=(brand,))
+                for c in df.columns:
+                    df[c] = df[c].fillna("").astype(str).str.strip()
+                os.makedirs(CACHE_DIR, exist_ok=True)
+                df.to_parquet(p_cache, index=False)
+                _PROD_CACHE[brand] = df
+                _PROD_MTIME[brand] = os.path.getmtime(p_cache)
+                return df
+        except Exception as e:
+            print(f"[ERROR] Gagal memuat master produk {brand} dari SQLite: {e}")
 
-        keep_map = {
-            "Kode Produk": "product_id",
-            "Nama Produk": "product_name",
-            "Kategori": "kategori",
-            "Operator": "operator",
-            "Paket": "paket",
-            "Type": "tipe_produk"
-        }
-        res_cols = {}
-        for orig, target in keep_map.items():
-            found = next((c for c in df.columns if c.lower() == orig.lower()), None)
-            if found:
-                res_cols[found] = target
-
-        prod_df = df[list(res_cols.keys())].rename(columns=res_cols)
-        for c in prod_df.columns:
-            prod_df[c] = prod_df[c].fillna("").astype(str).str.strip().str.replace("\xa0", "", regex=False)
-        prod_df["product_id"] = prod_df["product_id"].str.upper()
-        prod_df = prod_df.drop_duplicates("product_id")
-
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        prod_df.to_parquet(p_cache, index=False)
-        _PROD_CACHE[brand] = prod_df
-        return prod_df
-    except Exception as e:
-        print(f"[ERROR] Gagal memuat master produk {brand}: {e}")
-        return pd.DataFrame()
+    return pd.DataFrame()
 
 
 def get_prepared_trx(brand: str, year: str = "2026") -> pd.DataFrame:
@@ -187,13 +240,26 @@ def get_prepared_trx(brand: str, year: str = "2026") -> pd.DataFrame:
         return _TRX_PREP_CACHE[cache_key]["df"]
 
     df = te.load(brand, year)
-    df["ym"] = df["tgl_entry"].dt.to_period("M").astype(str)
-    df["tanggal"] = df["tgl_entry"].dt.strftime("%Y-%m-%d")
+    if brand == "ASTAGA":
+        df = me.filter_astaga_internal(df)
+
+    if "ym" not in df.columns:
+        df["ym"] = df["tgl_entry"].dt.to_period("M").astype(str)
+    df["tanggal"] = df["tgl_entry"].dt.date.astype(str)
     df["bulan"] = df["ym"]
-    df["ar_id_clean"] = df["ar_id"].astype(str).str.strip().str.replace("\xa0", "", regex=False).str.upper()
-    df["product_id_clean"] = df["product_id"].astype(str).str.strip().str.replace("\xa0", "", regex=False).str.upper()
-    df["margin"] = df["jual"] - df["beli"]
-    df["is_sukses_num"] = df["status"].astype(str).str.lower().str.contains("sukses", na=False).astype(int)
+    df["ar_id_clean"] = df["ar_id"].astype(str).str.strip().str.upper()
+    df["product_id_clean"] = df["product_id"].astype(str).str.strip().str.upper()
+
+    markup_map = pe_profit.get_reseller_markup_map(brand)
+    df["markup"] = df["ar_id_clean"].map(markup_map).fillna(0.0)
+    df["base_price"] = me.calculate_server_base_price(df["jual"], df["markup"])
+    df["net_profit"] = me.calculate_net_profit(df["jual"], df["beli"], df["markup"])
+    df["margin"] = df["net_profit"]
+
+    if "is_sukses" in df.columns:
+        df["is_sukses_num"] = df["is_sukses"].astype(int)
+    else:
+        df["is_sukses_num"] = df["status"].astype(str).str.lower().str.contains("sukses", na=False).astype(int)
 
     _TRX_PREP_CACHE[cache_key] = {"mtime": mtime, "df": df}
     return df
@@ -217,10 +283,14 @@ def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "ch
     metrics = [
         {"id": "trx_count", "label": "Jumlah Transaksi (Count)", "is_curr": False},
         {"id": "daily_trx", "label": "Daily Trx (Trx / Hari)", "is_curr": False},
-        {"id": "jual_sum", "label": "Total Omzet Jual (Rp)", "is_curr": True},
-        {"id": "daily_jual", "label": "Daily Revenue / Jual (Rp / Hari)", "is_curr": True},
-        {"id": "margin_sum", "label": "Total Margin (Rp)", "is_curr": True},
-        {"id": "daily_margin", "label": "Daily Margin (Rp / Hari)", "is_curr": True},
+        {"id": "base_price_avg", "label": "Harga Jual Dasar Server (Rata-rata / Hit)", "is_curr": True},
+        {"id": "net_arpu", "label": "Net ARPU (Revenue Bersih / Trx Sukses)", "is_curr": True},
+        {"id": "margin_pct", "label": "Net Margin % (Net Profit / Harga Dasar)", "is_curr": False},
+        {"id": "margin_sum", "label": "Total Net Profit Server (Rp)", "is_curr": True},
+        {"id": "daily_margin", "label": "Daily Net Profit Server (Rp / Hari)", "is_curr": True},
+        {"id": "base_price_sum", "label": "Total Revenue Bersih Server (Rp)", "is_curr": True},
+        {"id": "jual_sum", "label": "Total Omzet Jual Kotor (Rp)", "is_curr": True},
+        {"id": "daily_jual", "label": "Daily Omzet Jual Kotor (Rp / Hari)", "is_curr": True},
         {"id": "beli_sum", "label": "Total Modal Beli (Rp)", "is_curr": True},
         {"id": "qty_sum", "label": "Total Qty Volume (Sum)", "is_curr": False},
         {"id": "sukses_pct", "label": "Success Rate (% Sukses)", "is_curr": False}
@@ -230,10 +300,9 @@ def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "ch
         dimensions = [
             {"id": "kategori", "label": "Kategori Produk"},
             {"id": "operator", "label": "Operator / Provider"},
-            {"id": "paket", "label": "Paket Produk"},
+            {"id": "paket", "label": "Paket / Jenis Produk"},
             {"id": "product_name", "label": "Nama Produk"},
             {"id": "product_id", "label": "Kode Produk (ID)"},
-            {"id": "tipe_produk", "label": "Tipe Produk"},
             {"id": "modul_id", "label": "Modul Suplier"},
             {"id": "cabang", "label": "Cabang / Channel"},
             {"id": "agen_name", "label": "Induk / Agen (Group ID)"},
@@ -290,6 +359,7 @@ def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "ch
         "cabangs": cabangs,
         "kategoris": kategoris,
         "operators": operators,
+        "years": te.get_available_years(brand),
         "dimensions": dimensions,
         "column_dimensions": column_dimensions,
         "metrics": metrics
@@ -338,16 +408,16 @@ def execute_pivot(
         df = df[df["cabang"] == cabang_filter]
 
     # 3. Merge dengan Product Master jika dimensi membutuhkan data produk
-    prod_dims = {"kategori", "operator", "paket", "product_name", "product_id", "tipe_produk"}
+    prod_dims = {"kategori", "operator", "paket", "product_name", "product_id"}
     needs_prod = (row_dim in prod_dims) or (col_dim in prod_dims) or (kategori_filter != "ALL") or (operator_filter != "ALL")
 
     if needs_prod:
         prod_df = get_product_df(brand)
         if not prod_df.empty:
             # Gunakan kolom selain product_id agar tidak konflik dengan kolom transaksi
-            merge_cols = [c for c in prod_df.columns if c in ["product_name", "kategori", "operator", "paket", "tipe_produk"]]
+            merge_cols = [c for c in prod_df.columns if c in ["product_name", "kategori", "operator", "paket"]]
             df = df.merge(prod_df[["product_id"] + merge_cols], left_on="product_id_clean", right_on="product_id", how="left", suffixes=("", "_master"))
-        for c in ["kategori", "operator", "paket", "product_name", "tipe_produk"]:
+        for c in ["kategori", "operator", "paket", "product_name"]:
             if c in df.columns:
                 df[c] = df[c].fillna("LAINNYA").astype(str)
             else:
@@ -368,24 +438,30 @@ def execute_pivot(
         }
 
     days_per_month = df.groupby("ym")["tanggal"].nunique().to_dict()
-    active_days = max(int(df["tanggal"].nunique()), 1)
+    active_days = me.get_active_days(df, date_col="tgl_entry")
 
     # Summary Stats
     total_trx = len(df)
     total_jual = float(df["jual"].sum())
+    total_base_price = float(df["base_price"].sum())
     total_margin = float(df["margin"].sum())
     sukses_cnt = int(df["is_sukses_num"].sum())
     overall_sukses_rate = round((sukses_cnt / total_trx * 100), 2) if total_trx > 0 else 0.0
+    overall_net_arpu = me.calculate_net_arpu(total_base_price, sukses_cnt)
+    overall_margin_pct = me.calculate_margin_pct(total_margin, total_base_price)
 
     summary = {
         "active_days": active_days,
         "total_trx": total_trx,
-        "daily_trx": round(total_trx / active_days, 1),
+        "daily_trx": me.calculate_daily_rate(total_trx, active_days),
         "total_jual": round(total_jual, 0),
-        "daily_jual": round(total_jual / active_days, 0),
+        "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
+        "total_base_price": round(total_base_price, 0),
         "total_margin": round(total_margin, 0),
-        "daily_margin": round(total_margin / active_days, 0),
-        "sukses_rate": overall_sukses_rate
+        "daily_margin": round(me.calculate_daily_rate(total_margin, active_days), 0),
+        "sukses_rate": overall_sukses_rate,
+        "net_arpu": overall_net_arpu,
+        "margin_pct": overall_margin_pct
     }
 
     # Metric configuration
@@ -400,6 +476,12 @@ def execute_pivot(
     elif metric in ("margin_sum", "daily_margin"):
         val_col = "margin"
         agg_fn = "sum"
+    elif metric == "base_price_sum":
+        val_col = "base_price"
+        agg_fn = "sum"
+    elif metric == "base_price_avg":
+        val_col = "base_price"
+        agg_fn = "mean"
     elif metric == "beli_sum":
         val_col = "beli"
         agg_fn = "sum"
@@ -409,6 +491,9 @@ def execute_pivot(
     elif metric == "sukses_pct":
         val_col = "is_sukses_num"
         agg_fn = "mean"
+    elif metric in ("net_arpu", "margin_pct"):
+        val_col = "base_price"
+        agg_fn = "sum"
     else:
         val_col = "trx_id"
         agg_fn = "count"
@@ -416,44 +501,62 @@ def execute_pivot(
     # 4. Pivot / Aggregation
     if col_dim and col_dim != "none" and col_dim != row_dim:
         # 2D Pivot Table
-        piv = pd.pivot_table(
-            df,
-            index=row_dim,
-            columns=col_dim,
-            values=val_col,
-            aggfunc=agg_fn,
-            fill_value=0,
-            margins=True,
-            margins_name="TOTAL"
-        ).astype(float)
+        if metric == "net_arpu":
+            df_suk = df[df["is_sukses_num"] == 1]
+            piv_rev = pd.pivot_table(
+                df_suk, index=row_dim, columns=col_dim, values="base_price", aggfunc="sum", fill_value=0, margins=True, margins_name="TOTAL"
+            ).astype(float)
+            piv_cnt = pd.pivot_table(
+                df_suk, index=row_dim, columns=col_dim, values="trx_id", aggfunc="count", fill_value=0, margins=True, margins_name="TOTAL"
+            ).astype(float)
+            piv = piv_rev.divide(piv_cnt.replace(0, np.nan)).fillna(0.0)
+        elif metric == "margin_pct":
+            piv_prof = pd.pivot_table(
+                df, index=row_dim, columns=col_dim, values="margin", aggfunc="sum", fill_value=0, margins=True, margins_name="TOTAL"
+            ).astype(float)
+            piv_rev = pd.pivot_table(
+                df, index=row_dim, columns=col_dim, values="base_price", aggfunc="sum", fill_value=0, margins=True, margins_name="TOTAL"
+            ).astype(float)
+            piv = (piv_prof.divide(piv_rev.replace(0, np.nan)) * 100.0).fillna(0.0)
+        else:
+            piv = pd.pivot_table(
+                df,
+                index=row_dim,
+                columns=col_dim,
+                values=val_col,
+                aggfunc=agg_fn,
+                fill_value=0,
+                margins=True,
+                margins_name="TOTAL"
+            ).astype(float)
 
-        if metric == "sukses_pct":
-            piv = piv * 100.0
-        elif is_daily:
-            if col_dim == "bulan":
-                for c in piv.columns:
-                    c_str = str(c)
-                    if c_str in days_per_month:
-                        piv[c] = piv[c] / float(max(days_per_month[c_str], 1))
-                    elif c_str == "TOTAL":
-                        piv[c] = piv[c] / float(active_days)
-            elif row_dim == "bulan":
-                for r in piv.index:
-                    r_str = str(r)
-                    if r_str in days_per_month:
-                        piv.loc[r] = piv.loc[r] / float(max(days_per_month[r_str], 1))
-                    elif r_str == "TOTAL":
-                        piv.loc[r] = piv.loc[r] / float(active_days)
-            elif col_dim == "tanggal":
-                for c in piv.columns:
-                    if str(c) == "TOTAL":
-                        piv[c] = piv[c] / float(active_days)
-            elif row_dim == "tanggal":
-                for r in piv.index:
-                    if str(r) == "TOTAL":
-                        piv.loc[r] = piv.loc[r] / float(active_days)
-            else:
-                piv = piv / float(active_days)
+            if metric == "sukses_pct":
+                piv = piv * 100.0
+            elif is_daily:
+                if col_dim == "bulan":
+                    for c in piv.columns:
+                        c_str = str(c)
+                        if c_str in days_per_month:
+                            piv[c] = piv[c] / float(max(days_per_month[c_str], 1))
+                        elif c_str == "TOTAL":
+                            piv[c] = piv[c] / float(active_days)
+                elif row_dim == "bulan":
+                    for r in piv.index:
+                        r_str = str(r)
+                        if r_str in days_per_month:
+                            piv.loc[r] = piv.loc[r] / float(max(days_per_month[r_str], 1))
+                        elif r_str == "TOTAL":
+                            piv.loc[r] = piv.loc[r] / float(active_days)
+                elif col_dim == "tanggal":
+                    for c in piv.columns:
+                        if str(c) == "TOTAL":
+                            piv[c] = piv[c] / float(active_days)
+                elif row_dim == "tanggal":
+                    for r in piv.index:
+                        if str(r) == "TOTAL":
+                            piv.loc[r] = piv.loc[r] / float(active_days)
+                else:
+                    piv = piv / float(active_days)
 
         # Sort baris berdasarkan TOTAL (kecuali row TOTAL tetap di bawah)
         if "TOTAL" in piv.index:
@@ -494,10 +597,16 @@ def execute_pivot(
             trx_count=("trx_id", "count"),
             qty_sum=("qty", "sum"),
             jual_sum=("jual", "sum"),
+            base_price_sum=("base_price", "sum"),
             beli_sum=("beli", "sum"),
             margin_sum=("margin", "sum"),
-            sukses_pct=("is_sukses_num", lambda s: (s.sum() / len(s) * 100) if len(s) > 0 else 0.0)
+            sukses_count=("is_sukses_num", "sum")
         )
+        grp["sukses_pct"] = np.where(grp["trx_count"] > 0, (grp["sukses_count"] / grp["trx_count"] * 100.0), 0.0)
+        grp["base_price_avg"] = np.where(grp["trx_count"] > 0, grp["base_price_sum"] / grp["trx_count"], 0.0)
+        grp["net_arpu"] = np.where(grp["sukses_count"] > 0, grp["base_price_sum"] / grp["sukses_count"], 0.0)
+        grp["margin_pct"] = np.where(grp["base_price_sum"] > 0, (grp["margin_sum"] / grp["base_price_sum"] * 100.0), 0.0)
+
         if row_dim == "bulan":
             divisor_s = grp.index.map(lambda ym: float(days_per_month.get(str(ym), active_days)))
             grp["daily_trx"] = grp["trx_count"] / divisor_s
@@ -522,31 +631,39 @@ def execute_pivot(
                 "trx_count": int(r_s["trx_count"]),
                 "daily_trx": round(float(r_s["daily_trx"]), 1),
                 "qty_sum": round(float(r_s["qty_sum"]), 0),
+                "base_price_avg": round(float(r_s["base_price_avg"]), 0),
+                "net_arpu": round(float(r_s["net_arpu"]), 0),
+                "base_price_sum": round(float(r_s["base_price_sum"]), 0),
+                "margin_sum": round(float(r_s["margin_sum"]), 0),
+                "daily_margin": round(float(r_s["daily_margin"]), 0),
+                "margin_pct": round(float(r_s["margin_pct"]), 2),
                 "jual_sum": round(float(r_s["jual_sum"]), 0),
                 "daily_jual": round(float(r_s["daily_jual"]), 0),
                 "beli_sum": round(float(r_s["beli_sum"]), 0),
-                "margin_sum": round(float(r_s["margin_sum"]), 0),
-                "daily_margin": round(float(r_s["daily_margin"]), 0),
                 "sukses_pct": round(float(r_s["sukses_pct"]), 2)
             })
 
         total_dict = {
             "_row_label": "TOTAL",
             "trx_count": total_trx,
-            "daily_trx": round(float(total_trx / active_days), 1),
+            "daily_trx": me.calculate_daily_rate(total_trx, active_days),
             "qty_sum": round(float(df["qty"].sum()), 0),
-            "jual_sum": round(total_jual, 0),
-            "daily_jual": round(float(total_jual / active_days), 0),
-            "beli_sum": round(float(df["beli"].sum()), 0),
+            "base_price_avg": round(total_base_price / total_trx, 0) if total_trx > 0 else 0.0,
+            "net_arpu": overall_net_arpu,
+            "base_price_sum": round(total_base_price, 0),
             "margin_sum": round(total_margin, 0),
-            "daily_margin": round(float(total_margin / active_days), 0),
+            "daily_margin": round(me.calculate_daily_rate(total_margin, active_days), 0),
+            "margin_pct": overall_margin_pct,
+            "jual_sum": round(total_jual, 0),
+            "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
+            "beli_sum": round(float(df["beli"].sum()), 0),
             "sukses_pct": overall_sukses_rate
         }
 
         return {
             "is_2d": False,
             "row_dim": row_dim,
-            "columns": ["trx_count", "daily_trx", "jual_sum", "daily_jual", "beli_sum", "margin_sum", "daily_margin", "qty_sum", "sukses_pct"],
+            "columns": ["trx_count", "daily_trx", "base_price_avg", "net_arpu", "base_price_sum", "margin_sum", "daily_margin", "margin_pct", "jual_sum", "daily_jual", "beli_sum", "qty_sum", "sukses_pct"],
             "rows": rows_data,
             "total_row": total_dict,
             "summary": summary,
