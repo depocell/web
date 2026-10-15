@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SCO Performance</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Font Awesome 6 CDN (CSS + JS for crisp SVG icon rendering in canvas) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"
+    crossorigin="anonymous"></script>
+
+  <!-- Chart.js 4 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <!-- html2canvas for Screenshot Reporting (Local with CDN fallback) -->
+  <script src="html2canvas.min.js"></script>
+  <script>
+    if (typeof html2canvas === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>');
+    }
+  </script>
+
+  <!-- Leaflet Map CSS & JS for Area Coverage (Local with CDN fallback) -->
+  <link rel="stylesheet" href="leaflet.css">
+  <script src="leaflet.js"></script>
+  <script>
+    if (typeof L === 'undefined') {
+      document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">');
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"><\/script>');
+    }
+  </script>
+
+  <!-- SCO Suite Unified Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=2.7">
+
+  <script>
+    // Embedded Mode Check
+    if (window.self !== window.top) {
+      document.documentElement.classList.add('is-embedded');
+    }
+  </script>
+</head>
+
+<body>
+  <!-- Initial Fallback / Loader before app.js renders shell -->
+  <div
+    style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; width:100%; font-family:sans-serif; color:#64748b;">
+    <div
+      style="width:40px; height:40px; border:3px solid #e2e8f0; border-top-color:#0284c7; border-radius:50%; animation:spin 0.8s linear infinite;">
+    </div>
+    <p style="margin-top:14px; font-size:14px; font-weight:600;">Memuat SCO Suite...</p>
+  </div>
+  <style>
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <!-- SCO Suite Controller -->
+  <script src="app.js?v=3.9"></script>
+</body>
+
+</html>
