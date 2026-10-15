@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Report — Depo Cell</title>
+  <link rel="icon" type="image/png" href="./static/img/fav_icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./static/css/app.css?v=12">
+  <script>
+    (function() {
+      var savedTheme = localStorage.getItem('theme_preference');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+      if (localStorage.getItem('sidebar_collapsed') === 'true') {
+        document.documentElement.classList.add('sidebar-collapsed');
+      }
+    })();
+  </script>
+  <script src="./static/js/chart.min.js"></script>
+  <script src="./static/js/html2canvas.min.js"></script>
+  <script src="./static/js/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- MOBILE SIDEBAR BACKDROP -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside id="sidebar">
+    <div class="brand-header">
+      <div class="brand-info">
+        <img src="./static/img/dp_icon.png" alt="Depo Cell" class="brand-icon" title="Depo Cell Web Report">
+        <div class="brand-text">
+          <div class="brand-title">WEB REPORT</div>
+          <div class="brand-subtitle">BI &amp; Analytics</div>
+        </div>
+      </div>
+      <button id="btn-collapse-sidebar" class="btn-sidebar-collapse" title="Lipat / Perluas Sidebar" aria-label="Toggle Sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <ul class="nav-menu">
+      <li class="nav-label">Laporan &amp; Analitik</li>
+      <li class="nav-item">
+        <a href="#overview" class="nav-link" title="Overview Dashboard" data-tooltip="Overview Dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span class="nav-text">Overview</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#daily" class="nav-link" title="Daily Report" data-tooltip="Daily Report">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span class="nav-text">Daily Report</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#sco" class="nav-link" title="SCO Suite" data-tooltip="SCO Suite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <polyline points="17 11 19 13 23 9"></polyline>
+          </svg>
+          <span class="nav-text">SCO Suite</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#agen?tab=ringkasan" class="nav-link" id="nav-agen-reseller" title="Agen & Reseller" data-tooltip="Agen & Reseller">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span class="nav-text">Agen &amp; Reseller</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#produk" class="nav-link" title="Produk Fisik" data-tooltip="Produk Fisik">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span class="nav-text">Produk Fisik</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#analisa" class="nav-link" id="nav-analisa-main" title="Dashboard Analisa" data-tooltip="Dashboard Analisa">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span class="nav-text">Dashboard Analisa</span>
+        </a>
+      </li>
+
+      <li class="nav-label" style="margin-top: 22px;">Dapur &amp; Administrasi (Lokal)</li>
+      <li class="nav-item">
+        <a href="#admin" class="nav-link" id="nav-admin-data" title="Admin & Olah Data" data-tooltip="Admin & Olah Data">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+          <span class="nav-text">Admin &amp; Olah Data</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- THEME TOGGLE SWITCH -->
+    <div class="sidebar-theme-toggle" id="sidebar-theme-toggle" role="button" tabindex="0" title="Ganti Mode Gelap / Terang">
+      <div class="theme-toggle-label">
+        <span class="theme-toggle-icon" id="theme-toggle-icon">
+          <svg class="theme-icon moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </span>
+        <span class="theme-toggle-text" id="theme-toggle-text">Mode Gelap</span>
+      </div>
+      <label class="theme-switch" for="theme-toggle-checkbox">
+        <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle Mode Gelap/Terang">
+        <span class="theme-slider"></span>
+      </label>
+    </div>
+
+    <div class="sidebar-footer">
+      <span>Web Report v2.4</span>
+      <span class="badge">2026</span>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER -->
+  <div id="main-wrapper">
+    <header id="topbar">
+      <div class="topbar-left">
+        <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="Sembunyikan / Tampilkan Sidebar" aria-label="Toggle Sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="page-breadcrumb" id="page-title">Overview Dashboard</div>
+      </div>
+      <div class="topbar-actions"></div>
+    </header>
+
+    <main id="content-area">
+      <!-- Dinamis di-load oleh app.js -->
+    </main>
+  </div>
+
+  <script src="./static/js/app.js?v=15"></script>
+</body>
+</html>

@@ -3,50 +3,50 @@
 const ROUTES = {
   "#admin": {
     title: "Admin & Olah Data",
-    pageUrl: "/pages/admin/index.html",
-    scriptUrl: "/pages/admin/admin.js",
+    pageUrl: "./pages/admin/index.html",
+    scriptUrl: "./pages/admin/admin.js",
     initFn: "loadAdmin"
   },
   "#overview": {
     title: "Overview Dashboard",
-    pageUrl: "/pages/home/index.html",
-    scriptUrl: "/pages/home/home.js",
+    pageUrl: "./pages/home/index.html",
+    scriptUrl: "./pages/home/home.js",
     initFn: "loadOverview"
   },
   "#daily": {
     title: "Daily Summary Report",
-    pageUrl: "/pages/daily/index.html",
-    scriptUrl: "/pages/daily/daily.js",
+    pageUrl: "./pages/daily/index.html",
+    scriptUrl: "./pages/daily/daily.js",
     initFn: "loadDaily"
   },
   "#analisa": {
     title: "Dashboard Analisa",
-    pageUrl: "/pages/analisa/index.html",
-    scriptUrl: "/pages/analisa/analisa.js",
+    pageUrl: "./pages/analisa/index.html",
+    scriptUrl: "./pages/analisa/analisa.js",
     initFn: "loadAnalisa"
   },
   "#sco": {
     title: "SCO Executive Suite",
-    pageUrl: "/pages/sco/sco_view.html",
-    scriptUrl: "/pages/sco/sco.js",
+    pageUrl: "./pages/sco/sco_view.html",
+    scriptUrl: "./pages/sco/sco.js",
     initFn: "initScoView"
   },
   "#reseller": {
     title: "Agen & Reseller",
-    pageUrl: "/pages/agen/index.html",
-    scriptUrl: "/pages/agen/agen.js",
+    pageUrl: "./pages/agen/index.html",
+    scriptUrl: "./pages/agen/agen.js",
     initFn: "loadAgen"
   },
   "#agen": {
     title: "Agen & Reseller",
-    pageUrl: "/pages/agen/index.html",
-    scriptUrl: "/pages/agen/agen.js",
+    pageUrl: "./pages/agen/index.html",
+    scriptUrl: "./pages/agen/agen.js",
     initFn: "loadAgen"
   },
   "#produk": {
     title: "Produk Fisik",
-    pageUrl: "/pages/fisik/index.html",
-    scriptUrl: "/pages/fisik/fisik.js",
+    pageUrl: "./pages/fisik/index.html",
+    scriptUrl: "./pages/fisik/fisik.js",
     initFn: "loadFisik"
   }
 };
