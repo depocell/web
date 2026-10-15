@@ -35,7 +35,9 @@
       return "./data/analisa_profit_astaga.json";
     }
     if (cleanUrl.startsWith("/api/analisa/data") || cleanUrl.includes("analisa/data.json")) {
-      return "./pages/analisa/data.json";
+      if (cleanUrl.includes("OKIPAY")) return "./data/analisa_okipay.json";
+      if (cleanUrl.includes("ASTAGA")) return "./data/analisa_astaga.json";
+      return "./data/analisa_all.json";
     }
     if (cleanUrl.startsWith("/api/agen/tren")) {
       if (cleanUrl.includes("OKIPAY")) return "./data/agen_tren_okipay.json";
@@ -74,6 +76,20 @@
     }
     return originalFetch(resource, init);
   };
+
+  if (isStaticHost) {
+    const hideAdminNav = () => {
+      const adminNav = document.getElementById("nav-admin-data");
+      if (adminNav && adminNav.closest("li")) {
+        adminNav.closest("li").style.display = "none";
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAdminNav);
+    } else {
+      hideAdminNav();
+    }
+  }
 })();
 
 const ROUTES = {
@@ -198,6 +214,15 @@ async function navigate() {
   }
   if (hash === "#reseller") {
     window.location.replace("#agen?tab=reseller");
+    return;
+  }
+
+  // Redirect admin di GitHub Pages / Static Hosting ke overview
+  const isStaticHost = window.location.hostname.includes("github.io") || 
+                       window.location.protocol === "file:" ||
+                       window.location.port === "5500";
+  if (isStaticHost && hash === "#admin") {
+    window.location.replace("#overview");
     return;
   }
 

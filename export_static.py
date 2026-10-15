@@ -37,6 +37,14 @@ def export_all():
         with open(os.path.join(OUT_DIR, f"analisa_profit_{b_lower}.json"), "w", encoding="utf-8") as f:
             json.dump({"ok": True, "data": res}, f)
 
+    print("[3b/7] Exporting Analisa Module & Supplier...")
+    import engines.analisa_engine as ane
+    for brand in ["ASTAGA", "OKIPAY", "ALL"]:
+        b_lower = brand.lower()
+        d_an = ane.query_analisa_data(brand=brand, year="ALL", month="ALL")
+        with open(os.path.join(OUT_DIR, f"analisa_{b_lower}.json"), "w", encoding="utf-8") as f:
+            json.dump({"ok": True, **d_an}, f)
+
     print("[4/7] Exporting Agen & Reseller...")
     for brand in ["ASTAGA", "OKIPAY"]:
         b_lower = brand.lower()

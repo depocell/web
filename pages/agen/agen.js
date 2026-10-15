@@ -116,7 +116,6 @@ async function switchAgenBrand(brand) {
     if (window.triggerBrandSwitchVisual) {
       window.triggerBrandSwitchVisual(brand, activeBtn, "agen-tab-content-wrapper");
     }
-  }
 
   // Update Brand Badge in Header Strip
   const brandBadge = document.getElementById('agen-brand-badge');
