@@ -144,6 +144,37 @@
       </div>
     </div>
 
+    <!-- CLOUD / WEB SYNC BANNER -->
+    <div class="card-box" style="padding: 16px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); border-left: 4px solid #16a34a;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #f0fdf4; display: flex; align-items: center; justify-content: center; color: #16a34a; flex-shrink: 0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+          </svg>
+        </div>
+        <div>
+          <div style="font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <span>Publish ke GitHub Pages</span>
+            <span class="badge" style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 11px; font-weight: 600;">Live Web</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
+            Ekspor seluruh snapshot data terbaru (Overview, Daily, Analisa, Agen, Fisik) &amp; otomatis push ke GitHub Pages
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <span id="publish-web-status" style="font-size: 12px; color: var(--text-muted);"></span>
+        <button type="button" id="btn-publish-web" onclick="publishWebReport()"
+          style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-weight: 600; font-size: 13px; border-radius: 8px; background: #16a34a; color: #fff; border: none; cursor: pointer; transition: all 0.2s ease;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          <span id="btn-publish-web-text">Publish ke Web</span>
+        </button>
+      </div>
+    </div>
+
     <!-- BRAND CARDS CONTAINER (WATERMARK & RADAR) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;"
       id="admin-cards-container">

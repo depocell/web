@@ -2522,4 +2522,49 @@ window.handleKategoriSelectChange = handleKategoriSelectChange;
 window.handleOperatorSelectChange = handleOperatorSelectChange;
 window.handlePaketSelectChange = handlePaketSelectChange;
 
+// ── PUBLISH KE GITHUB PAGES ──
+async function publishWebReport() {
+  const btn = document.getElementById("btn-publish-web");
+  const btnText = document.getElementById("btn-publish-web-text");
+  const statusEl = document.getElementById("publish-web-status");
+
+  if (!confirm("Ekspor seluruh snapshot data terbaru dan deploy ke GitHub Pages sekarang?")) {
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.textContent = "Memproses Export & Push...";
+  if (statusEl) {
+    statusEl.style.color = "var(--primary)";
+    statusEl.textContent = "Sedang mengolah data dan push ke GitHub...";
+  }
+
+  try {
+    const res = await fetch("/api/admin/publish-web", { method: "POST" });
+    const json = await res.json();
+
+    if (json.ok) {
+      if (statusEl) {
+        statusEl.style.color = "#16a34a";
+        statusEl.textContent = json.message || "Berhasil dipublish ke GitHub Pages!";
+      }
+      alert(json.message || "Data berhasil diekspor dan dideploy ke GitHub Pages!\nPerubahan akan live di web dalam 1-2 menit.");
+    } else {
+      throw new Error(json.error || "Gagal mem-publish ke GitHub Pages");
+    }
+  } catch (err) {
+    console.error("Error publishWebReport:", err);
+    if (statusEl) {
+      statusEl.style.color = "#dc2626";
+      statusEl.textContent = "Gagal: " + err.message;
+    }
+    alert("Gagal mem-publish ke GitHub Pages: " + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = "Publish ke Web";
+  }
+}
+window.publishWebReport = publishWebReport;
+
+
 
