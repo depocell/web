@@ -2522,49 +2522,49 @@ window.handleKategoriSelectChange = handleKategoriSelectChange;
 window.handleOperatorSelectChange = handleOperatorSelectChange;
 window.handlePaketSelectChange = handlePaketSelectChange;
 
-// ── PUBLISH KE GITHUB PAGES ──
-async function publishWebReport() {
-  const btn = document.getElementById("btn-publish-web");
-  const btnText = document.getElementById("btn-publish-web-text");
-  const statusEl = document.getElementById("publish-web-status");
+// ── SINKRONISASI KE VPS CLOUD (depas.my.id) ──
+async function syncToVpsCloud() {
+  const btn = document.getElementById("btn-sync-vps");
+  const btnText = document.getElementById("btn-sync-vps-text");
+  const statusEl = document.getElementById("sync-vps-status");
 
-  if (!confirm("Ekspor seluruh snapshot data terbaru dan deploy ke GitHub Pages sekarang?")) {
+  if (!confirm("Unggah database master dan cache transaksi terbaru ke VPS depas.my.id sekarang?")) {
     return;
   }
 
   if (btn) btn.disabled = true;
-  if (btnText) btnText.textContent = "Memproses Export & Push...";
+  if (btnText) btnText.textContent = "Mengunggah ke VPS...";
   if (statusEl) {
     statusEl.style.color = "var(--primary)";
-    statusEl.textContent = "Sedang mengolah data dan push ke GitHub...";
+    statusEl.textContent = "Sedang sinkronisasi data ke cloud...";
   }
 
   try {
-    const res = await fetch("/api/admin/publish-web", { method: "POST" });
+    const res = await fetch("/api/admin/sync-vps", { method: "POST" });
     const json = await res.json();
 
     if (json.ok) {
       if (statusEl) {
         statusEl.style.color = "#16a34a";
-        statusEl.textContent = json.message || "Berhasil dipublish ke GitHub Pages!";
+        statusEl.textContent = json.message || "Berhasil disinkronkan ke depas.my.id!";
       }
-      alert(json.message || "Data berhasil diekspor dan dideploy ke GitHub Pages!\nPerubahan akan live di web dalam 1-2 menit.");
+      alert(json.message || "Data berhasil disinkronkan ke https://depas.my.id!\nWebsite live sudah diperbarui.");
     } else {
-      throw new Error(json.error || "Gagal mem-publish ke GitHub Pages");
+      throw new Error(json.error || "Gagal sinkronisasi ke VPS");
     }
   } catch (err) {
-    console.error("Error publishWebReport:", err);
+    console.error("Error syncToVpsCloud:", err);
     if (statusEl) {
       statusEl.style.color = "#dc2626";
       statusEl.textContent = "Gagal: " + err.message;
     }
-    alert("Gagal mem-publish ke GitHub Pages: " + err.message);
+    alert("Gagal sinkronisasi ke VPS: " + err.message);
   } finally {
     if (btn) btn.disabled = false;
-    if (btnText) btnText.textContent = "Publish ke Web";
+    if (btnText) btnText.textContent = "Sinkronkan ke depas.my.id";
   }
 }
-window.publishWebReport = publishWebReport;
+window.syncToVpsCloud = syncToVpsCloud;
 
 
 

@@ -460,31 +460,11 @@ async def api_admin_job_status(request):
     return JSONResponse({"ok": True, "data": data})
 
 
-async def api_admin_publish_web(request):
-    """Ekspor seluruh data statis terbaru dan otomatis commit & push ke GitHub Pages."""
+async def api_admin_sync_vps(request):
+    """Sinkronisasi seluruh database SQLite dan cache transaksi Parquet ke VPS Helipod depas.my.id."""
     try:
-        import export_static
-        import subprocess
-        from datetime import datetime
-
-        # 1. Jalankan export semua file JSON
-        await asyncio.to_thread(export_static.export_all)
-
-        # 2. Git add, commit, push
-        def run_git():
-            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            subprocess.run(["git", "-C", BASE_DIR, "add", "data", "export_static.py"], capture_output=True, text=True, check=True)
-            status_res = subprocess.run(["git", "-C", BASE_DIR, "status", "--porcelain", "data"], capture_output=True, text=True)
-            if not status_res.stdout.strip():
-                return {"ok": True, "message": "Data statis sudah up-to-date (tidak ada perubahan data baru).", "timestamp": now_str}
-            subprocess.run(["git", "-C", BASE_DIR, "commit", "-m", f"chore(data): auto-update static snapshot: {now_str}"], capture_output=True, text=True, check=True)
-            push_res = subprocess.run(["git", "-C", BASE_DIR, "push", "origin", "main"], capture_output=True, text=True, timeout=60)
-            if push_res.returncode != 0:
-                err_msg = push_res.stderr or push_res.stdout or "Gagal push ke origin main"
-                return {"ok": False, "error": f"Git Push Error: {err_msg}"}
-            return {"ok": True, "message": f"Berhasil export dan deploy data ke GitHub Pages! ({now_str})", "timestamp": now_str}
-
-        res = await asyncio.to_thread(run_git)
+        import engines.sync_vps_engine as sync_vps
+        res = await asyncio.to_thread(sync_vps.sync_to_vps)
         return JSONResponse(res)
     except Exception as e:
         import traceback
@@ -688,7 +668,7 @@ routes = [
     Route("/api/admin/status",          api_admin_status),
     Route("/api/admin/upsert",          api_admin_upsert, methods=["POST"]),
     Route("/api/admin/job-status",      api_admin_job_status),
-    Route("/api/admin/publish-web",     api_admin_publish_web, methods=["GET", "POST"]),
+    Route("/api/admin/sync-vps",        api_admin_sync_vps, methods=["GET", "POST"]),
     Route("/api/admin/agents",          api_admin_agents),
     Route("/api/admin/agents/detail",    api_admin_agent_detail),
     Route("/api/admin/agents/save",      api_admin_agent_save, methods=["POST"]),

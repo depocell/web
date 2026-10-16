@@ -1,100 +1,23 @@
 // app.js — Single Shell Router & Navigation
-// ── GitHub Pages / Static Hosting API Interceptor ───────────────────────────
-(function initStaticApiAdapter() {
-  const isStaticHost = window.location.hostname.includes("github.io") || 
-                       window.location.protocol === "file:" ||
-                       window.location.port === "5500";
+// ── Online Public Mode & Admin Guard ──────────────────────────────────────────
+(function initHostEnvironment() {
+  const isOnlineHost = window.location.hostname === "depas.my.id" ||
+                       window.location.hostname.includes("45.66.153.150") ||
+                       window.location.hostname.includes("github.io");
 
-  function mapUrl(url) {
-    if (typeof url !== "string") return url;
-
-    // Normalisasi awalan path relatif untuk pages dan static jika dimulai dengan slash absolut
-    if (isStaticHost) {
-      if (url.startsWith("/pages/")) return "." + url;
-      if (url.startsWith("/static/")) return "." + url;
-    }
-
-    // Normalisasi url API
-    let cleanUrl = url;
-    if (cleanUrl.startsWith("./api/")) cleanUrl = cleanUrl.substring(1);
-    
-    if (cleanUrl.startsWith("/api/overview")) {
-      return "./data/overview.json";
-    }
-    if (cleanUrl.startsWith("/api/daily/periods")) {
-      if (cleanUrl.includes("OKIPAY")) return "./data/daily_periods_okipay.json";
-      return "./data/daily_periods_astaga.json";
-    }
-    if (cleanUrl.startsWith("/api/daily")) {
-      if (cleanUrl.includes("OKIPAY")) return "./data/daily_okipay.json";
-      return "./data/daily_astaga.json";
-    }
-    if (cleanUrl.startsWith("/api/analisa/profit")) {
-      let bLower = "astaga";
-      if (cleanUrl.includes("brand=OKIPAY") || cleanUrl.includes("OKIPAY")) bLower = "okipay";
-      else if (cleanUrl.includes("brand=ALL") || cleanUrl.includes("ALL")) bLower = "all";
-
-      const mMatch = cleanUrl.match(/[?&]month=([^&]+)/);
-      if (mMatch && mMatch[1]) {
-        let mVal = decodeURIComponent(mMatch[1]).trim();
-        if (mVal !== "ALL" && mVal !== "") {
-          if (/^\d{1,2}$/.test(mVal)) {
-            mVal = "2026-" + mVal.padStart(2, "0");
-          }
-          return `./data/analisa_profit_${bLower}_${mVal}.json`;
-        }
-      }
-      return `./data/analisa_profit_${bLower}.json`;
-    }
-    if (cleanUrl.startsWith("/api/analisa/data")) {
-      if (cleanUrl.includes("OKIPAY")) return "./data/analisa_okipay.json";
-      if (cleanUrl.includes("ASTAGA")) return "./data/analisa_astaga.json";
-      return "./data/analisa_all.json";
-    }
-    if (cleanUrl.startsWith("/api/agen/tren")) {
-      if (cleanUrl.includes("OKIPAY")) return "./data/agen_tren_okipay.json";
-      return "./data/agen_tren_astaga.json";
-    }
-    if (cleanUrl.startsWith("/api/agen")) {
-      if (cleanUrl.includes("OKIPAY")) return "./data/agen_okipay.json";
-      return "./data/agen_astaga.json";
-    }
-    if (cleanUrl.startsWith("/api/reseller")) {
-      if (cleanUrl.includes("OKIPAY")) return "./data/reseller_okipay.json";
-      return "./data/reseller_astaga.json";
-    }
-    if (cleanUrl.startsWith("/api/fisik")) {
-      return "./data/fisik.json";
-    }
-    if (cleanUrl.startsWith("/api/admin/status")) {
-      return "./data/admin_status.json";
-    }
-    if (cleanUrl.startsWith("/api/system/info") || cleanUrl.startsWith("/api/system-info")) {
-      return "./data/system_info.json";
-    }
-    if (cleanUrl.startsWith("/api/sco/check")) {
-      return "data:application/json," + encodeURIComponent(JSON.stringify({ ok: true, stale: false, message: "Data SCO up-to-date (Static Mode)" }));
-    }
-    return url;
-  }
-
-  const originalFetch = window.fetch;
-  window.fetch = async function(resource, init) {
-    if (isStaticHost && typeof resource === "string") {
-      const mapped = mapUrl(resource);
-      if (mapped !== resource) {
-        return originalFetch(mapped, init);
-      }
-    }
-    return originalFetch(resource, init);
-  };
-
-  if (isStaticHost) {
+  // Jika dibuka di online publik, sembunyikan menu Admin dan tombol dapur
+  if (isOnlineHost) {
     const hideAdminNav = () => {
       const adminNav = document.getElementById("nav-admin-data");
       if (adminNav && adminNav.closest("li")) {
         adminNav.closest("li").style.display = "none";
       }
+      // Sembunyikan label dapur
+      document.querySelectorAll(".nav-label").forEach(el => {
+        if (el.textContent.includes("Dapur") || el.textContent.includes("Administrasi")) {
+          el.style.display = "none";
+        }
+      });
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", hideAdminNav);
@@ -243,11 +166,11 @@ async function navigate() {
     return;
   }
 
-  // Redirect admin di GitHub Pages / Static Hosting ke overview
-  const isStaticHost = window.location.hostname.includes("github.io") || 
-                       window.location.protocol === "file:" ||
-                       window.location.port === "5500";
-  if (isStaticHost && hash === "#admin") {
+  // Redirect admin di Online Hosting (depas.my.id / publik) ke overview
+  const isOnlineHost = window.location.hostname === "depas.my.id" || 
+                       window.location.hostname.includes("45.66.153.150") ||
+                       window.location.hostname.includes("github.io");
+  if (isOnlineHost && hash === "#admin") {
     window.location.replace("#overview");
     return;
   }
