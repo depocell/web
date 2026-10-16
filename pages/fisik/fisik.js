@@ -4,7 +4,14 @@ let fisikState = {
   cabang: "ALL",
   channel: "ALL",
   kategori: "ALL",
-  chartView: "trend"
+  chartView: "trend",
+  activeTab: "penjualan",
+  hargaData: null,
+  hargaFiltered: [],
+  hargaKategori: "ALL",
+  hargaOperator: "ALL",
+  hargaStatus: "ALL",
+  hargaSearch: ""
 };
 
 function formatRupiah(val) {
@@ -36,6 +43,14 @@ async function loadFisik() {
     fisikState.period = json.period_code;
 
     renderFisikUI();
+
+    // Deteksi query param sub-tab misal #produk?tab=harga
+    const hash = window.location.hash || "";
+    if (hash.includes("tab=harga")) {
+      switchFisikTab("harga");
+    } else {
+      switchFisikTab(fisikState.activeTab || "penjualan");
+    }
   } catch (err) {
     console.error("Error loading fisik data:", err);
   }
@@ -701,9 +716,360 @@ async function exportFisikExcel() {
   }
 }
 
+// ============================================================================
+// SUB-TAB NAVIGATION & RIWAYAT HARGA JUAL (PIVOT 6 BULAN - SISCOM)
+// ============================================================================
+
+function switchFisikTab(tab) {
+  fisikState.activeTab = tab;
+  const btnPenjualan = document.getElementById("tab-btn-penjualan");
+  const btnHarga = document.getElementById("tab-btn-harga");
+  const secPenjualan = document.getElementById("fisik-tab-penjualan");
+  const secHarga = document.getElementById("fisik-tab-harga");
+
+  if (tab === "harga") {
+    if (btnPenjualan) btnPenjualan.classList.remove("active");
+    if (btnHarga) btnHarga.classList.add("active");
+    if (secPenjualan) secPenjualan.style.display = "none";
+    if (secHarga) secHarga.style.display = "flex";
+
+    if (!fisikState.hargaData) {
+      loadFisikHarga();
+    }
+  } else {
+    if (btnPenjualan) btnPenjualan.classList.add("active");
+    if (btnHarga) btnHarga.classList.remove("active");
+    if (secPenjualan) secPenjualan.style.display = "flex";
+    if (secHarga) secHarga.style.display = "none";
+  }
+}
+
+async function loadFisikHarga(forceReload = false) {
+  const tbody = document.getElementById("tbody-fisik-harga-pivot");
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 24px; color: var(--text-muted);">Memuat riwayat harga produk SISCOM...</td></tr>`;
+  }
+
+  const reloadParam = forceReload ? "&reload=1" : "";
+  try {
+    const res = await fetch(`/api/harga/pivot?source=FISIK${reloadParam}`);
+    const json = await res.json();
+    if (!json.ok) {
+      alert("Gagal memuat riwayat harga: " + (json.error || "Unknown error"));
+      return;
+    }
+    fisikState.hargaData = json;
+    renderFisikHargaUI();
+  } catch (err) {
+    console.error("Error loading fisik harga:", err);
+  }
+}
+
+function renderFisikHargaUI() {
+  const data = fisikState.hargaData;
+  if (!data || !data.data) return;
+
+  // 1. Dropdown Kategori
+  const selKat = document.getElementById("fisik-harga-select-kategori");
+  if (selKat && selKat.options.length <= 1) {
+    selKat.innerHTML = `<option value="ALL">Semua Kategori</option>`;
+    (data.categories || []).forEach(k => {
+      if (k && k !== "UNKNOWN") {
+        const opt = document.createElement("option");
+        opt.value = k;
+        opt.innerText = k;
+        selKat.appendChild(opt);
+      }
+    });
+    selKat.value = fisikState.hargaKategori;
+  }
+
+  // 2. Dropdown Operator
+  const selOp = document.getElementById("fisik-harga-select-operator");
+  if (selOp && selOp.options.length <= 1) {
+    selOp.innerHTML = `<option value="ALL">Semua Operator</option>`;
+    (data.operators || []).forEach(o => {
+      if (o && o !== "UNKNOWN") {
+        const opt = document.createElement("option");
+        opt.value = o;
+        opt.innerText = o;
+        selOp.appendChild(opt);
+      }
+    });
+    selOp.value = fisikState.hargaOperator;
+  }
+
+  // 3. Dynamic Month Column Headers
+  const thead = document.getElementById("thead-fisik-harga-pivot");
+  if (thead) {
+    let monthThs = "";
+    (data.months || []).forEach(m => {
+      monthThs += `<th style="text-align: right; min-width: 105px;">${m}</th>`;
+    });
+    thead.innerHTML = `
+      <tr>
+        <th style="width: 40px; text-align: center;">No.</th>
+        <th style="text-align: left;">Kategori</th>
+        <th style="text-align: left;">Operator</th>
+        <th style="text-align: left; min-width: 240px;">Nama Produk</th>
+        ${monthThs}
+        <th style="text-align: right; min-width: 105px;">Selisih (Rp)</th>
+        <th style="text-align: center; min-width: 105px;">Status</th>
+      </tr>
+    `;
+  }
+
+  applyFisikHargaFilters();
+}
+
+function applyFisikHargaFilters() {
+  const data = fisikState.hargaData;
+  if (!data || !data.data) return;
+
+  const selKat = document.getElementById("fisik-harga-select-kategori");
+  const selOp = document.getElementById("fisik-harga-select-operator");
+  const selStatus = document.getElementById("fisik-harga-select-status");
+  const inpSearch = document.getElementById("fisik-harga-search");
+
+  const filterKat = selKat ? selKat.value : "ALL";
+  const filterOp = selOp ? selOp.value : "ALL";
+  const filterStatus = selStatus ? selStatus.value : "ALL";
+  const searchKw = (inpSearch ? inpSearch.value : "").trim().toLowerCase();
+
+  fisikState.hargaKategori = filterKat;
+  fisikState.hargaOperator = filterOp;
+  fisikState.hargaStatus = filterStatus;
+  fisikState.hargaSearch = searchKw;
+
+  let rows = data.data;
+
+  if (filterKat !== "ALL") {
+    rows = rows.filter(r => r.kategori === filterKat);
+  }
+  if (filterOp !== "ALL") {
+    rows = rows.filter(r => r.operator === filterOp);
+  }
+  if (filterStatus === "BERUBAH") {
+    rows = rows.filter(r => r.diff !== 0);
+  } else if (filterStatus === "NAIK") {
+    rows = rows.filter(r => r.diff > 0);
+  } else if (filterStatus === "TURUN") {
+    rows = rows.filter(r => r.diff < 0);
+  } else if (filterStatus === "STABIL") {
+    rows = rows.filter(r => r.diff === 0);
+  }
+
+  if (searchKw) {
+    rows = rows.filter(r =>
+      (r.nama && r.nama.toLowerCase().includes(searchKw)) ||
+      (r.operator && r.operator.toLowerCase().includes(searchKw))
+    );
+  }
+
+  fisikState.hargaFiltered = rows;
+
+  // Update Summary Cards
+  const total = rows.length;
+  let stabilCount = 0;
+  let naikCount = 0;
+  let turunCount = 0;
+
+  rows.forEach(r => {
+    if (r.diff > 0) naikCount++;
+    else if (r.diff < 0) turunCount++;
+    else stabilCount++;
+  });
+
+  const elTotal = document.getElementById("fisik-stat-total-prod");
+  const elStabil = document.getElementById("fisik-stat-stabil-count");
+  const elNaik = document.getElementById("fisik-stat-naik-count");
+  const elTurun = document.getElementById("fisik-stat-turun-count");
+
+  const elStabilSub = document.getElementById("fisik-stat-stabil-sub");
+  const elNaikSub = document.getElementById("fisik-stat-naik-sub");
+  const elTurunSub = document.getElementById("fisik-stat-turun-sub");
+
+  if (elTotal) elTotal.innerText = total.toLocaleString("id-ID");
+  if (elStabil) elStabil.innerText = stabilCount.toLocaleString("id-ID");
+  if (elNaik) elNaik.innerText = naikCount.toLocaleString("id-ID");
+  if (elTurun) elTurun.innerText = turunCount.toLocaleString("id-ID");
+
+  if (elStabilSub) {
+    const pct = total > 0 ? ((stabilCount / total) * 100).toFixed(1) : "0";
+    elStabilSub.innerText = `${pct}% dari ${total} varian`;
+  }
+  if (elNaikSub) {
+    const pct = total > 0 ? ((naikCount / total) * 100).toFixed(1) : "0";
+    elNaikSub.innerText = `${pct}% dari ${total} varian`;
+  }
+  if (elTurunSub) {
+    const pct = total > 0 ? ((turunCount / total) * 100).toFixed(1) : "0";
+    elTurunSub.innerText = `${pct}% dari ${total} varian`;
+  }
+
+  const badgeCount = document.getElementById("fisik-harga-table-count");
+  if (badgeCount) badgeCount.innerText = `${total.toLocaleString("id-ID")} Produk Terfilter`;
+
+  // Render Table Rows
+  const tbody = document.getElementById("tbody-fisik-harga-pivot");
+  if (!tbody) return;
+
+  const months = data.months || [];
+  if (rows.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="${months.length + 6}" style="text-align: center; padding: 28px; color: var(--text-muted);">
+          Tidak ada produk fisik yang cocok dengan kriteria filter.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  let html = "";
+  rows.forEach((r, idx) => {
+    let monthTds = "";
+    let prevPrice = null;
+
+    (r.prices || []).forEach(p => {
+      if (p === null || p === undefined) {
+        monthTds += `<td style="text-align: right; color: var(--text-muted); font-style: italic;">-</td>`;
+      } else {
+        let cellClass = "";
+        let indicator = "";
+
+        if (prevPrice !== null) {
+          if (p > prevPrice) {
+            cellClass = "color: #ef4444; font-weight: 600;";
+            indicator = `<span style="font-size: 0.68rem; margin-left: 2px;">▲</span>`;
+          } else if (p < prevPrice) {
+            cellClass = "color: #10b981; font-weight: 600;";
+            indicator = `<span style="font-size: 0.68rem; margin-left: 2px;">▼</span>`;
+          }
+        }
+
+        monthTds += `
+          <td style="text-align: right; font-weight: 500; ${cellClass}">
+            Rp ${Math.round(p).toLocaleString("id-ID")} ${indicator}
+          </td>
+        `;
+        prevPrice = p;
+      }
+    });
+
+    let badgeStyle = "background: rgba(100, 116, 139, 0.15); color: #64748b;";
+    let diffStr = "Rp 0";
+    if (r.diff > 0) {
+      badgeStyle = "background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 600;";
+      diffStr = `+Rp ${r.diff.toLocaleString("id-ID")}`;
+    } else if (r.diff < 0) {
+      badgeStyle = "background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600;";
+      diffStr = `-Rp ${Math.abs(r.diff).toLocaleString("id-ID")}`;
+    }
+
+    html += `
+      <tr>
+        <td style="text-align: center; color: var(--text-muted);">${idx + 1}</td>
+        <td><span class="badge" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">${r.kategori}</span></td>
+        <td><span class="badge" style="background: rgba(148, 163, 184, 0.15);">${r.operator}</span></td>
+        <td style="font-weight: 600;" class="wrap-cell">${r.nama}</td>
+        ${monthTds}
+        <td style="text-align: right; font-weight: 600; ${r.diff > 0 ? 'color: #ef4444;' : (r.diff < 0 ? 'color: #10b981;' : '')}">
+          ${diffStr}
+        </td>
+        <td style="text-align: center;">
+          <span class="badge" style="${badgeStyle}">${r.status}</span>
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
+}
+
+async function exportFisikHargaExcel() {
+  const rows = fisikState.hargaFiltered;
+  if (!rows || rows.length === 0) {
+    alert("Tidak ada data riwayat harga yang dapat diekspor.");
+    return;
+  }
+
+  const months = (fisikState.hargaData && fisikState.hargaData.months) || [];
+  const filename = `Riwayat_Harga_Produk_Fisik_6_Bulan.xlsx`;
+
+  if (typeof XLSX === "undefined") {
+    alert("Library XLSX sedang dimuat, silakan coba beberapa detik lagi.");
+    return;
+  }
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    const headerRow = [
+      "No.",
+      "Kategori",
+      "Operator",
+      "Nama Produk",
+      ...months,
+      "Selisih (Rp)",
+      "Status Perubahan"
+    ];
+
+    const aoaData = [headerRow];
+
+    rows.forEach((r, idx) => {
+      const rowItem = [
+        idx + 1,
+        r.kategori || "",
+        r.operator || "",
+        r.nama || "",
+        ...(r.prices || []).map(p => (p !== null && p !== undefined ? Number(p) : "")),
+        Number(r.diff) || 0,
+        r.status || "STABIL"
+      ];
+      aoaData.push(rowItem);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoaData);
+
+    const cols = [
+      { wch: 6 },   // No
+      { wch: 16 },  // Kategori
+      { wch: 14 },  // Operator
+      { wch: 40 },  // Nama
+    ];
+    months.forEach(() => cols.push({ wch: 16 })); // 6 Bulan
+    cols.push({ wch: 15 }); // Selisih
+    cols.push({ wch: 18 }); // Status
+
+    ws["!cols"] = cols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Riwayat Harga 6 Bulan");
+
+    if (typeof window.saveFileSmart === "function") {
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
+      await window.saveFileSmart(
+        filename,
+        "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + wbout,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+    } else {
+      XLSX.writeFile(wb, filename);
+    }
+  } catch (err) {
+    console.error("Gagal ekspor Excel:", err);
+    alert("Terjadi kendala saat mengekspor Excel: " + err.message);
+  }
+}
+
 // Global exports untuk router
 window.loadFisik = loadFisik;
 window.changeFisikFilter = changeFisikFilter;
 window.exportFisikExcel = exportFisikExcel;
 window.switchFilteredChartView = switchFilteredChartView;
 window.filterProductTable = filterProductTable;
+window.switchFisikTab = switchFisikTab;
+window.loadFisikHarga = loadFisikHarga;
+window.applyFisikHargaFilters = applyFisikHargaFilters;
+window.exportFisikHargaExcel = exportFisikHargaExcel;
+

@@ -30,11 +30,23 @@
       return "./data/daily_astaga.json";
     }
     if (cleanUrl.startsWith("/api/analisa/profit")) {
-      if (cleanUrl.includes("OKIPAY")) return "./data/analisa_profit_okipay.json";
-      if (cleanUrl.includes("ALL")) return "./data/analisa_profit_all.json";
-      return "./data/analisa_profit_astaga.json";
+      let bLower = "astaga";
+      if (cleanUrl.includes("brand=OKIPAY") || cleanUrl.includes("OKIPAY")) bLower = "okipay";
+      else if (cleanUrl.includes("brand=ALL") || cleanUrl.includes("ALL")) bLower = "all";
+
+      const mMatch = cleanUrl.match(/[?&]month=([^&]+)/);
+      if (mMatch && mMatch[1]) {
+        let mVal = decodeURIComponent(mMatch[1]).trim();
+        if (mVal !== "ALL" && mVal !== "") {
+          if (/^\d{1,2}$/.test(mVal)) {
+            mVal = "2026-" + mVal.padStart(2, "0");
+          }
+          return `./data/analisa_profit_${bLower}_${mVal}.json`;
+        }
+      }
+      return `./data/analisa_profit_${bLower}.json`;
     }
-    if (cleanUrl.startsWith("/api/analisa/data") || cleanUrl.includes("analisa/data.json")) {
+    if (cleanUrl.startsWith("/api/analisa/data")) {
       if (cleanUrl.includes("OKIPAY")) return "./data/analisa_okipay.json";
       if (cleanUrl.includes("ASTAGA")) return "./data/analisa_astaga.json";
       return "./data/analisa_all.json";
@@ -140,6 +152,12 @@ const ROUTES = {
     pageUrl: "./pages/fisik/index.html",
     scriptUrl: "./pages/fisik/fisik.js",
     initFn: "loadFisik"
+  },
+  "#pivot": {
+    title: "Pivot Transaksi Digital",
+    pageUrl: "./pages/transaksi/index.html",
+    scriptUrl: "./pages/transaksi/transaksi.js",
+    initFn: "loadTransaksi"
   }
 };
 
@@ -214,6 +232,14 @@ async function navigate() {
   }
   if (hash === "#reseller") {
     window.location.replace("#agen?tab=reseller");
+    return;
+  }
+  if (hash === "#harga") {
+    window.location.replace("#produk?tab=harga");
+    return;
+  }
+  if (window.location.hash.includes("#admin?tab=pivot")) {
+    window.location.replace("#pivot");
     return;
   }
 

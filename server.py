@@ -31,6 +31,7 @@ import engines.profit_engine as profit_engine
 import engines.admin_engine as admin_engine
 import engines.master_data_engine as master_data_engine
 import engines.master_product_engine as master_product_engine
+import engines.harga_engine as harga_engine
 
 PAGES_DIR = os.path.join(BASE_DIR, "pages")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -41,7 +42,10 @@ async def homepage(request):
     shell_path = os.path.join(TEMPLATES_DIR, "shell.html")
     if os.path.exists(shell_path):
         with open(shell_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(f.read())
+            return HTMLResponse(
+                f.read(),
+                headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+            )
     return HTMLResponse("<h1>Web Report</h1><p>Shell belum ditemukan.</p>")
 
 
@@ -54,6 +58,8 @@ async def favicon(request):
 
 async def api_overview(request):
     """Data komputasi perbandingan Daily Transaksi Sukses per Cabang."""
+    import importlib
+    importlib.reload(overview_engine)
     year = request.query_params.get("year", "2026")
     force = request.query_params.get("force", "0") in ("1", "true")
     try:
@@ -333,6 +339,22 @@ async def api_fisik(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+async def api_harga_pivot(request):
+    """Pivot riwayat harga jual 6 bulan terakhir dari tiap produk sesuai kategorinya (FISIK / ASTAGA / OKIPAY)."""
+    source = request.query_params.get("source", "FISIK")
+    if request.query_params.get("reload") == "1":
+        import importlib
+        importlib.reload(harga_engine)
+        harga_engine.clear_cache()
+    try:
+        data = await asyncio.to_thread(harga_engine.get_price_pivot, source=source)
+        return JSONResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 async def api_system_info(request):
     """Informasi sistem, status cut-off data transaksi & audit kesehatan master file."""
     if request.query_params.get("reload") == "1":
@@ -382,6 +404,17 @@ async def api_analisa_profit(request):
     month = request.query_params.get("month")
     try:
         data = await asyncio.to_thread(profit_engine.calculate_profit_analysis, brand=brand, year=year, month_code=month)
+        return JSONResponse({"ok": True, "data": data})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_analisa_product_hierarchy(request):
+    """Mengembalikan hierarki produk { brand: { kategori: { operator: [paket, ...] } } } langsung dari SQLite master_data.db."""
+    try:
+        data = await asyncio.to_thread(analisa_engine.get_product_hierarchy)
         return JSONResponse({"ok": True, "data": data})
     except Exception as e:
         import traceback
@@ -649,6 +682,7 @@ routes = [
     Route("/api/agen/tren",     api_agen_tren),
     Route("/api/agen",          api_agen),
     Route("/api/fisik",         api_fisik),
+    Route("/api/harga/pivot",   api_harga_pivot),
     Route("/api/system/info",   api_system_info),
     Route("/api/system-info",   api_system_info),
     Route("/api/admin/status",          api_admin_status),
@@ -669,6 +703,7 @@ routes = [
     Route("/api/analisa",        api_analisa_data),
     Route("/api/analisa/overview", api_analisa_data),
     Route("/api/analisa/profit", api_analisa_profit),
+    Route("/api/analisa/product-hierarchy", api_analisa_product_hierarchy),
     Route("/api/sco/generate",  api_sco_generate, methods=["GET", "POST"]),
     Route("/api/sco/push",      api_sco_push,     methods=["GET", "POST"]),
     Route("/api/sco/check",     api_sco_check,    methods=["GET", "POST"]),
@@ -677,6 +712,7 @@ routes = [
     Route("/api/trx/summary",   api_trx_summary),
     Mount("/pages",             app=StaticFiles(directory=PAGES_DIR), name="pages"),
     Mount("/static",            app=StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static"),
+    Mount("/data",              app=StaticFiles(directory=os.path.join(BASE_DIR, "data")), name="data"),
 ]
 
 app = Starlette(debug=True, routes=routes)

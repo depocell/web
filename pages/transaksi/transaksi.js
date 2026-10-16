@@ -518,6 +518,10 @@ function switchPivotBrand(b) {
 
 // Global exports for shell router
 window.loadTransaksi = function() {
+  const localPill = document.getElementById("btn-piv-astaga");
+  if (localPill && localPill.parentElement) {
+    localPill.parentElement.style.display = "inline-flex";
+  }
   switchPivotSubPage("product");
 };
 window.switchPivotSubPage = switchPivotSubPage;

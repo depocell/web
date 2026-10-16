@@ -208,7 +208,9 @@ function renderTrendChart(chartData, brandColor) {
 
           ctx.save();
           ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-          ctx.fillStyle = "#0f172a";
+          // Determine theme: dark -> white labels, light -> dark labels
+          const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
           ctx.textAlign = "center";
           ctx.textBaseline = "bottom";
 

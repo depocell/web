@@ -37,6 +37,13 @@ def export_all():
         with open(os.path.join(OUT_DIR, f"analisa_profit_{b_lower}.json"), "w", encoding="utf-8") as f:
             json.dump({"ok": True, "data": res}, f)
 
+        # Monthly snapshots for 2026 (Jan - Des)
+        for m in range(1, 13):
+            m_str = f"2026-{m:02d}"
+            res_m = pe.calculate_profit_analysis(brand=brand, year="2026", month_code=m_str)
+            with open(os.path.join(OUT_DIR, f"analisa_profit_{b_lower}_{m_str}.json"), "w", encoding="utf-8") as f:
+                json.dump({"ok": True, "data": res_m}, f)
+
     print("[3b/7] Exporting Analisa Module & Supplier...")
     import engines.analisa_engine as ane
     for brand in ["ASTAGA", "OKIPAY", "ALL"]:

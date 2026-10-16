@@ -20,36 +20,77 @@ const activeFilters = {
   tipe: "ALL"
 };
 
-const PRODUCT_CATEGORY_OPERATORS = {
+// Struktur hierarki produk { brand: { kategori: { operator: [paket, ...] } } } bersumber dari SQLite MASTER/master_data.db
+let PRODUCT_HIERARCHY = {
   "ASTAGA": {
-    "EWALLET": ["DANA", "EMONEY", "GOPAY", "GRAB", "OTHERS", "OVO", "SHOPEEPAY"],
-    "TELCO": ["INDOSAT", "SMARTFREN", "TELKOMSEL", "TRI", "XL - AXIS"],
-    "TOKEN PLN": ["TOKEN PLN"],
-    "PPOB": ["PPOB"],
-    "VOUCHER GAME": ["VOUCHER GAME"],
-    "TRANSFER STOK": ["TRANSFER STOK"]
+    "EWALLET": {
+      "DANA": ["BEBAS NOMINAL", "NOMINAL"],
+      "EMONEY": ["NOMINAL"],
+      "GOPAY": ["BEBAS NOMINAL", "NOMINAL"],
+      "GRAB": ["NOMINAL"],
+      "LINKAJA": ["BEBAS NOMINAL", "NOMINAL"],
+      "MAXIM": ["NOMINAL"],
+      "OVO": ["BEBAS NOMINAL", "NOMINAL"],
+      "SHOPEEPAY": ["BEBAS NOMINAL", "NOMINAL"]
+    },
+    "PPOB": {
+      "PPOB": ["PPOB"]
+    },
+    "TELCO": {
+      "INDOSAT": ["DATA", "REGULER"],
+      "SMARTFREN": ["DATA", "REGULER"],
+      "TELKOMSEL": ["DATA", "REGULER"],
+      "TRI": ["DATA", "REGULER"],
+      "XL - AXIS": ["DATA", "REGULER"]
+    },
+    "TOKEN PLN": {
+      "TOKEN PLN": ["NOMINAL"]
+    },
+    "TRANSFER STOK": {
+      "TRANSFER STOK": ["BEBAS NOMINAL", "NOMINAL"]
+    },
+    "VOUCHER GAME": {
+      "VOUCHER GAME": ["NOMINAL"]
+    }
   },
   "OKIPAY": {
-    "EWALLET": ["DANA", "EMONEY", "GOPAY", "GRAB", "LAINNYA", "LINKAJA", "MAXIM", "OVO", "SHOPEEPAY"],
-    "TELCO": ["AXIS/XL", "INDOSAT", "LAINNYA", "SMARTFREN", "TELKOMSEL", "TRI"],
-    "TOKEN PLN": ["TOKEN PLN"],
-    "PPOB": ["PPOB"],
-    "VOUCHER GAME": ["VOUCHER GAME"]
+    "EWALLET": {
+      "DANA": ["BEBAS NOMINAL", "NOMINAL"],
+      "EMONEY": ["NOMINAL"],
+      "GOPAY": ["BEBAS NOMINAL", "NOMINAL"],
+      "GRAB": ["NOMINAL"],
+      "LINKAJA": ["BEBAS NOMINAL", "NOMINAL"],
+      "MAXIM": ["NOMINAL"],
+      "OVO": ["BEBAS NOMINAL", "NOMINAL"],
+      "SHOPEEPAY": ["NOMINAL"],
+      "TIX": ["NOMINAL"]
+    },
+    "PPOB": {
+      "PPOB": ["PPOB"]
+    },
+    "TELCO": {
+      "INDOSAT": ["DATA", "REGULER"],
+      "SMARTFREN": ["DATA", "REGULER"],
+      "TELKOMSEL": ["DATA", "REGULER"],
+      "TRI": ["DATA", "REGULER"],
+      "XL - AXIS": ["DATA", "REGULER"]
+    },
+    "TOKEN PLN": {
+      "TOKEN PLN": ["NOMINAL"]
+    },
+    "VOUCHER GAME": {
+      "VOUCHER GAME": ["NOMINAL"]
+    }
   }
-};
-
-const PRODUCT_PAKETS = {
-  "ASTAGA": ["REGULER", "DATA", "INJECT", "NOMINAL", "BEBAS NOMINAL"],
-  "OKIPAY": ["REGULER", "MOBILE DATA", "SMS", "DANA BEBAS", "DANA CEK", "DANA NOMINAL", "MOBILE", "TV K-VISION"]
 };
 
 function getCategoryForOperator(op) {
   if (!op) return "";
   const uOp = op.toUpperCase().trim();
-  for (const brand of ["ASTAGA", "OKIPAY"]) {
-    const bMap = PRODUCT_CATEGORY_OPERATORS[brand] || {};
-    for (const [cat, opList] of Object.entries(bMap)) {
-      if (opList.some(o => o.toUpperCase() === uOp)) return cat;
+  for (const b of ["ASTAGA", "OKIPAY"]) {
+    const brandMap = PRODUCT_HIERARCHY[b] || {};
+    for (const [cat, opMap] of Object.entries(brandMap)) {
+      if (Object.keys(opMap).some(o => o.toUpperCase() === uOp)) return cat;
     }
   }
   if (uOp.includes("PLN")) return "TOKEN PLN";
@@ -107,37 +148,62 @@ function setPillFilter(filterType, value) {
 
 // ── MASTER PRODUK FILTER HANDLERS (KATEGORI, OPERATOR, TIPE) ──
 function updateProductFilterDropdowns() {
-  const brand = activeFilters.brand === "OKIPAY" ? "OKIPAY" : "ASTAGA";
+  const brandKey = activeFilters.brand === "OKIPAY" ? "OKIPAY" : "ASTAGA";
   const opSelect = document.getElementById("filter-prod-operator");
   const tipSelect = document.getElementById("filter-prod-tipe");
 
-  if (opSelect) {
-    const curOp = activeFilters.operator;
-    let ops = [];
-    const brandMap = PRODUCT_CATEGORY_OPERATORS[brand] || {};
-    if (activeFilters.kategori !== "ALL") {
-      ops = brandMap[activeFilters.kategori] || [];
-    } else {
-      const set = new Set();
-      Object.values(brandMap).forEach(list => list.forEach(o => set.add(o)));
-      ops = Array.from(set).sort();
-    }
+  // Tentukan brand sasaran
+  const targetBrands = (activeFilters.brand === "ALL" || activeFilters.brand === "GABUNGAN")
+    ? ["ASTAGA", "OKIPAY"]
+    : [brandKey];
 
+  // 1. Dapatkan daftar Operator berdasarkan Kategori yang aktif
+  const opSet = new Set();
+  targetBrands.forEach(b => {
+    const bCats = PRODUCT_HIERARCHY[b] || {};
+    if (activeFilters.kategori !== "ALL") {
+      const catOps = bCats[activeFilters.kategori] || {};
+      Object.keys(catOps).forEach(o => opSet.add(o));
+    } else {
+      Object.values(bCats).forEach(catOps => {
+        Object.keys(catOps).forEach(o => opSet.add(o));
+      });
+    }
+  });
+  const ops = Array.from(opSet).sort();
+
+  // Validasi operator yang sedang aktif
+  if (activeFilters.operator !== "ALL" && !ops.includes(activeFilters.operator)) {
+    activeFilters.operator = "ALL";
+  }
+
+  if (opSelect) {
     opSelect.innerHTML = `<option value="ALL">Semua Operator</option>` +
-      ops.map(o => `<option value="${o}" ${o === curOp ? "selected" : ""}>${o}</option>`).join("");
+      ops.map(o => `<option value="${o}" ${o === activeFilters.operator ? "selected" : ""}>${o}</option>`).join("");
+  }
+
+  // 2. Dapatkan daftar Tipe / Paket secara dinamis sesuai Kategori dan Operator yang dipilih
+  const tipSet = new Set();
+  targetBrands.forEach(b => {
+    const bCats = PRODUCT_HIERARCHY[b] || {};
+    Object.entries(bCats).forEach(([cat, catOps]) => {
+      if (activeFilters.kategori !== "ALL" && cat !== activeFilters.kategori) return;
+      Object.entries(catOps).forEach(([op, pktList]) => {
+        if (activeFilters.operator !== "ALL" && op !== activeFilters.operator) return;
+        (pktList || []).forEach(pkt => tipSet.add(pkt));
+      });
+    });
+  });
+  const tips = Array.from(tipSet).sort();
+
+  // Validasi tipe yang sedang aktif
+  if (activeFilters.tipe !== "ALL" && !tips.includes(activeFilters.tipe)) {
+    activeFilters.tipe = "ALL";
   }
 
   if (tipSelect) {
-    const curTip = activeFilters.tipe;
-    let tips = [];
-    if (activeFilters.brand === "ALL" || activeFilters.brand === "GABUNGAN") {
-      const s = new Set([...(PRODUCT_PAKETS["ASTAGA"] || []), ...(PRODUCT_PAKETS["OKIPAY"] || [])]);
-      tips = Array.from(s).sort();
-    } else {
-      tips = PRODUCT_PAKETS[brand] || PRODUCT_PAKETS["ASTAGA"] || [];
-    }
     tipSelect.innerHTML = `<option value="ALL">Semua Tipe</option>` +
-      tips.map(t => `<option value="${t}" ${t === curTip ? "selected" : ""}>${t}</option>`).join("");
+      tips.map(t => `<option value="${t}" ${t === activeFilters.tipe ? "selected" : ""}>${t}</option>`).join("");
   }
 
   const resetBtn = document.getElementById("btn-reset-prod-filter");
@@ -158,8 +224,13 @@ function setProductFilter(type, value) {
         else btn.classList.remove("active");
       });
     }
-    // Reset operator saat kategori berganti jika operator tidak relevan
+    // Reset operator & tipe saat kategori berganti
     activeFilters.operator = "ALL";
+    activeFilters.tipe = "ALL";
+    updateProductFilterDropdowns();
+  } else if (type === "operator") {
+    // Reset tipe saat operator berganti agar hanya menampilkan paket yang sah untuk operator tsb
+    activeFilters.tipe = "ALL";
     updateProductFilterDropdowns();
   } else {
     updateProductFilterDropdowns();
@@ -432,52 +503,64 @@ async function fetchAndRenderProfitAnalisa() {
     // 3. Category Breakdown Table
     const catTbody = document.getElementById("table-profit-category-body");
     if (catTbody && data.category_breakdown) {
-      catTbody.innerHTML = data.category_breakdown.map(c => `
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td style="padding: 10px 14px; font-weight: 700; color: var(--text-main);">${escapeHtml(c.category)}</td>
-          <td style="padding: 10px 14px; text-align: right;">${Number(c.total_trx).toLocaleString("id-ID")}</td>
-          <td style="padding: 10px 14px; text-align: right; color: var(--text-muted);">${c.pct_trx}%</td>
-          <td style="padding: 10px 14px; text-align: right;">Rp ${Number(c.gross_revenue).toLocaleString("id-ID")}</td>
-          <td style="padding: 10px 14px; text-align: right; color: var(--text-muted);">Rp ${Number(c.total_modal).toLocaleString("id-ID")}</td>
-          <td style="padding: 10px 14px; text-align: right; color: #b45309; font-weight: 600;">Rp ${Number(c.komisi_upline).toLocaleString("id-ID")}</td>
-          <td style="padding: 10px 14px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(c.net_profit).toLocaleString("id-ID")}</td>
-          <td style="padding: 10px 14px; text-align: right; font-weight: 600;">${c.pct_profit}%</td>
-          <td style="padding: 10px 14px; text-align: right; color: #7c3aed; font-weight: 700;">Rp ${Number(c.yield_per_trx).toLocaleString("id-ID")}</td>
-        </tr>
-      `).join("");
+      if (data.category_breakdown.length === 0) {
+        catTbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">Tidak ada transaksi pada periode ini (Nol Data)</td></tr>`;
+      } else {
+        catTbody.innerHTML = data.category_breakdown.map(c => `
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 10px 14px; font-weight: 700; color: var(--text-main);">${escapeHtml(c.category)}</td>
+            <td style="padding: 10px 14px; text-align: right;">${Number(c.total_trx).toLocaleString("id-ID")}</td>
+            <td style="padding: 10px 14px; text-align: right; color: var(--text-muted);">${c.pct_trx}%</td>
+            <td style="padding: 10px 14px; text-align: right;">Rp ${Number(c.gross_revenue).toLocaleString("id-ID")}</td>
+            <td style="padding: 10px 14px; text-align: right; color: var(--text-muted);">Rp ${Number(c.total_modal).toLocaleString("id-ID")}</td>
+            <td style="padding: 10px 14px; text-align: right; color: #b45309; font-weight: 600;">Rp ${Number(c.komisi_upline).toLocaleString("id-ID")}</td>
+            <td style="padding: 10px 14px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(c.net_profit).toLocaleString("id-ID")}</td>
+            <td style="padding: 10px 14px; text-align: right; font-weight: 600;">${c.pct_profit}%</td>
+            <td style="padding: 10px 14px; text-align: right; color: #7c3aed; font-weight: 700;">Rp ${Number(c.yield_per_trx).toLocaleString("id-ID")}</td>
+          </tr>
+        `).join("");
+      }
     }
 
     // 4. Top 10 Products Table
     const prodTbody = document.getElementById("table-top-products-body");
     if (prodTbody && data.top_products) {
-      prodTbody.innerHTML = data.top_products.map(p => `
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td style="padding: 8px 10px;">
-            <div style="font-weight: 700; color: var(--text-main); font-size: 12.5px;">${escapeHtml(p.product_name)}</div>
-            <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${escapeHtml(p.product_id)} • ${escapeHtml(p.kategori)}</div>
-          </td>
-          <td style="padding: 8px 10px; text-align: right; font-weight: 600;">${Number(p.total_trx).toLocaleString("id-ID")}</td>
-          <td style="padding: 8px 10px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(p.net_profit).toLocaleString("id-ID")}</td>
-          <td style="padding: 8px 10px; text-align: right; color: #7c3aed; font-weight: 600;">Rp ${Number(p.yield_per_trx).toLocaleString("id-ID")}</td>
-        </tr>
-      `).join("");
+      if (data.top_products.length === 0) {
+        prodTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 12.5px;">Tidak ada data produk (Nol Data)</td></tr>`;
+      } else {
+        prodTbody.innerHTML = data.top_products.map(p => `
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 8px 10px;">
+              <div style="font-weight: 700; color: var(--text-main); font-size: 12.5px;">${escapeHtml(p.product_name)}</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${escapeHtml(p.product_id)} • ${escapeHtml(p.kategori)}</div>
+            </td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 600;">${Number(p.total_trx).toLocaleString("id-ID")}</td>
+            <td style="padding: 8px 10px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(p.net_profit).toLocaleString("id-ID")}</td>
+            <td style="padding: 8px 10px; text-align: right; color: #7c3aed; font-weight: 600;">Rp ${Number(p.yield_per_trx).toLocaleString("id-ID")}</td>
+          </tr>
+        `).join("");
+      }
     }
 
     // 5. Top 10 Resellers Table
     const resTbody = document.getElementById("table-top-resellers-body");
     if (resTbody && data.top_resellers) {
-      resTbody.innerHTML = data.top_resellers.map(r => `
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td style="padding: 8px 10px;">
-            <div style="font-weight: 700; color: var(--text-main); font-size: 12.5px;">${escapeHtml(r.nama_reseller)}</div>
-            <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${escapeHtml(r.kode_reseller)}</div>
-          </td>
-          <td style="padding: 8px 10px;"><span class="badge" style="font-size: 10.5px;">${escapeHtml(r.cabang || '-')}</span></td>
-          <td style="padding: 8px 10px; text-align: right; font-weight: 600;">${Number(r.total_trx).toLocaleString("id-ID")}</td>
-          <td style="padding: 8px 10px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(r.net_profit).toLocaleString("id-ID")}</td>
-          <td style="padding: 8px 10px; text-align: right; color: #7c3aed; font-weight: 600;">Rp ${Number(r.yield_per_trx).toLocaleString("id-ID")}</td>
-        </tr>
-      `).join("");
+      if (data.top_resellers.length === 0) {
+        resTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 12.5px;">Tidak ada data reseller (Nol Data)</td></tr>`;
+      } else {
+        resTbody.innerHTML = data.top_resellers.map(r => `
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 8px 10px;">
+              <div style="font-weight: 700; color: var(--text-main); font-size: 12.5px;">${escapeHtml(r.nama_reseller)}</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${escapeHtml(r.kode_reseller)}</div>
+            </td>
+            <td style="padding: 8px 10px;"><span class="badge" style="font-size: 10.5px;">${escapeHtml(r.cabang || '-')}</span></td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 600;">${Number(r.total_trx).toLocaleString("id-ID")}</td>
+            <td style="padding: 8px 10px; text-align: right; color: #059669; font-weight: 700;">Rp ${Number(r.net_profit).toLocaleString("id-ID")}</td>
+            <td style="padding: 8px 10px; text-align: right; color: #7c3aed; font-weight: 600;">Rp ${Number(r.yield_per_trx).toLocaleString("id-ID")}</td>
+          </tr>
+        `).join("");
+      }
     }
 
   } catch (err) {
@@ -485,36 +568,48 @@ async function fetchAndRenderProfitAnalisa() {
   }
 }
 
-// ── DATA FETCHING (API DENGAN GOLD STATIC FALLBACK) ──
+// ── DATA FETCHING (API DENGAN GOLD STATIC OLAP ENGINE) ──
 async function fetchAndRenderAnalisa() {
   if (currentAnalisaTab === "profit") {
     await fetchAndRenderProfitAnalisa();
     return;
   }
-  // 1. Coba fetch dari backend endpoint API
-  try {
-    let url = `/api/analisa/data?brand=${activeFilters.brand}&year=${activeFilters.year}&month=${activeFilters.month}`;
-    if (activeFilters.kategori !== "ALL") url += `&kategori=${encodeURIComponent(activeFilters.kategori)}`;
-    if (activeFilters.operator !== "ALL") url += `&operator=${encodeURIComponent(activeFilters.operator)}`;
-    if (activeFilters.tipe !== "ALL") url += `&tipe=${encodeURIComponent(activeFilters.tipe)}`;
 
-    const res = await fetch(url);
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.ok) {
-        cachedAnalisaData = json;
-        renderCurrentTabCharts(json);
-        return;
+  const isStaticHost = window.location.hostname.includes("github.io") || 
+                       window.location.protocol === "file:" ||
+                       window.location.port === "5500";
+
+  // 1. Coba fetch dari backend endpoint API jika live server lokal
+  if (!isStaticHost) {
+    try {
+      let url = `/api/analisa/data?brand=${activeFilters.brand}&year=${activeFilters.year}&month=${activeFilters.month}`;
+      if (activeFilters.kategori !== "ALL") url += `&kategori=${encodeURIComponent(activeFilters.kategori)}`;
+      if (activeFilters.operator !== "ALL") url += `&operator=${encodeURIComponent(activeFilters.operator)}`;
+      if (activeFilters.tipe !== "ALL") url += `&tipe=${encodeURIComponent(activeFilters.tipe)}`;
+
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.ok) {
+          if (json.product_hierarchy && Object.keys(json.product_hierarchy).length > 0) {
+            PRODUCT_HIERARCHY = json.product_hierarchy;
+            updateProductFilterDropdowns();
+          }
+          cachedAnalisaData = json;
+          renderCurrentTabCharts(json);
+          return;
+        }
       }
+    } catch (e) {
+      // API endpoint gagal / offline, lanjut ke Gold Static OLAP Engine
     }
-  } catch (e) {
-    // API endpoint belum aktif di live server, fallback ke Gold Static Data
   }
 
-  // 2. Fallback: Baca Gold Aggregated Data JSON (/pages/analisa/data.json)
+  // 2. Gold OLAP Engine Client-Side (100% Offline / GitHub Pages)
   try {
     if (!rawGoldData) {
-      const fRes = await fetch(`/pages/analisa/data.json?t=` + Date.now());
+      const dataUrl = isStaticHost ? "./pages/analisa/data.json" : "/pages/analisa/data.json";
+      const fRes = await fetch(dataUrl);
       rawGoldData = await fRes.json();
     }
     const processed = filterGoldDataLocal(rawGoldData, activeFilters.brand, activeFilters.year, activeFilters.month, activeFilters.kategori, activeFilters.operator, activeFilters.tipe);
@@ -531,6 +626,198 @@ function formatDurationSec(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+// Helper klasifikasi SLA modul client-side (sesuai SOP GEMINI.md)
+function classifySlaStatusClient(suksesPct, avgSpeedSec) {
+  const sPct = Number(suksesPct || 0);
+  const speed = Number(avgSpeedSec || 0);
+  if (sPct < 95.0 || speed > 30.0) return "KURANG";
+  if (sPct >= 98.0 && speed < 15.0) return "BAIK";
+  return "CUKUP";
+}
+
+// Helper agregasi modul scorecard client-side (100% identik dengan analisa_engine.py)
+function _aggregateModulesScorecardClient(targetBrands, targetYms, dataAll, filterTipe = "ALL", filterKategori = "ALL", filterOperator = "ALL") {
+  const aggregated = {};
+
+  targetBrands.forEach(b => {
+    const bData = dataAll[b] || {};
+    targetYms.forEach(ym => {
+      const ymData = bData[ym] || {};
+      const modules = ymData.modules || [];
+      modules.forEach(m => {
+        const mid = String(m.modul_id || "").trim();
+        if (!mid || ["none", "nan", "<null>", "null", "-", ""].includes(mid.toLowerCase())) return;
+        if (!aggregated[mid]) {
+          aggregated[mid] = {
+            modul_id: mid,
+            nama_modul: m.nama_modul || mid,
+            tipe: m.tipe || "H2H",
+            brand: m.brand || b,
+            kategori: m.kategori || "-",
+            trx: 0,
+            sukses: 0,
+            gagal: 0,
+            weighted_speed_sum: 0.0,
+            operators: {},
+            categories: {},
+            tipes: {}
+          };
+        }
+        aggregated[mid].trx += (m.trx || 0);
+        aggregated[mid].sukses += (m.sukses || 0);
+        aggregated[mid].gagal += (m.gagal || 0);
+        aggregated[mid].weighted_speed_sum += ((m.avg_speed || 0.0) * (m.sukses || 0));
+
+        const mOp = m.operator;
+        if (mOp && !["-", "LAINNYA", ""].includes(mOp)) {
+          aggregated[mid].operators[mOp] = (aggregated[mid].operators[mOp] || 0) + (m.trx || 0);
+        }
+
+        const mKat = m.kategori;
+        if (mKat && !["-", "LAINNYA", ""].includes(mKat)) {
+          aggregated[mid].categories[mKat] = (aggregated[mid].categories[mKat] || 0) + (m.trx || 0);
+        }
+
+        const mTipes = m.tipes || {};
+        Object.entries(mTipes).forEach(([tName, tCnt]) => {
+          if (tName && !["-", ""].includes(tName)) {
+            aggregated[mid].tipes[tName] = (aggregated[mid].tipes[tName] || 0) + tCnt;
+          }
+        });
+        const mTipeProd = m.tipe_produk;
+        if (mTipeProd && !["-", ""].includes(mTipeProd)) {
+          aggregated[mid].tipes[mTipeProd] = (aggregated[mid].tipes[mTipeProd] || 0) + (m.trx || 0);
+        }
+      });
+    });
+  });
+
+  const normFilterTipe = (filterTipe && filterTipe !== "ALL") ? filterTipe.toUpperCase().trim() : null;
+  const normFilterOp = (filterOperator && filterOperator !== "ALL") ? filterOperator.toUpperCase().trim() : null;
+  const normFilterKat = (filterKategori && filterKategori !== "ALL") ? filterKategori.toUpperCase().trim() : null;
+
+  const scorecard = [];
+  Object.entries(aggregated).forEach(([mid, item]) => {
+    if (normFilterTipe) {
+      if (["CHIP", "H2H"].includes(normFilterTipe)) {
+        if ((item.tipe || "").toUpperCase() !== normFilterTipe) return;
+      } else {
+        const modTipes = Object.keys(item.tipes || {}).map(t => t.toUpperCase());
+        if (!modTipes.includes(normFilterTipe) && (item.tipe_produk || "").toUpperCase() !== normFilterTipe) return;
+      }
+    }
+
+    let topOp = "-";
+    if (item.operators && Object.keys(item.operators).length > 0) {
+      topOp = Object.entries(item.operators).sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    let topKat = item.kategori || "-";
+    if (item.categories && Object.keys(item.categories).length > 0) {
+      topKat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0][0];
+    }
+    if (["-", "", "LAINNYA"].includes(topKat)) {
+      topKat = getCategoryForOperator(topOp) || "LAINNYA";
+    }
+
+    if (normFilterOp) {
+      const modOps = Object.keys(item.operators || {}).map(o => o.toUpperCase());
+      if (topOp.toUpperCase() !== normFilterOp && !modOps.includes(normFilterOp)) return;
+    }
+
+    if (normFilterKat) {
+      const checkKatMatch = () => {
+        const mCats = [topKat.toUpperCase()];
+        const opK = getCategoryForOperator(topOp);
+        if (opK) mCats.push(opK.toUpperCase());
+        Object.keys(item.operators || {}).forEach(op => {
+          const k = getCategoryForOperator(op);
+          if (k) mCats.push(k.toUpperCase());
+        });
+        for (const c of mCats) {
+          if (c === normFilterKat) return true;
+          if (["GAME", "VOUCHER GAME"].includes(normFilterKat) && ["GAME", "VOUCHER GAME"].includes(c)) return true;
+          if (["PLN", "TOKEN PLN"].includes(normFilterKat) && ["PLN", "TOKEN PLN"].includes(c)) return true;
+        }
+        return false;
+      };
+      if (!checkKatMatch()) return;
+    }
+
+    const tot = item.trx;
+    const suk = item.sukses;
+    const gagal = item.gagal;
+    const pct = tot > 0 ? Number((suk / tot * 100).toFixed(1)) : 0.0;
+    const avgSpeed = suk > 0 ? Number((item.weighted_speed_sum / suk).toFixed(1)) : 0.0;
+    const status = classifySlaStatusClient(pct, avgSpeed);
+
+    let topTipeProd = "-";
+    if (item.tipes && Object.keys(item.tipes).length > 0) {
+      topTipeProd = Object.entries(item.tipes).sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    scorecard.push({
+      modul_id: mid,
+      nama_modul: item.nama_modul,
+      tipe: item.tipe,
+      tipe_produk: topTipeProd,
+      tipes: item.tipes,
+      operator: topOp,
+      kategori: topKat,
+      brand: item.brand,
+      trx: tot,
+      sukses: suk,
+      gagal: gagal,
+      sukses_pct: pct,
+      avg_speed: avgSpeed,
+      dur_str: formatDurationSec(avgSpeed),
+      status: status,
+      operators: item.operators
+    });
+  });
+
+  scorecard.sort((a, b) => b.trx - a.trx);
+
+  // Top 3 Failing Modules (Sukses Rate Terendah, min trx >= 10 jika ada)
+  let failingCands = scorecard.filter(m => m.gagal > 0 && m.trx >= 10);
+  if (failingCands.length < 3) failingCands = scorecard.filter(m => m.gagal > 0);
+  failingCands.sort((a, b) => (a.sukses_pct - b.sukses_pct) || (b.gagal - a.gagal));
+  let topFailing = failingCands.slice(0, 3);
+  if (topFailing.length < 3) {
+    const extra = scorecard.filter(m => !topFailing.includes(m)).sort((a, b) => (a.sukses_pct - b.sukses_pct) || (b.gagal - a.gagal));
+    topFailing = topFailing.concat(extra.slice(0, 3 - topFailing.length));
+  }
+
+  // Top 3 Slowest Modules (Avg Speed Terlama, min trx >= 5 jika ada)
+  let slowCands = scorecard.filter(m => m.sukses > 0 && m.trx >= 5);
+  if (slowCands.length < 3) slowCands = scorecard.filter(m => m.sukses > 0);
+  slowCands.sort((a, b) => b.avg_speed - a.avg_speed);
+  let topSlowest = slowCands.slice(0, 3);
+
+  const baikCnt = scorecard.filter(m => m.status === "BAIK" || m.status === "PRIMA").length;
+  const cukupCnt = scorecard.filter(m => m.status === "CUKUP" || m.status === "WASPADA").length;
+  const kurangCnt = scorecard.filter(m => m.status === "KURANG" || m.status === "GANGGUAN").length;
+  const chipCnt = scorecard.filter(m => m.tipe === "CHIP").length;
+  const h2hCnt = scorecard.filter(m => m.tipe === "H2H").length;
+
+  return {
+    scorecard,
+    top_failing: topFailing,
+    top_slowest: topSlowest,
+    summary: {
+      total_modules: scorecard.length,
+      baik_count: baikCnt,
+      cukup_count: cukupCnt,
+      kurang_count: kurangCnt,
+      prima_count: baikCnt,
+      waspada_count: cukupCnt,
+      gangguan_count: kurangCnt,
+      chip_count: chipCnt,
+      h2h_count: h2hCnt
+    }
+  };
 }
 
 // ── FALLBACK ENGINE CLIENT-SIDE (Sama persis dengan analisa_engine.py) ──
@@ -560,110 +847,141 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
     const isMtd = sampleItem.is_mtd || false;
     const activeDays = sampleItem.active_days || sampleDaily.length;
 
+    const modulesData = _aggregateModulesScorecardClient(targetBrands, [targetYm], dataAll, tipe, kategori, operator);
+
     const timeline = [];
     let totTrx = 0;
+    let totSukses = 0;
     let totCustSum = 0;
     const categoriesTotal = {};
     const branchesTotal = {};
 
-    const monthSuksesRate = Number((targetBrands.reduce((acc, b) => {
-      const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
-      return acc + (it.sukses_pct || 98.0);
-    }, 0) / targetBrands.length).toFixed(1));
+    let monthSuksesRate = 0.0;
+    let monthDurSec = 0.0;
+    let monthDurStr = "00:00";
 
-    const monthDurSec = Number((targetBrands.reduce((acc, b) => {
-      const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
-      return acc + (it.avg_dur_sec || 21.0);
-    }, 0) / targetBrands.length).toFixed(1));
-    const monthDurStr = sampleItem.avg_dur_str || formatDurationSec(monthDurSec);
+    if (sampleDaily.length > 0) {
+      monthSuksesRate = Number((targetBrands.reduce((acc, b) => {
+        const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+        return acc + (it.sukses_pct || 98.0);
+      }, 0) / targetBrands.length).toFixed(1));
 
-    sampleDaily.forEach((dObj, dIdx) => {
-      const dayNum = dObj.day;
-      const dLabel = `Tgl ${dayNum}`;
-      let dayTrx = 0;
-      let dayCust = 0;
+      monthDurSec = Number((targetBrands.reduce((acc, b) => {
+        const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+        return acc + (it.avg_dur_sec || 21.0);
+      }, 0) / targetBrands.length).toFixed(1));
+      monthDurStr = sampleItem.avg_dur_str || formatDurationSec(monthDurSec);
 
-      targetBrands.forEach(b => {
-        const bItem = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
-        const bDaily = bItem.daily || [];
-        if (dIdx < bDaily.length) {
-          const bD = bDaily[dIdx];
-          dayTrx += bD.trx || 0;
-          dayCust += bD.cust || 0;
-        }
-      });
+      sampleDaily.forEach((dObj, dIdx) => {
+        const dayNum = dObj.day;
+        const dLabel = `Tgl ${dayNum}`;
+        let dayTrx = 0;
+        let dayTrxSukses = 0;
+        let dayCust = 0;
 
-      const tpm = dayCust > 0 ? Number((dayTrx / dayCust).toFixed(2)) : 0;
-      totTrx += dayTrx;
-      totCustSum += dayCust;
-
-      const dayRatio = sampleItem.trx_count > 0 ? dayTrx / sampleItem.trx_count : 0;
-      const dayCats = {};
-      const dayBranches = {};
-
-      targetBrands.forEach(b => {
-        const bItem = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
-        Object.entries(bItem.categories || {}).forEach(([cat, cVal]) => {
-          const cDay = Math.round(cVal * dayRatio);
-          dayCats[cat] = (dayCats[cat] || 0) + cDay;
-          categoriesTotal[cat] = (categoriesTotal[cat] || 0) + cDay;
+        targetBrands.forEach(b => {
+          const bItem = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+          const bDaily = bItem.daily || [];
+          if (dIdx < bDaily.length) {
+            const bD = bDaily[dIdx];
+            dayTrx += bD.trx || 0;
+            dayTrxSukses += bD.trx_sukses != null ? bD.trx_sukses : (bD.trx || 0);
+            dayCust += bD.cust || 0;
+          }
         });
-        Object.entries(bItem.branches || {}).forEach(([br, brVal]) => {
-          const bDay = Math.round(brVal * dayRatio);
-          dayBranches[br] = (dayBranches[br] || 0) + bDay;
-          branchesTotal[br] = (branchesTotal[br] || 0) + bDay;
+
+        const tpm = dayCust > 0 ? Number((dayTrxSukses / dayCust).toFixed(2)) : 0;
+        totTrx += dayTrx;
+        totSukses += dayTrxSukses;
+        totCustSum += dayCust;
+
+        const dayRatio = sampleItem.trx_count > 0 ? dayTrx / sampleItem.trx_count : 0;
+        const dayCats = {};
+        const dayBranches = {};
+
+        targetBrands.forEach(b => {
+          const bItem = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+          Object.entries(bItem.categories || {}).forEach(([cat, cVal]) => {
+            const cDay = Math.round(cVal * dayRatio);
+            dayCats[cat] = (dayCats[cat] || 0) + cDay;
+            categoriesTotal[cat] = (categoriesTotal[cat] || 0) + cDay;
+          });
+          Object.entries(bItem.branches || {}).forEach(([br, brVal]) => {
+            const bDay = Math.round(brVal * dayRatio);
+            dayBranches[br] = (dayBranches[br] || 0) + bDay;
+            branchesTotal[br] = (branchesTotal[br] || 0) + bDay;
+          });
+        });
+
+        timeline.push({
+          day: dayNum,
+          date: dObj.date || `${targetYm}-${String(dayNum).padStart(2, "0")}`,
+          label: dLabel,
+          trx: dayTrx,
+          daily_trx: dayTrxSukses,
+          customers: dayCust,
+          tpm: tpm,
+          sukses_pct: monthSuksesRate,
+          dur_sec: monthDurSec,
+          dur_str: monthDurStr,
+          categories: dayCats,
+          branches: dayBranches
         });
       });
+    }
 
-      timeline.push({
-        day: dayNum,
-        date: dObj.date || `${targetYm}-${String(dayNum).padStart(2, "0")}`,
-        label: dLabel,
-        trx: dayTrx,
-        daily_trx: dayTrx,
-        customers: dayCust,
-        tpm: tpm,
-        sukses_pct: monthSuksesRate,
-        dur_sec: monthDurSec,
-        dur_str: monthDurStr,
-        categories: dayCats,
-        branches: dayBranches
-      });
-    });
+    const countPts = timeline.length;
+    let avgDailyTrx = 0;
+    let avgDailyCust = 0;
+    let avgTpm = 0.0;
+    let totalRealTrx = 0;
+    let gagalTot = 0.0;
+    let hourlyDistribution = [];
+    let weekdayDistribution = [];
 
-    const countPts = timeline.length || 1;
-    const avgDailyTrx = Math.round(totTrx / countPts);
-    const avgDailyCust = Math.round(totCustSum / countPts);
-    const avgTpm = Number((timeline.reduce((acc, t) => acc + t.tpm, 0) / countPts).toFixed(2));
+    if (countPts === 0) {
+      const hourlyHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
+      hourlyDistribution = hourlyHours.map(h => ({ hour: h, trx: 0 }));
+      const weekdayNames = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+      weekdayDistribution = weekdayNames.map(d => ({ day: d, trx: 0 }));
+    } else {
+      avgDailyTrx = Math.round(totSukses / countPts);
+      avgDailyCust = Math.round(totCustSum / countPts);
+      avgTpm = Number((timeline.reduce((acc, t) => acc + t.tpm, 0) / countPts).toFixed(2));
 
-    const totalRealTrx = targetBrands.reduce((acc, b) => {
-      const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
-      return acc + (it.trx_count || totTrx);
-    }, 0);
+      totalRealTrx = targetBrands.reduce((acc, b) => {
+        const it = (dataAll[b] && dataAll[b][targetYm]) ? dataAll[b][targetYm] : {};
+        return acc + (it.trx_count || totTrx);
+      }, 0);
 
-    const hourlyHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
-    const hourlyWeights = [
-      0.012, 0.008, 0.005, 0.004, 0.006, 0.018, 0.035, 0.062, 0.078, 0.082, 0.085, 0.087,
-      0.081, 0.076, 0.075, 0.079, 0.086, 0.092, 0.098, 0.102, 0.094, 0.072, 0.045, 0.022
-    ];
-    const hourlyDistribution = hourlyHours.map((h, i) => ({
-      hour: h,
-      trx: Math.round(avgDailyTrx * hourlyWeights[i])
-    }));
+      const hourlyHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
+      const hourlyWeights = [
+        0.012, 0.008, 0.005, 0.004, 0.006, 0.018, 0.035, 0.062, 0.078, 0.082, 0.085, 0.087,
+        0.081, 0.076, 0.075, 0.079, 0.086, 0.092, 0.098, 0.102, 0.094, 0.072, 0.045, 0.022
+      ];
+      hourlyDistribution = hourlyHours.map((h, i) => ({
+        hour: h,
+        trx: Math.round(avgDailyTrx * hourlyWeights[i])
+      }));
 
-    const weekdayNames = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-    const weekdayWeights = [0.142, 0.144, 0.141, 0.146, 0.155, 0.158, 0.114];
-    const weekdayDistribution = weekdayNames.map((d, i) => ({
-      day: d,
-      trx: Math.round((totTrx / 4.3) * weekdayWeights[i])
-    }));
+      const weekdayNames = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+      const weekdayWeights = [0.142, 0.144, 0.141, 0.146, 0.155, 0.158, 0.114];
+      weekdayDistribution = weekdayNames.map((d, i) => ({
+        day: d,
+        trx: Math.round((totTrx / 4.3) * weekdayWeights[i])
+      }));
+
+      gagalTot = Math.max(0, Number((100 - monthSuksesRate).toFixed(1)));
+    }
 
     const topCategory = Object.keys(categoriesTotal).length > 0
       ? Object.entries(categoriesTotal).sort((a, b) => b[1] - a[1])[0][0] : "EWALLET";
     const topBranch = Object.keys(branchesTotal).length > 0
       ? Object.entries(branchesTotal).sort((a, b) => b[1] - a[1])[0][0] : "BSD";
 
-    const gagalTot = Math.max(0, Number((100 - monthSuksesRate).toFixed(1)));
+    const granLabel = countPts === 0
+      ? `Harian (${MONTH_FULL[month.padStart(2, "0")] || month} ${year}) • Nol Data`
+      : `Harian (${MONTH_FULL[month.padStart(2, "0")] || month} ${year})` + (isMtd ? ` • MTD ${activeDays} Hari` : "");
 
     return _applyProductFiltersClient({
       ok: true,
@@ -674,7 +992,7 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
       active_days: activeDays,
       summary: {
         total_trx: totalRealTrx,
-        total_sukses: totTrx,
+        total_sukses: totSukses,
         daily_trx_avg: avgDailyTrx,
         avg_monthly_trx: avgDailyTrx,
         avg_monthly_cust: avgDailyCust,
@@ -684,7 +1002,7 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
         avg_dur_sec: monthDurSec,
         avg_dur_str: monthDurStr,
         total_points: countPts,
-        granularity_label: `Harian (${MONTH_FULL[month.padStart(2, "0")] || month} ${year})` + (isMtd ? ` • MTD ${activeDays} Hari` : ""),
+        granularity_label: granLabel,
         top_category: topCategory,
         top_branch: topBranch
       },
@@ -698,13 +1016,20 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
         "Gagal Nomor": Number((gagalTot * 0.55).toFixed(1)),
         "Gagal Saldo": Number((gagalTot * 0.25).toFixed(1)),
         "Timeout Provider": Number((gagalTot * 0.20).toFixed(1))
-      }
+      },
+      segments: (dataAll[targetBrands[0]] && dataAll[targetBrands[0]][targetYm]) ? (dataAll[targetBrands[0]][targetYm].segments || {}) : {},
+      modules_scorecard: modulesData.scorecard,
+      top_failing_modules: modulesData.top_failing,
+      top_slowest_modules: modulesData.top_slowest,
+      modules_summary: modulesData.summary
     }, kategori, operator, tipe, targetBrands, [targetYm], dataAll);
   }
 
   // 2. GRANULARITAS TAHUNAN (4 TAHUN: 2023 - 2026)
   if (year === "ALL" && month === "ALL") {
     const years = ["2023", "2024", "2025", "2026"];
+    const modulesData = _aggregateModulesScorecardClient(targetBrands, allYms, dataAll, tipe, kategori, operator);
+
     const timeline = [];
     let totTrx = 0;
     let totCustSum = 0;
@@ -717,6 +1042,7 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
       let yTrx = 0;
       let yCustDailySum = 0;
       let ySuksesSum = 0;
+      let yDurSum = 0;
       let yDays = 0;
       const yCats = {};
       const yBranches = {};
@@ -734,6 +1060,7 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
             : (item.daily_customers || 1200);
           yCustDailySum += bDayCust;
           ySuksesSum += item.sukses_pct || 98.4;
+          yDurSum += item.avg_dur_sec || 23.0;
 
           Object.entries(item.categories || {}).forEach(([cat, cVal]) => {
             yCats[cat] = (yCats[cat] || 0) + cVal;
@@ -843,7 +1170,12 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
         "Gagal Nomor": Number((gagalTot * 0.55).toFixed(1)),
         "Gagal Saldo": Number((gagalTot * 0.25).toFixed(1)),
         "Timeout Provider": Number((gagalTot * 0.20).toFixed(1))
-      }
+      },
+      segments: (dataAll[targetBrands[0]] && allYms.length > 0 && dataAll[targetBrands[0]][allYms[allYms.length - 1]]) ? (dataAll[targetBrands[0]][allYms[allYms.length - 1]].segments || {}) : {},
+      modules_scorecard: modulesData.scorecard,
+      top_failing_modules: modulesData.top_failing,
+      top_slowest_modules: modulesData.top_slowest,
+      modules_summary: modulesData.summary
     }, kategori, operator, tipe, targetBrands, allYms, dataAll);
   }
 
@@ -854,6 +1186,8 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
     if (month !== "ALL" && m !== month) return false;
     return true;
   });
+
+  const modulesData = _aggregateModulesScorecardClient(targetBrands, filteredYms, dataAll, tipe, kategori, operator);
 
   const timeline = [];
   let totTrx = 0;
@@ -999,7 +1333,12 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
       "Gagal Nomor": Number((gagalTot * 0.55).toFixed(1)),
       "Gagal Saldo": Number((gagalTot * 0.25).toFixed(1)),
       "Timeout Provider": Number((gagalTot * 0.20).toFixed(1))
-    }
+    },
+    segments: (dataAll[targetBrands[0]] && filteredYms.length > 0 && dataAll[targetBrands[0]][filteredYms[filteredYms.length - 1]]) ? (dataAll[targetBrands[0]][filteredYms[filteredYms.length - 1]].segments || {}) : {},
+    modules_scorecard: modulesData.scorecard,
+    top_failing_modules: modulesData.top_failing,
+    top_slowest_modules: modulesData.top_slowest,
+    modules_summary: modulesData.summary
   }, kategori, operator, tipe, targetBrands, filteredYms, dataAll);
 }
 
@@ -1040,70 +1379,6 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
     summary.granularity_label = (summary.granularity_label || "") + " • " + lblParts.join(" • ");
   }
 
-  if ((targetTipe || targetOp || targetCat) && res.modules_scorecard) {
-    let mList = [...res.modules_scorecard];
-    if (targetTipe) {
-      mList = mList.filter(m => {
-        if (targetTipe === "CHIP" || targetTipe === "H2H") {
-          return (m.tipe || "").toUpperCase() === targetTipe;
-        }
-        if (m.tipes && Object.keys(m.tipes).some(k => k.toUpperCase() === targetTipe)) return true;
-        return (m.tipe_produk || "").toUpperCase() === targetTipe;
-      });
-    }
-    if (targetOp) {
-      mList = mList.filter(m => (m.operator || "").toUpperCase() === targetOp || (m.operators && Object.keys(m.operators).some(k => k.toUpperCase() === targetOp)));
-    }
-    if (targetCat) {
-      mList = mList.filter(m => {
-        const topK = (m.kategori || getCategoryForOperator(m.operator) || "").toUpperCase();
-        if (topK === targetCat) return true;
-        if ((targetCat === "GAME" || targetCat === "VOUCHER GAME") && (topK === "GAME" || topK === "VOUCHER GAME")) return true;
-        if ((targetCat === "PLN" || targetCat === "TOKEN PLN") && (topK === "PLN" || topK === "TOKEN PLN")) return true;
-        if (m.operators) {
-          for (const op of Object.keys(m.operators)) {
-            const opCat = getCategoryForOperator(op).toUpperCase();
-            if (opCat === targetCat) return true;
-            if ((targetCat === "GAME" || targetCat === "VOUCHER GAME") && (opCat === "GAME" || opCat === "VOUCHER GAME")) return true;
-            if ((targetCat === "PLN" || targetCat === "TOKEN PLN") && (opCat === "PLN" || opCat === "TOKEN PLN")) return true;
-          }
-        }
-        return false;
-      });
-    }
-
-    // Recalculate top failing (Opsi A: Sukses Rate Terburuk, min trx >= 10)
-    let failingCands = mList.filter(m => (m.gagal || 0) > 0 && (m.trx || 0) >= 10);
-    if (failingCands.length < 3) {
-      failingCands = mList.filter(m => (m.gagal || 0) > 0);
-    }
-    failingCands.sort((a, b) => (a.sukses_pct - b.sukses_pct) || (b.gagal - a.gagal));
-    let topFailing = failingCands.slice(0, 3);
-    if (topFailing.length < 3) {
-      const extra = mList.filter(m => !topFailing.includes(m)).sort((a, b) => (a.sukses_pct - b.sukses_pct) || (b.gagal - a.gagal));
-      topFailing = topFailing.concat(extra.slice(0, 3 - topFailing.length));
-    }
-    res.top_failing_modules = topFailing;
-
-    // Recalculate top slowest
-    let slowCands = mList.filter(m => (m.sukses || 0) > 0 && (m.trx || 0) >= 5);
-    if (slowCands.length < 3) slowCands = mList.filter(m => (m.sukses || 0) > 0);
-    slowCands.sort((a, b) => (b.avg_speed || 0) - (a.avg_speed || 0));
-    res.top_slowest_modules = slowCands.slice(0, 3);
-
-    // Recalculate summary
-    res.modules_summary = {
-      total_modules: mList.length,
-      baik_count: mList.filter(m => m.status === "BAIK" || m.status === "PRIMA").length,
-      cukup_count: mList.filter(m => m.status === "CUKUP" || m.status === "WASPADA").length,
-      kurang_count: mList.filter(m => m.status === "KURANG" || m.status === "GANGGUAN").length,
-      prima_count: mList.filter(m => m.status === "BAIK" || m.status === "PRIMA").length,
-      waspada_count: mList.filter(m => m.status === "CUKUP" || m.status === "WASPADA").length,
-      gangguan_count: mList.filter(m => m.status === "KURANG" || m.status === "GANGGUAN").length,
-      chip_count: mList.filter(m => m.tipe === "CHIP").length,
-      h2h_count: mList.filter(m => m.tipe === "H2H").length
-    };
-  }
 
   let filtTrx = 0;
   let filtSukses = 0;
@@ -1366,7 +1641,7 @@ function renderDistribusiTab(data) {
   renderDistTpmChart(timeline, isDaily);
 
   // 5. Chart D4: Segmentasi Retensi Customer (Doughnut)
-  renderDistSegmentChart();
+  renderDistSegmentChart(data.segments || {});
 }
 
 function renderDistTrendChart(timeline, brandColor, isDaily) {
@@ -1409,6 +1684,28 @@ function renderDistTrendChart(timeline, brandColor, isDaily) {
         }
       ]
     },
+    plugins: [{
+      id: "barValueLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || meta.hidden) return;
+        ctx.save();
+        ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        meta.data.forEach((bar, index) => {
+          const val = trxData[index];
+          if (val !== null && val !== undefined && val > 0) {
+            const formatted = Number(Math.round(val)).toLocaleString("id-ID");
+            ctx.fillText(formatted, bar.x, bar.y - 4);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1516,6 +1813,28 @@ function renderDistTpmChart(timeline, isDaily) {
         }
       ]
     },
+    plugins: [{
+      id: "lineValueLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || meta.hidden) return;
+        ctx.save();
+        ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        meta.data.forEach((point, index) => {
+          const val = tpmData[index];
+          if (val !== null && val !== undefined) {
+            const formatted = typeof val === "number" ? val.toFixed(1) : val;
+            ctx.fillText(formatted, point.x, point.y - 6);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1537,19 +1856,64 @@ function renderDistTpmChart(timeline, isDaily) {
   });
 }
 
-function renderDistSegmentChart() {
+function renderDistSegmentChart(segments = {}) {
   const ctx = document.getElementById("chart-dist-segment");
   if (!ctx) return;
   destroyChart("distSegment");
 
+  const tot = segments.total_active || ((segments.retained || 0) + (segments.new_active || 0) + (segments.reactivated || 0)) || 0;
+  const retained = segments.retained || 0;
+  const baru = segments.new_active || 0;
+  const reactivated = segments.reactivated || 0;
+  const churnRes = segments.churn_reseller || 0;
+  const churnAg = segments.churn_agen || 0;
+
+  const retPct = tot > 0 ? ((retained / tot) * 100).toFixed(2) : (segments.retained_pct != null ? Number(segments.retained_pct).toFixed(2) : "0.00");
+  const baruPct = tot > 0 ? ((baru / tot) * 100).toFixed(2) : (segments.baru_pct != null ? Number(segments.baru_pct).toFixed(2) : "0.00");
+  const reacPct = tot > 0 ? ((reactivated / tot) * 100).toFixed(2) : (segments.reactivated_pct != null ? Number(segments.reactivated_pct).toFixed(2) : "0.00");
+
+  // Update DOM Badges / Stat Pills
+  const elTotBadge = document.getElementById("dist-seg-total-badge");
+  if (elTotBadge) {
+    elTotBadge.textContent = `${Number(tot).toLocaleString("id-ID")} Reseller Aktif`;
+  }
+
+  const elValRutin = document.getElementById("seg-val-rutin");
+  if (elValRutin) elValRutin.textContent = Number(retained).toLocaleString("id-ID");
+  const elPctRutin = document.getElementById("seg-pct-rutin");
+  if (elPctRutin) elPctRutin.textContent = `${retPct}%`;
+
+  const elValBaru = document.getElementById("seg-val-baru");
+  if (elValBaru) elValBaru.textContent = Number(baru).toLocaleString("id-ID");
+  const elPctBaru = document.getElementById("seg-pct-baru");
+  if (elPctBaru) elPctBaru.textContent = `${baruPct}%`;
+
+  const elValReac = document.getElementById("seg-val-reaktivasi");
+  if (elValReac) elValReac.textContent = Number(reactivated).toLocaleString("id-ID");
+  const elPctReac = document.getElementById("seg-pct-reaktivasi");
+  if (elPctReac) elPctReac.textContent = `${reacPct}%`;
+
+  const elValChurn = document.getElementById("seg-val-churn");
+  if (elValChurn) elValChurn.textContent = Number(churnRes).toLocaleString("id-ID");
+  const elSubChurn = document.getElementById("seg-sub-churn");
+  if (elSubChurn) {
+    elSubChurn.textContent = churnAg > 0 ? `(${Number(churnAg).toLocaleString("id-ID")} Agen)` : "";
+  }
+
+  // Active Cohort Slices (Total 100% of Active Base)
+  const chartData = [retained, baru, reactivated];
+  const chartLabels = ["Aktif Rutin", "Member Baru", "Reaktivasi"];
+  const chartPcts = [retPct, baruPct, reacPct];
+
   chartInstances["distSegment"] = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: ["Aktif Rutin (Retained)", "Baru / Reaktivasi", "Pasif / Churn"],
+      labels: chartLabels,
       datasets: [
         {
-          data: [65.4, 22.1, 12.5],
-          backgroundColor: ["#059669", "#0284c7", "#dc2626"],
+          data: chartData,
+          backgroundColor: ["#16a34a", "#2563eb", "#d97706"],
+          borderColor: "var(--card-bg, #ffffff)",
           borderWidth: 2,
           hoverOffset: 6
         }
@@ -1559,14 +1923,35 @@ function renderDistSegmentChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: "bottom", labels: { usePointStyle: true, font: { family: "inherit", size: 12 } } },
+        legend: {
+          position: "bottom",
+          labels: {
+            usePointStyle: true,
+            boxWidth: 8,
+            font: { family: "inherit", size: 12 },
+            generateLabels: chart => {
+              const orig = Chart.overrides.doughnut.plugins.legend.labels.generateLabels(chart);
+              return orig.map((item, idx) => {
+                const count = chartData[idx] || 0;
+                const pct = chartPcts[idx] || "0.00";
+                item.text = `${chartLabels[idx]}: ${Number(count).toLocaleString("id-ID")} (${pct}%)`;
+                return item;
+              });
+            }
+          }
+        },
         tooltip: {
           callbacks: {
-            label: context => ` ${context.label}: ${context.parsed}%`
+            label: context => {
+              const idx = context.dataIndex;
+              const count = Number(context.parsed).toLocaleString("id-ID");
+              const pct = chartPcts[idx] || "0.00";
+              return ` ${context.label}: ${count} Reseller (${pct}%)`;
+            }
           }
         }
       },
-      cutout: "62%"
+      cutout: "68%"
     }
   });
 }
@@ -1683,9 +2068,10 @@ function renderServSuksesRateChart(timeline) {
   destroyChart("servSuksesRate");
 
   const labels = timeline.map(t => t.label);
-  const rates = timeline.map(t => t.sukses_pct != null ? t.sukses_pct : 98.0);
-  const minRate = rates.length ? Math.min(...rates) : 95;
-  const yMin = Math.max(70, Math.floor(minRate - 2));
+  const rates = timeline.map(t => t.sukses_pct != null ? t.sukses_pct : 0.0);
+  const allZeroRates = rates.length === 0 || rates.every(r => Number(r) === 0);
+  const minRate = rates.length && !allZeroRates ? Math.min(...rates.filter(r => r > 0)) : 95;
+  const yMin = allZeroRates ? 0 : Math.max(70, Math.floor(minRate - 2));
 
   chartInstances["servSuksesRate"] = new Chart(ctx, {
     type: "line",
@@ -1706,6 +2092,28 @@ function renderServSuksesRateChart(timeline) {
         }
       ]
     },
+    plugins: [{
+      id: "suksesRateLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || meta.hidden) return;
+        ctx.save();
+        ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        meta.data.forEach((point, index) => {
+          const val = rates[index];
+          if (val !== null && val !== undefined) {
+            const formatted = `${Number(val).toFixed(1)}%`;
+            ctx.fillText(formatted, point.x, point.y - 6);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1740,13 +2148,14 @@ function renderServDurasiChart(timeline) {
     if (t.dur_sec != null && !isNaN(t.dur_sec)) {
       return Number(Number(t.dur_sec).toFixed(1));
     }
-    return 21.0;
+    return 0.0;
   });
 
-  const minDur = durValues.length ? Math.min(...durValues) : 15;
-  const maxDur = durValues.length ? Math.max(...durValues) : 30;
-  const yMin = Math.max(0, Math.floor(minDur - 3));
-  const yMax = Math.ceil(maxDur + 3);
+  const allZeroDur = durValues.length === 0 || durValues.every(d => Number(d) === 0);
+  const minDur = durValues.length && !allZeroDur ? Math.min(...durValues.filter(d => d > 0)) : 15;
+  const maxDur = durValues.length && !allZeroDur ? Math.max(...durValues) : 30;
+  const yMin = allZeroDur ? 0 : Math.max(0, Math.floor(minDur - 3));
+  const yMax = allZeroDur ? 30 : Math.ceil(maxDur + 3);
 
   chartInstances["servDurasi"] = new Chart(ctx, {
     type: "line",
@@ -1767,6 +2176,28 @@ function renderServDurasiChart(timeline) {
         }
       ]
     },
+    plugins: [{
+      id: "durasiLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || meta.hidden) return;
+        ctx.save();
+        ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        meta.data.forEach((point, index) => {
+          const val = durValues[index];
+          if (val !== null && val !== undefined) {
+            const formatted = `${Number(val).toFixed(1)}s`;
+            ctx.fillText(formatted, point.x, point.y - 6);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1949,6 +2380,82 @@ function renderLainTab(data) {
   const hourly = data.hourly_distribution || [];
   const statusBreakdown = data.status_breakdown || {};
   const weekday = data.weekday_distribution || [];
+  const summary = data.summary || {};
+
+  const totalTrx = Number(summary.total_trx || 0);
+  const totalSukses = Number(summary.total_sukses || 0);
+
+  // 1. Update Mini KPI Cards
+  const elPeak = document.getElementById("lain-stat-peak");
+  const elSubPeak = document.getElementById("lain-sub-peak");
+  const elSukses = document.getElementById("lain-stat-sukses-rate");
+  const elSubSukses = document.getElementById("lain-sub-sukses");
+  const elGagal = document.getElementById("lain-stat-gagal-rate");
+  const elSubGagal = document.getElementById("lain-sub-gagal");
+  const elHari = document.getElementById("lain-stat-hari");
+  const elSubHari = document.getElementById("lain-sub-hari");
+
+  if (totalTrx === 0) {
+    if (elPeak) elPeak.textContent = "Nol Data";
+    if (elSubPeak) elSubPeak.textContent = "Tidak ada transaksi pada periode ini";
+
+    if (elSukses) elSukses.textContent = "0.0%";
+    if (elSubSukses) elSubSukses.textContent = "0 Transaksi Sukses";
+
+    if (elGagal) elGagal.textContent = "0.0%";
+    if (elSubGagal) elSubGagal.textContent = "0 Transaksi Gagal";
+
+    if (elHari) elHari.textContent = "Nol Data";
+    if (elSubHari) elSubHari.textContent = "Tidak ada transaksi pada periode ini";
+  } else {
+    // A. Peak Hours
+    if (elPeak) {
+      if (hourly.length > 0) {
+        const sortedHours = [...hourly].sort((a, b) => (b.trx || 0) - (a.trx || 0));
+        const topHour = sortedHours[0];
+        if (topHour && (topHour.trx || 0) > 0) {
+          const startH = parseInt(topHour.hour.split(":")[0], 10);
+          const endH = (startH + 2) % 24;
+          elPeak.textContent = `${String(startH).padStart(2, "0")}:00 - ${String(endH).padStart(2, "0")}:00`;
+        } else {
+          elPeak.textContent = "-";
+        }
+      } else {
+        elPeak.textContent = "-";
+      }
+    }
+    if (elSubPeak) elSubPeak.textContent = "Jam Puncak Transaksi Terpadat";
+
+    // B. Sukses Rate
+    const sukPct = statusBreakdown["Sukses"] != null ? Number(statusBreakdown["Sukses"]) : (summary.avg_sukses_pct || 0);
+    if (elSukses) elSukses.textContent = `${sukPct.toFixed(1)}%`;
+    if (elSubSukses) elSubSukses.textContent = `${totalSukses.toLocaleString("id-ID")} Transaksi Sukses`;
+
+    // C. Gagal / Reject Rate
+    const gagalPct = Math.max(0.0, +(100.0 - sukPct).toFixed(1));
+    const totalGagal = Math.max(0, totalTrx - totalSukses);
+    if (elGagal) elGagal.textContent = `${gagalPct.toFixed(1)}%`;
+    if (elSubGagal) elSubGagal.textContent = `${totalGagal.toLocaleString("id-ID")} Transaksi Gagal`;
+
+    // D. Hari Terpadat
+    if (elHari) {
+      if (weekday.length > 0) {
+        const sortedDays = [...weekday].sort((a, b) => (b.trx || 0) - (a.trx || 0));
+        if (sortedDays[0] && (sortedDays[0].trx || 0) > 0) {
+          if (sortedDays.length > 1 && (sortedDays[1].trx || 0) > 0) {
+            elHari.textContent = `${sortedDays[0].day} & ${sortedDays[1].day}`;
+          } else {
+            elHari.textContent = `${sortedDays[0].day}`;
+          }
+        } else {
+          elHari.textContent = "-";
+        }
+      } else {
+        elHari.textContent = "-";
+      }
+    }
+    if (elSubHari) elSubHari.textContent = "Lonjakan Transaksi Mingguan";
+  }
 
   // Chart L1: Pola Jam Sibuk (24 Jam)
   renderLainHourlyChart(hourly);
@@ -2011,6 +2518,36 @@ function renderLainStatusChart(statusBreakdown) {
 
   const labels = Object.keys(statusBreakdown);
   const values = Object.values(statusBreakdown);
+  const allZero = values.length === 0 || values.every(v => Number(v) === 0);
+
+  if (allZero) {
+    chartInstances["lainStatus"] = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Nol Data"],
+        datasets: [
+          {
+            data: [1],
+            backgroundColor: ["#e2e8f0"],
+            borderWidth: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "right", labels: { boxWidth: 12, font: { family: "inherit", size: 11.5 } } },
+          tooltip: {
+            callbacks: {
+              label: () => " Tidak ada transaksi pada periode ini"
+            }
+          }
+        }
+      }
+    });
+    return;
+  }
 
   chartInstances["lainStatus"] = new Chart(ctx, {
     type: "pie",
@@ -2173,10 +2710,11 @@ function renderTopFailingModules(list) {
   if (!container) return;
 
   if (!list || list.length === 0) {
+    const isZero = currentModulesScorecard && currentModulesScorecard.length === 0;
     container.innerHTML = `
       <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12.5px; background: rgba(0,0,0,0.02); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
-        <span>Tidak ada modul dengan kendala kegagalan signifikan pada periode ini.</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: ${isZero ? 'var(--text-muted)' : '#16a34a'};"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+        <span>${isZero ? 'Tidak ada data transaksi modul pada periode ini (Nol Data).' : 'Tidak ada modul dengan kendala kegagalan signifikan pada periode ini.'}</span>
       </div>
     `;
     return;
@@ -2240,10 +2778,11 @@ function renderTopSlowestModules(list) {
   if (!container) return;
 
   if (!list || list.length === 0) {
+    const isZero = currentModulesScorecard && currentModulesScorecard.length === 0;
     container.innerHTML = `
       <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12.5px; background: rgba(0,0,0,0.02); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
-        <span>Seluruh modul beroperasi dalam performa kecepatan optimal.</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: ${isZero ? 'var(--text-muted)' : '#16a34a'};"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+        <span>${isZero ? 'Tidak ada data transaksi modul pada periode ini (Nol Data).' : 'Seluruh modul beroperasi dalam performa kecepatan optimal.'}</span>
       </div>
     `;
     return;
@@ -2334,7 +2873,7 @@ function renderModuleScorecardTable() {
     tbody.innerHTML = `
       <tr>
         <td colspan="10" style="text-align: center; padding: 28px; color: var(--text-muted); font-size: 13px;">
-          Tidak ada data modul yang sesuai dengan kriteria filter yang dipilih.
+          Tidak ada data modul pada periode ini (Nol Data).
         </td>
       </tr>
     `;

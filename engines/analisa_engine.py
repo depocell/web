@@ -25,6 +25,7 @@ import json
 import calendar
 from typing import Dict, Any, List
 import engines.metrics_engine as me
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
@@ -148,6 +149,7 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
     import engines.customer_engine as ce
     import engines.product_engine as pe
     import engines.master_product_engine as mpe
+    import engines.reseller_engine as re
 
     cache_file = os.path.join(CACHE_DIR, "analisa_gold_2026.json")
     p_astaga = te._cache_path("ASTAGA", "2026")
@@ -188,6 +190,26 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
             cab_map = ce.get_ar_to_cabang(brand)
             prod_map = pe.get_product_map(brand)
             kat_map = {pid: _norm_cat(v["kategori"]) for pid, v in prod_map.items()}
+            reseller_meta, agen_meta = re.load_master_meta(brand)
+
+            # Baseline Desember 2025 untuk perhitungan retensi 2026-01
+            dec25_resellers = set()
+            dec25_agens = set()
+            try:
+                p_25 = te._cache_path(brand, "2025")
+                if os.path.exists(p_25):
+                    df25 = te.load(brand, "2025")
+                    if brand == "ASTAGA":
+                        df25 = me.filter_astaga_internal(df25)
+                    df25["is_sukses"] = df25["status"].astype(str).str.lower().str.contains("sukses", na=False)
+                    df25["ym"] = df25["tgl_entry"].dt.strftime("%Y-%m")
+                    sub25 = df25[(df25["is_sukses"]) & (df25["ym"] == "2025-12")]
+                    dec25_resellers = set(sub25["ar_id"].dropna().astype(str).str.strip().str.upper())
+                    for ar in dec25_resellers:
+                        m = reseller_meta.get(ar, {})
+                        dec25_agens.add(m.get("agen_id") or ar)
+            except Exception as e:
+                print(f"[WARN] Failed loading 2025-12 for {brand}: {e}")
 
             if "ym" not in df.columns:
                 df["ym"] = df["tgl_entry"].dt.strftime("%Y-%m")
@@ -211,7 +233,21 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
             df["durasi_sec"] = dur_series.where((dur_series >= 0) & (dur_series <= 86400), float("nan"))
             df["sukses_durasi"] = df["durasi_sec"].where(df["is_sukses"], float("nan"))
 
-            for ym in sorted(df["ym"].dropna().unique().tolist()):
+            # Pre-extract active customer sets per month untuk perhitungan retensi MoM
+            ym_resellers_map = {}
+            ym_agens_map = {}
+            sorted_yms = sorted(df["ym"].dropna().unique().tolist())
+            for y_m in sorted_yms:
+                y_sub = df[(df["ym"] == y_m) & (df["is_sukses"])]
+                r_set = set(y_sub["ar_clean"].dropna().unique())
+                ym_resellers_map[y_m] = r_set
+                a_set = set()
+                for ar in r_set:
+                    m = reseller_meta.get(ar, {})
+                    a_set.add(m.get("agen_id") or ar)
+                ym_agens_map[y_m] = a_set
+
+            for idx, ym in enumerate(sorted_yms):
                 sub = df[df["ym"] == ym]
                 suk = sub[sub["is_sukses"]]
                 days_count = me.get_active_days(sub)
@@ -413,6 +449,53 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
                 max_days = calendar.monthrange(int(yr), int(mo))[1]
                 is_mtd = (days_count < max_days)
 
+                # Segmentasi Retensi Customer (MoM Cohort: Rutin vs Baru vs Reaktivasi vs Churn)
+                curr_resellers = ym_resellers_map[ym]
+                curr_agens = ym_agens_map[ym]
+                if idx == 0:
+                    prev_resellers = dec25_resellers
+                    prev_agens = dec25_agens
+                else:
+                    prev_resellers = ym_resellers_map[sorted_yms[idx - 1]]
+                    prev_agens = ym_agens_map[sorted_yms[idx - 1]]
+
+                new_reg_month = {
+                    rid for rid, m in reseller_meta.items()
+                    if (m.get("tgl_daftar") or "").startswith(ym)
+                }
+
+                new_active_set = curr_resellers & new_reg_month
+                reactivated_set = (curr_resellers - prev_resellers) - new_reg_month
+                retained_set = (curr_resellers & prev_resellers) - new_reg_month
+                churn_reseller_set = prev_resellers - curr_resellers
+                churn_agen_set = prev_agens - curr_agens
+
+                tot_active_seg = len(curr_resellers)
+                retained_cnt = len(retained_set)
+                new_cnt = len(new_active_set)
+                reac_cnt = len(reactivated_set)
+                churn_res_cnt = len(churn_reseller_set)
+                churn_ag_cnt = len(churn_agen_set)
+
+                retained_pct = round(retained_cnt / tot_active_seg * 100, 2) if tot_active_seg > 0 else 0.0
+                baru_pct = round(new_cnt / tot_active_seg * 100, 2) if tot_active_seg > 0 else 0.0
+                reac_pct = round(reac_cnt / tot_active_seg * 100, 2) if tot_active_seg > 0 else 0.0
+                churn_base = len(prev_resellers)
+                churn_pct = round(churn_res_cnt / churn_base * 100, 2) if churn_base > 0 else 0.0
+
+                seg_dict = {
+                    "total_active": tot_active_seg,
+                    "retained": retained_cnt,
+                    "new_active": new_cnt,
+                    "reactivated": reac_cnt,
+                    "churn_reseller": churn_res_cnt,
+                    "churn_agen": churn_ag_cnt,
+                    "retained_pct": retained_pct,
+                    "baru_pct": baru_pct,
+                    "reactivated_pct": reac_pct,
+                    "churn_pct": churn_pct
+                }
+
                 results[brand][ym] = {
                     "ym": ym,
                     "year": str(yr),
@@ -437,11 +520,7 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
                     "operators_perf": op_perf,
                     "tipes_perf": tipe_perf,
                     "daily": daily_list,
-                    "segments": {
-                        "retained_pct": 65.4 if brand == "ASTAGA" else 62.0,
-                        "baru_pct": 22.1 if brand == "ASTAGA" else 24.5,
-                        "churn_pct": 12.5 if brand == "ASTAGA" else 13.5
-                    }
+                    "segments": seg_dict
                 }
         except Exception as e:
             print(f"[WARN] Gagal build analisa 2026 untuk {brand}: {e}")
@@ -781,8 +860,44 @@ def get_analisa_dataset() -> Dict[str, Any]:
     return _ANALISA_CACHE
 
 
+def get_product_hierarchy() -> Dict[str, Any]:
+    """Mengembalikan hierarki produk { brand: { kategori: { operator: [paket, ...] } } } langsung dari SQLite master_data.db."""
+    import sqlite3
+    db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+    if not os.path.exists(db_path):
+        return {}
+    try:
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        rows = c.execute('''
+            SELECT brand, kategori, operator, paket, COUNT(*)
+            FROM products
+            WHERE is_active = 1 AND paket IS NOT NULL AND paket != ''
+            GROUP BY brand, kategori, operator, paket
+            ORDER BY brand, kategori, operator, paket
+        ''').fetchall()
+        conn.close()
+
+        data = {}
+        for brand, kat, op, pkt, count in rows:
+            b = (brand or "").upper().strip()
+            k = (kat or "").upper().strip()
+            o = (op or "").upper().strip()
+            p = (pkt or "").upper().strip()
+            if not b or not k or not o or not p:
+                continue
+            data.setdefault(b, {}).setdefault(k, {}).setdefault(o, [])
+            if p not in data[b][k][o]:
+                data[b][k][o].append(p)
+        return data
+    except Exception as e:
+        print(f"[WARN] get_product_hierarchy failed: {e}")
+        return {}
+
+
 def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator: str = "ALL", tipe: str = "ALL",
                            target_brands: List[str] = None, target_yms: List[str] = None, data_all: Dict[str, Any] = None) -> Dict[str, Any]:
+    res["product_hierarchy"] = get_product_hierarchy()
     if kategori == "ALL" and operator == "ALL" and tipe == "ALL":
         return res
 
@@ -1107,16 +1222,6 @@ def _aggregate_modules_scorecard(target_brands: List[str], target_yms: List[str]
 
     _collect(target_brands, target_yms)
 
-    # Fallback jika target_yms tidak memiliki data modul (misal periode 2023-2025)
-    if not found_any:
-        avail_yms = []
-        for b in target_brands:
-            for ym, ym_data in data_all.get(b, {}).items():
-                if "modules" in ym_data and ym_data["modules"]:
-                    avail_yms.append(ym)
-        if avail_yms:
-            _collect(target_brands, sorted(list(set(avail_yms))))
-
     norm_filter_tipe = filter_tipe.upper().strip() if (filter_tipe and filter_tipe != "ALL") else None
     norm_filter_op = filter_operator.upper().strip() if (filter_operator and filter_operator != "ALL") else None
     norm_filter_kat = filter_kategori.upper().strip() if (filter_kategori and filter_kategori != "ALL") else None
@@ -1231,8 +1336,53 @@ def _aggregate_modules_scorecard(target_brands: List[str], target_yms: List[str]
             "waspada_count": cukup_cnt,
             "gangguan_count": kurang_cnt,
             "chip_count": chip_cnt,
-            "h2h_count": h2h_cnt
         }
+    }
+
+
+def _aggregate_segments(target_brands: List[str], target_yms: List[str], data_all: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Agregasi metrik segmentasi retensi customer (Rutin, Baru, Reaktivasi, Churn)
+    dari gold pre-aggregated data untuk brand dan periode yang dipilih.
+    """
+    if not target_yms:
+        return {}
+    latest_ym = target_yms[-1]
+
+    tot_active = 0
+    retained = 0
+    new_active = 0
+    reactivated = 0
+    churn_res = 0
+    churn_ag = 0
+
+    for b in target_brands:
+        b_seg = data_all.get(b, {}).get(latest_ym, {}).get("segments", {})
+        tot_active += b_seg.get("total_active", b_seg.get("active_current", 0))
+        retained += b_seg.get("retained", 0)
+        new_active += b_seg.get("new_active", 0)
+        reactivated += b_seg.get("reactivated", 0)
+        churn_res += b_seg.get("churn_reseller", b_seg.get("churned", 0))
+        churn_ag += b_seg.get("churn_agen", 0)
+
+    ret_pct = round(retained / tot_active * 100, 2) if tot_active > 0 else 0.0
+    baru_pct = round(new_active / tot_active * 100, 2) if tot_active > 0 else 0.0
+    reac_pct = round(reactivated / tot_active * 100, 2) if tot_active > 0 else 0.0
+    churn_base = retained + churn_res
+    churn_pct = round(churn_res / churn_base * 100, 2) if churn_base > 0 else 0.0
+
+    return {
+        "ym": latest_ym,
+        "total_active": tot_active,
+        "retained": retained,
+        "new_active": new_active,
+        "reactivated": reactivated,
+        "churn_reseller": churn_res,
+        "churn_agen": churn_ag,
+        "retained_pct": ret_pct,
+        "baru_pct": baru_pct,
+        "reactivated_pct": reac_pct,
+        "churn_pct": churn_pct
     }
 
 
@@ -1351,33 +1501,44 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
                 "branches": day_branches
             })
 
-        count_pts = len(timeline) or 1
-        avg_daily_trx = round(tot_sukses / count_pts)
-        avg_daily_cust = round(tot_cust_sum / count_pts)
-        avg_tpm = round(sum(t["tpm"] for t in timeline) / count_pts, 2)
-
-        overall_sukses_pct = round(sum(data_all.get(b, {}).get(target_ym, {}).get("sukses_pct", 98.0) for b in target_brands) / len(target_brands), 2)
-        overall_tot_trx = sum(data_all.get(b, {}).get(target_ym, {}).get("trx_count", tot_sukses) for b in target_brands)
-        overall_dur_sec = float(sample_item.get("avg_dur_sec", 21.0))
-        overall_dur_str = sample_item.get("avg_dur_str", _format_duration(overall_dur_sec))
-
-        hourly_hours = [f"{str(i).zfill(2)}:00" for i in range(24)]
-        base_hourly_weights = [
-            0.012, 0.008, 0.005, 0.004, 0.006, 0.018, 0.035, 0.062, 0.078, 0.082, 0.085, 0.087,
-            0.081, 0.076, 0.075, 0.079, 0.086, 0.092, 0.098, 0.102, 0.094, 0.072, 0.045, 0.022
-        ]
-        hourly_distribution = [
-            {"hour": h, "trx": round(avg_daily_trx * w)} for h, w in zip(hourly_hours, base_hourly_weights)
-        ]
-
-        weekday_names = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
-        weekday_weights = [0.142, 0.144, 0.141, 0.146, 0.155, 0.158, 0.114]
-        weekday_distribution = [
-            {"day": d, "trx": round(tot_sukses / 4.3 * w)} for d, w in zip(weekday_names, weekday_weights)
-        ]
-
-        sukses_val = round(overall_sukses_pct, 1)
-        gagal_tot = max(0.0, round(100.0 - sukses_val, 1))
+        count_pts = len(timeline)
+        if count_pts == 0:
+            avg_daily_trx = 0
+            avg_daily_cust = 0
+            avg_tpm = 0.0
+            overall_sukses_pct = 0.0
+            overall_tot_trx = 0
+            overall_dur_sec = 0.0
+            overall_dur_str = "00:00"
+            sukses_val = 0.0
+            gagal_tot = 0.0
+            hourly_hours = [f"{str(i).zfill(2)}:00" for i in range(24)]
+            hourly_distribution = [{"hour": h, "trx": 0} for h in hourly_hours]
+            weekday_names = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
+            weekday_distribution = [{"day": d, "trx": 0} for d in weekday_names]
+        else:
+            avg_daily_trx = round(tot_sukses / count_pts)
+            avg_daily_cust = round(tot_cust_sum / count_pts)
+            avg_tpm = round(sum(t["tpm"] for t in timeline) / count_pts, 2)
+            overall_sukses_pct = round(sum(data_all.get(b, {}).get(target_ym, {}).get("sukses_pct", 98.0) for b in target_brands) / len(target_brands), 2)
+            overall_tot_trx = sum(data_all.get(b, {}).get(target_ym, {}).get("trx_count", tot_sukses) for b in target_brands)
+            overall_dur_sec = float(sample_item.get("avg_dur_sec", 21.0))
+            overall_dur_str = sample_item.get("avg_dur_str", _format_duration(overall_dur_sec))
+            sukses_val = round(overall_sukses_pct, 1)
+            gagal_tot = max(0.0, round(100.0 - sukses_val, 1))
+            hourly_hours = [f"{str(i).zfill(2)}:00" for i in range(24)]
+            base_hourly_weights = [
+                0.012, 0.008, 0.005, 0.004, 0.006, 0.018, 0.035, 0.062, 0.078, 0.082, 0.085, 0.087,
+                0.081, 0.076, 0.075, 0.079, 0.086, 0.092, 0.098, 0.102, 0.094, 0.072, 0.045, 0.022
+            ]
+            hourly_distribution = [
+                {"hour": h, "trx": round(avg_daily_trx * w)} for h, w in zip(hourly_hours, base_hourly_weights)
+            ]
+            weekday_names = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
+            weekday_weights = [0.142, 0.144, 0.141, 0.146, 0.155, 0.158, 0.114]
+            weekday_distribution = [
+                {"day": d, "trx": round(tot_sukses / 4.3 * w)} for d, w in zip(weekday_names, weekday_weights)
+            ]
 
         return _apply_product_filters({
             "ok": True,
@@ -1400,8 +1561,8 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
                 "avg_dur_str": overall_dur_str,
                 "total_points": count_pts,
                 "granularity_label": f"Harian ({MONTH_FULL_NAMES.get(month.zfill(2), month)} {year})" + (f" • MTD {active_days} Hari" if is_mtd else ""),
-                "top_category": max(categories_total, key=categories_total.get) if categories_total else "EWALLET",
-                "top_branch": max(branches_total, key=branches_total.get) if branches_total else "BSD"
+                "top_category": max(categories_total, key=categories_total.get) if categories_total else "-",
+                "top_branch": max(branches_total, key=branches_total.get) if branches_total else "-"
             },
             "timeline": timeline,
             "categories_total": categories_total,
@@ -1414,6 +1575,7 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
                 "Gagal Saldo": round(gagal_tot * 0.25, 1),
                 "Timeout Provider": round(gagal_tot * 0.20, 1)
             },
+            "segments": _aggregate_segments(target_brands, [target_ym], data_all),
             "modules_scorecard": modules_data["scorecard"],
             "top_failing_modules": modules_data["top_failing"],
             "top_slowest_modules": modules_data["top_slowest"],
@@ -1568,6 +1730,7 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
                 "Gagal Saldo": round(gagal_tot * 0.25, 1),
                 "Timeout Provider": round(gagal_tot * 0.20, 1)
             },
+            "segments": _aggregate_segments(target_brands, all_yms, data_all),
             "modules_scorecard": modules_data["scorecard"],
             "top_failing_modules": modules_data["top_failing"],
             "top_slowest_modules": modules_data["top_slowest"],
@@ -1676,7 +1839,8 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
             "dur_sec": avg_dur,
             "dur_str": _format_duration(avg_dur),
             "categories": ym_cats,
-            "branches": ym_branches
+            "branches": ym_branches,
+            "segments": _aggregate_segments(target_brands, [ym], data_all)
         })
 
     avg_monthly_trx = round(tot_trx / count_points) if count_points > 0 else 0
@@ -1740,6 +1904,7 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
             "Gagal Saldo": round(gagal_tot * 0.25, 1),
             "Timeout Provider": round(gagal_tot * 0.20, 1)
         },
+        "segments": _aggregate_segments(target_brands, filtered_yms, data_all),
         "modules_scorecard": modules_data["scorecard"],
         "top_failing_modules": modules_data["top_failing"],
         "top_slowest_modules": modules_data["top_slowest"],

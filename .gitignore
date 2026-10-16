@@ -9,6 +9,9 @@ scratch/
 MASTER/master.db
 MASTER/MASTER_PRODUCT_*.xlsx
 pages/sco_backup/
+.git_sco/
+*_backup/
+*_backup.*
 
 # Heavy Excel files & local exports
 POWER_AR.xlsx

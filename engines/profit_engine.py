@@ -187,21 +187,35 @@ def calculate_profit_analysis(
             "daily_net_profit": me.calculate_daily_rate(m_np, m_days)
         })
 
+    # Normalisasi format month_code (misal "11" -> "2026-11", atau "2026-11")
+    norm_month = None
+    if month_code and str(month_code).strip().upper() not in ("ALL", "", "NONE"):
+        m_str = str(month_code).strip()
+        if m_str.isdigit() and len(m_str) <= 2:
+            norm_month = f"{year}-{m_str.zfill(2)}"
+        else:
+            norm_month = m_str
+
     # Jika spesifik bulan dipilih (atau default ALL)
-    if month_code and month_code in available_months:
-        df_target = df_sukses[df_sukses["ym"] == month_code]
-        selected_period_label = month_code
+    if norm_month:
+        if norm_month in available_months:
+            df_target = df_sukses[df_sukses["ym"] == norm_month]
+            selected_period_label = norm_month
+        else:
+            # Spesifik bulan dipilih tapi belum ada transaksi (misal Nov/Des 2026) -> Nol Data
+            df_target = df_sukses.iloc[0:0]
+            selected_period_label = f"{norm_month} (Nol Data)"
     else:
         df_target = df_sukses
         selected_period_label = f"Tahun {year} (Semua Bulan)"
 
     tot_trx = len(df_target)
-    tot_rev = float(df_target["jual"].sum())
-    tot_mod = float(df_target["beli"].sum())
-    tot_gp = float(df_target["gross_profit"].sum())
-    tot_mk = float(df_target["markup"].sum())
-    tot_np = float(df_target["net_profit"].sum())
-    days_act = me.get_active_days(df_target)
+    tot_rev = float(df_target["jual"].sum()) if not df_target.empty else 0.0
+    tot_mod = float(df_target["beli"].sum()) if not df_target.empty else 0.0
+    tot_gp = float(df_target["gross_profit"].sum()) if not df_target.empty else 0.0
+    tot_mk = float(df_target["markup"].sum()) if not df_target.empty else 0.0
+    tot_np = float(df_target["net_profit"].sum()) if not df_target.empty else 0.0
+    days_act = me.get_active_days(df_target) if not df_target.empty else 0
 
     # 2. BREAKDOWN PER KATEGORI PRODUK - Vectorized
     cat_summary = []
@@ -301,7 +315,7 @@ def calculate_profit_analysis(
         "ok": True,
         "brand": brand_upper,
         "year": str(year),
-        "selected_month": month_code or "ALL",
+        "selected_month": norm_month or "ALL",
         "selected_period_label": selected_period_label,
         "available_months": available_months,
         "kpi": {

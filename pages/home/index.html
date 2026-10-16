@@ -1,9 +1,9 @@
+<!-- pages/home/index.html — Overview Dashboard (Unified Strip Container) -->
 <style>
-  /* Styling Scoped Overview Dashboard */
   .overview-container {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 20px;
   }
 
   .overview-header {
@@ -11,611 +11,220 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 14px;
+    margin-bottom: 2px;
   }
 
-  .overview-header h1 {
+  .overview-title-group h1 {
     font-size: 1.35rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: -0.4px;
     margin: 0;
     color: var(--text-main);
   }
 
-  .overview-header p {
+  .overview-title-group p {
     font-size: 0.88rem;
     color: var(--text-muted);
     margin: 3px 0 0;
   }
 
-  /* 4 Executive KPI Cards */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-  }
-
-  .kpi-card {
-    background: var(--surface);
-    border: 1px solid var(--surface-border);
-    border-radius: 12px;
-    padding: 16px 18px;
-    box-shadow: var(--card-shadow);
+  /* Section Title Bar */
+  .overview-section-header {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--card-shadow-hover);
-    border-color: var(--primary-border);
-  }
-
-  .kpi-card-top {
-    display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
+    margin-bottom: 10px;
   }
 
-  .kpi-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-muted);
-  }
-
-  .kpi-icon-wrap {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
+  .overview-brand-badge {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-  }
-
-  .kpi-val {
-    font-size: 1.55rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: var(--text-main);
-    line-height: 1.15;
-  }
-
-  .kpi-sub {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  /* 2-Column Balanced Pillars */
-  .pillars-grid {
-    display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 20px;
-    align-items: start;
-  }
-
-  @media (max-width: 1024px) {
-    .pillars-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .pillar-col {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  /* Pillar Badge Header */
-  .pillar-title-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.8rem;
+    gap: 7px;
+    font-size: 0.78rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.6px;
     padding: 4px 10px;
     border-radius: 6px;
-    width: fit-content;
   }
 
-  /* Highlights Box (Top & Bottom Movers) */
-  .movers-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  @media (max-width: 600px) {
-    .movers-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .mover-item {
-    background: var(--table-header);
+  /* UNIFIED STRIP CONTAINER (Panjang Terpadu ala Analisa Revenue) */
+  .unified-strip-container {
+    background: var(--surface);
     border: 1px solid var(--surface-border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    display: flex;
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 0;
+    box-shadow: var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.04));
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   }
 
-  .mover-icon {
-    font-size: 1.25rem;
-    flex-shrink: 0;
+  .unified-strip-container:hover {
+    box-shadow: var(--card-shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.07));
   }
 
-  .mover-body {
-    flex: 1;
-    min-width: 0;
+  .unified-strip-col {
+    padding: 6px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid var(--surface-border);
   }
 
-  .mover-label {
-    font-size: 0.72rem;
+  .unified-strip-col:first-child {
+    padding-left: 6px;
+  }
+
+  .unified-strip-col:last-child {
+    border-right: none;
+    padding-right: 6px;
+  }
+
+  .strip-label {
+    font-size: 11px;
     font-weight: 700;
-    color: var(--text-muted);
     text-transform: uppercase;
-  }
-
-  .mover-name {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-main);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mover-val {
-    font-size: 0.82rem;
-    font-weight: 600;
-  }
-
-  /* Fisik Specific Breakdown */
-  .fisik-ratio-bar {
-    width: 100%;
-    height: 10px;
-    border-radius: 9999px;
-    overflow: hidden;
-    display: flex;
-    background: var(--surface-border);
-    margin: 10px 0 6px;
-  }
-
-  .fisik-ratio-voucher {
-    background: #8b5cf6;
-    transition: width 0.3s ease;
-  }
-
-  .fisik-ratio-perdana {
-    background: #0ea5e9;
-    transition: width 0.3s ease;
-  }
-
-  .fisik-legend {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .fisik-legend-item {
+    letter-spacing: 0.35px;
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
-  .fisik-dot {
-    width: 8px;
-    height: 8px;
+  .strip-dot {
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
   }
 
-  .overview-action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    background: var(--table-header);
-    border: 1px solid var(--surface-border);
-    color: var(--text-main);
-    font-size: 0.82rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.15s ease;
-    margin-top: 14px;
-    text-align: center;
+  .strip-val {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-top: 5px;
+    letter-spacing: -0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .overview-action-btn:hover {
-    background: var(--primary);
-    color: #ffffff;
-    border-color: var(--primary);
+  .strip-sub {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
   }
 
-  /* Collapsible Audit Alert */
-  .audit-alert-banner {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 10px;
-    padding: 12px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    transition: background 0.15s ease;
+  /* Color Variations */
+  .color-blue {
+    color: #0284c7;
+  }
+  .strip-dot-blue {
+    background: #0284c7;
+  }
+  html[data-theme="dark"] .strip-val-blue {
+    color: #38bdf8;
   }
 
-  html[data-theme="dark"] .audit-alert-banner {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.3);
+  .color-green {
+    color: #10b981;
+  }
+  .strip-dot-green {
+    background: #10b981;
+  }
+  html[data-theme="dark"] .strip-val-green {
+    color: #34d399;
   }
 
-  .audit-alert-banner:hover {
-    background: #fef3c7;
+  .color-purple {
+    color: #8b5cf6;
+  }
+  .strip-dot-purple {
+    background: #8b5cf6;
+  }
+  html[data-theme="dark"] .strip-val-purple {
+    color: #c084fc;
   }
 
-  html[data-theme="dark"] .audit-alert-banner:hover {
-    background: rgba(245, 158, 11, 0.18);
+  .color-orange {
+    color: #f59e0b;
+  }
+  .strip-dot-orange {
+    background: #f59e0b;
+  }
+  html[data-theme="dark"] .strip-val-orange {
+    color: #fbbf24;
+  }
+
+  /* Responsif Tablet & Mobile */
+  @media (max-width: 900px) {
+    .unified-strip-container {
+      grid-template-columns: repeat(2, 1fr);
+      row-gap: 16px;
+      padding: 16px 18px;
+    }
+    .unified-strip-col:nth-child(2) {
+      border-right: none;
+    }
+    .unified-strip-col:nth-child(3) {
+      padding-left: 6px;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .unified-strip-container {
+      grid-template-columns: 1fr;
+      row-gap: 14px;
+    }
+    .unified-strip-col {
+      border-right: none !important;
+      border-bottom: 1px solid var(--surface-border);
+      padding: 0 0 12px 0 !important;
+    }
+    .unified-strip-col:last-child {
+      border-bottom: none !important;
+      padding-bottom: 0 !important;
+    }
   }
 </style>
 
 <div class="overview-container">
 
-  <!-- TOP HEADER -->
+  <!-- TOP HEADER & BRAND SWITCHER -->
   <div class="overview-header">
-    <div>
+    <div class="overview-title-group">
       <h1>Executive Overview</h1>
-      <p>Konsolidasi Performa Bisnis</p>
-    </div>
-    <div>
-      <span class="badge" id="last-updated">Memuat data...</span>
-    </div>
-  </div>
-
-  <!-- SECTION 1: 4 EXECUTIVE KPI CARDS -->
-  <div class="kpi-grid">
-    <!-- Card 1: Trx Digital Volume -->
-    <div class="kpi-card" style="border-top: 3px solid #2563eb;">
-      <div class="kpi-card-top">
-        <span class="kpi-label">Trx Digital (MTD)</span>
-        <span class="kpi-icon-wrap" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-        </span>
-      </div>
-      <div class="kpi-val" id="kpi-digital-vol">-</div>
-      <div class="kpi-sub" id="kpi-digital-daily">Memuat pergerakan...</div>
+      <p id="overview-subtitle">Ringkasan Analisa Distribusi Transaksi • Bulan Berjalan</p>
     </div>
 
-    <!-- Card 2: Digital Health & Success Rate -->
-    <div class="kpi-card" style="border-top: 3px solid #16a34a;">
-      <div class="kpi-card-top">
-        <span class="kpi-label">Sukses Rate Digital</span>
-        <span class="kpi-icon-wrap" style="background: rgba(22, 163, 74, 0.1); color: #16a34a;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="m9 12 2 2 4-4"></path>
-          </svg>
-        </span>
-      </div>
-      <div class="kpi-val" id="kpi-digital-sukses">-</div>
-      <div class="kpi-sub" id="kpi-digital-agen">Memuat agen aktif...</div>
-    </div>
-
-    <!-- Card 3: Fisik Qty -->
-    <div class="kpi-card" style="border-top: 3px solid #8b5cf6;">
-      <div class="kpi-card-top">
-        <span class="kpi-label">Penjualan Fisik (Qty)</span>
-        <span class="kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path
-              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-            </path>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-          </svg>
-        </span>
-      </div>
-      <div class="kpi-val" id="kpi-fisik-qty">-</div>
-      <div class="kpi-sub" id="kpi-fisik-qty-sub">Memuat data fisik...</div>
-    </div>
-
-    <!-- Card 4: Fisik Omset Netto -->
-    <div class="kpi-card" style="border-top: 3px solid #f59e0b;">
-      <div class="kpi-card-top">
-        <span class="kpi-label">Omset Fisik (Netto)</span>
-        <span class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-        </span>
-      </div>
-      <div class="kpi-val" id="kpi-fisik-omset">-</div>
-      <div class="kpi-sub" id="kpi-fisik-omset-sub">Memuat omset...</div>
+    <!-- Unified Brand Switcher -->
+    <div class="unified-brand-switcher" id="overview-brand-switcher">
+      <button type="button" id="btn-ov-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchOverviewBrand('ASTAGA')">
+        <span class="brand-dot"></span>
+        ASTAGA
+      </button>
+      <button type="button" id="btn-ov-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchOverviewBrand('OKIPAY')">
+        <span class="brand-dot"></span>
+        OKIPAY
+      </button>
+      <button type="button" id="btn-ov-both" class="unified-brand-btn" data-brand="BOTH" onclick="switchOverviewBrand('BOTH')">
+        <span class="brand-dot" style="background: #8b5cf6;"></span>
+        Keduanya
+      </button>
     </div>
   </div>
 
-  <!-- SECTION 2: BALANCED TWO-COLUMN PILLARS -->
-  <div class="pillars-grid">
-
-    <!-- PILAR KIRI: DIGITAL SERVER (OTOMAX) -->
-    <div class="pillar-col">
-
-      <!-- ASTAGA Cabang Card -->
-      <section class="card" id="card-astaga">
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" style="color: #2563eb;">
-              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-              <line x1="9" y1="22" x2="9" y2="22.01"></line>
-              <line x1="15" y1="22" x2="15" y2="22.01"></line>
-              <line x1="9" y1="6" x2="9" y2="6.01"></line>
-              <line x1="15" y1="6" x2="15" y2="6.01"></line>
-              <line x1="9" y1="10" x2="9" y2="10.01"></line>
-              <line x1="15" y1="10" x2="15" y2="10.01"></line>
-              <line x1="9" y1="14" x2="9" y2="14.01"></line>
-              <line x1="15" y1="14" x2="15" y2="14.01"></line>
-              <line x1="9" y1="18" x2="9" y2="18.01"></line>
-              <line x1="15" y1="18" x2="15" y2="18.01"></line>
-            </svg>
-            <div>
-              <h2 style="margin: 0; font-size: 1rem;">ASTAGA RELOAD</h2>
-              <span class="card-meta" id="meta-astaga" style="margin-top: 2px;">Memuat periode...</span>
-            </div>
-          </div>
-          <span class="pillar-title-badge" style="background: rgba(37, 99, 235, 0.08); color: #2563eb;">
-            RETAIL
-          </span>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Cabang</th>
-                <th class="text-right">Bln Ini</th>
-                <th class="text-right">Bln Lalu</th>
-                <th class="text-right">Growth (+/-)</th>
-                <th class="text-right">Growth %</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-astaga">
-              <tr>
-                <td colspan="5" class="loader">Memuat data ASTAGA...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Highlights Top/Bottom Movers -->
-      <div class="movers-grid">
-        <div class="mover-item">
-          <div class="mover-icon" style="color: var(--positive);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-              <polyline points="17 6 23 6 23 12"></polyline>
-            </svg>
-          </div>
-          <div class="mover-body">
-            <div class="mover-label">Top Growth Cabang</div>
-            <div class="mover-name" id="mover-top-name">-</div>
-            <div class="mover-val" id="mover-top-val" style="color: var(--positive);">-</div>
-          </div>
-        </div>
-        <div class="mover-item">
-          <div class="mover-icon" style="color: var(--negative);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-          </div>
-          <div class="mover-body">
-            <div class="mover-label">Perlu Perhatian</div>
-            <div class="mover-name" id="mover-bottom-name">-</div>
-            <div class="mover-val" id="mover-bottom-val" style="color: var(--negative);">-</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- OKIPAY Channel Card -->
-      <section class="card" id="card-okipay">
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" style="color: #0284c7;">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-              <line x1="1" y1="10" x2="23" y2="10"></line>
-            </svg>
-            <div>
-              <h2 style="margin: 0; font-size: 1rem;">OKIPAYMENT</h2>
-              <span class="card-meta" id="meta-okipay" style="margin-top: 2px;">Memuat periode...</span>
-            </div>
-          </div>
-          <span class="pillar-title-badge" style="background: rgba(14, 165, 233, 0.08); color: #0284c7;">
-            Online & H2H
-          </span>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Channel</th>
-                <th class="text-right">Daily Bln Ini</th>
-                <th class="text-right">Daily Bln Lalu</th>
-                <th class="text-right">Growth (+/-)</th>
-                <th class="text-right">Growth %</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-okipay">
-              <tr>
-                <td colspan="5" class="loader">Memuat data OKIPAY...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
+  <!-- CONTAINER KONTEN DINAMIS -->
+  <div id="overview-content">
+    <div class="card" style="padding: 24px; text-align: center; color: var(--text-muted);">
+      Memuat ringkasan data transaksi...
     </div>
-
-    <!-- PILAR KANAN: PRODUK FISIK (SISCOM) -->
-    <div class="pillar-col">
-
-      <!-- Card Ringkasan Fisik SISCOM -->
-      <section class="card" id="card-fisik-summary">
-        <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" style="color: #7c3aed;">
-              <path
-                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-              </path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-            <div>
-              <h2 style="margin: 0; font-size: 1rem;">Produk Fisik</h2>
-              <span class="card-meta" id="meta-fisik" style="margin-top: 2px;">Memuat periode...</span>
-            </div>
-          </div>
-          <span class="pillar-title-badge" style="background: rgba(139, 92, 246, 0.08); color: #7c3aed;">
-            SISCOM
-          </span>
-        </div>
-
-        <div style="padding: 18px 20px;">
-          <!-- Proporsi Kategori Bar -->
-          <div
-            style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 700;">
-            <span>Kategori Barang</span>
-            <span id="fisik-ratio-text" style="color: var(--text-muted); font-size: 0.78rem;">-</span>
-          </div>
-
-          <div class="fisik-ratio-bar">
-            <div id="bar-voucher" class="fisik-ratio-voucher" style="width: 50%;"></div>
-            <div id="bar-perdana" class="fisik-ratio-perdana" style="width: 50%;"></div>
-          </div>
-
-          <div class="fisik-legend">
-            <div class="fisik-legend-item">
-              <span class="fisik-dot" style="background: #8b5cf6;"></span>
-              <span>Voucher Fisik: <strong id="fisik-legend-voucher">-</strong></span>
-            </div>
-            <div class="fisik-legend-item">
-              <span class="fisik-dot" style="background: #0ea5e9;"></span>
-              <span>Perdana: <strong id="fisik-legend-perdana">-</strong></span>
-            </div>
-          </div>
-
-          <!-- Divider -->
-          <hr style="border: none; border-top: 1px solid var(--surface-border); margin: 16px 0;" />
-
-          <!-- Top Depo / Cabang Fisik Table -->
-          <div
-            style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 10px;">
-            Top Cabang Penjualan Fisik Terbesar
-          </div>
-
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cabang</th>
-                  <th class="text-right">Qty</th>
-                  <th class="text-right">Omset</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-fisik-depo">
-                <tr>
-                  <td colspan="3" class="loader">Memuat data cabang fisik...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Action Button to Detail -->
-          <a href="#produk" class="overview-action-btn" style="width: 100%; box-sizing: border-box;">
-            <span>Buka Laporan Lengkap Produk Fisik</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          </a>
-        </div>
-      </section>
-
-      <!-- Mini Info Box Distribusi -->
-      <div
-        style="background: var(--surface); border: 1px solid var(--surface-border); border-radius: 12px; padding: 14px 18px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
-        <strong style="color: var(--text-main); display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          Catatan Rekonsiliasi:
-        </strong>
-        Angka fisik bersumber langsung dari buku SISCOM (take-out saldo/deposit murni). Transaksi digital dan fisik
-        terpisah pembukuan namun menyatu dalam laporan konsolidasi Overview ini.
-      </div>
-
-    </div>
-
   </div>
-
-  <!-- SECTION 3: MINI TREN TRANSAKSI HARIAN DIGITAL (CHART) -->
-  <section class="card" style="margin-top: 4px;">
-    <div class="card-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round" style="color: #2563eb;">
-          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-          <polyline points="17 6 23 6 23 12"></polyline>
-        </svg>
-        <div>
-          <h2 style="margin: 0; font-size: 1rem;">Transaksi Harian Digital</h2>
-          <span class="card-meta" id="meta-trend">ASTAGA + OKIPAY</span>
-        </div>
-      </div>
-      <span class="badge" id="trend-total-badge"
-        style="background: rgba(37, 99, 235, 0.08); color: #2563eb; font-weight: 700;">
-        MTD
-      </span>
-    </div>
-    <div style="padding: 16px 20px;">
-      <div style="height: 200px; position: relative;">
-        <canvas id="chart-overview-trend"></canvas>
-      </div>
-    </div>
-  </section>
 
 </div>
