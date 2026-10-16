@@ -7,8 +7,9 @@ __pycache__/
 *.pyc
 scratch/
 MASTER/master.db
-MASTER/MASTER_PRODUCT_*.xlsx
-pages/sco_backup/
+# Ignore root-level raw dumps but keep UI icons in static/img
+MASTER/.server_secret
+
 .git_sco/
 *_backup/
 *_backup.*

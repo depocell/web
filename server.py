@@ -10,13 +10,15 @@ import json
 import uvicorn
 import asyncio
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse, HTMLResponse, FileResponse
+from starlette.responses import JSONResponse, HTMLResponse, FileResponse, RedirectResponse
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 
+import engines.auth_engine as auth_engine
 import engines.transaction_engine as trx_engine
 import engines.overview_engine as overview_engine
 import engines.daily_engine as daily_engine
@@ -54,6 +56,113 @@ async def favicon(request):
     if os.path.exists(fav_path):
         return FileResponse(fav_path, media_type="image/png")
     return HTMLResponse("", status_code=204)
+
+
+# ─── Autentikasi & Akses Lapangan SCO ─────────────────────────────────────────
+
+def is_local_request(request) -> bool:
+    """Mengecek apakah request berasal dari workstation lokal (desktop WebView2 / localhost)."""
+    host_header = request.headers.get("host", "").lower()
+    # Jika diakses via domain resmi atau IP publik VPS, pasti ONLINE
+    if "depas.my.id" in host_header or "45.66.153.150" in host_header:
+        return False
+    # Jika lewat reverse proxy nginx (ada header x-forwarded), pasti ONLINE
+    if request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip"):
+        return False
+    client_host = request.client.host if request.client else ""
+    return client_host in ("127.0.0.1", "localhost", "::1")
+
+
+async def page_login(request):
+    """Menampilkan halaman login manajemen."""
+    if is_local_request(request):
+        return RedirectResponse("/", status_code=302)
+    token = request.cookies.get("depas_session")
+    valid, _ = auth_engine.verify_session_token(token)
+    if valid:
+        return RedirectResponse("/", status_code=302)
+
+    login_path = os.path.join(TEMPLATES_DIR, "login.html")
+    if os.path.exists(login_path):
+        with open(login_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>Login Page Not Found</h1>", status_code=404)
+
+
+async def api_auth_login(request):
+    """Memproses login akun manajemen via JSON."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Format request tidak valid"}, status_code=400)
+
+    username = str(body.get("username", "")).strip()
+    password = str(body.get("password", "")).strip()
+    remember_me = bool(body.get("remember_me", True))
+
+    ok, res = auth_engine.verify_login(username, password)
+    if not ok:
+        return JSONResponse({"ok": False, "error": res}, status_code=401)
+
+    token = auth_engine.create_session_token(username, remember_me=remember_me)
+    max_age = auth_engine.SESSION_DURATION_LONG if remember_me else auth_engine.SESSION_DURATION_SHORT
+
+    response = JSONResponse({"ok": True, "user": res, "message": "Login berhasil"})
+    is_secure = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    response.set_cookie(
+        key="depas_session",
+        value=token,
+        max_age=max_age,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=is_secure
+    )
+    return response
+
+
+async def api_auth_logout(request):
+    """Logout akun dan redirect ke halaman login."""
+    response = RedirectResponse("/login", status_code=302)
+    response.delete_cookie("depas_session", path="/")
+    return response
+
+
+async def api_auth_status(request):
+    """Cek status login pengguna saat ini."""
+    if is_local_request(request):
+        return JSONResponse({"ok": True, "authenticated": True, "is_local": True, "username": "Admin (Lokal)"})
+    token = request.cookies.get("depas_session")
+    valid, username = auth_engine.verify_session_token(token)
+    return JSONResponse({
+        "ok": True,
+        "authenticated": valid,
+        "is_local": False,
+        "username": username if valid else None
+    })
+
+
+async def api_auth_change_password(request):
+    """Mengubah password akun manajemen."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Format request tidak valid"}, status_code=400)
+
+    token = request.cookies.get("depas_session")
+    valid, session_user = auth_engine.verify_session_token(token)
+    username = session_user if valid else body.get("username", "admin")
+
+    old_password = body.get("old_password", "")
+    new_password = body.get("new_password", "")
+
+    ok, msg = auth_engine.change_password(username, old_password, new_password)
+    return JSONResponse({"ok": ok, "message" if ok else "error": msg})
+
+
+async def page_sco_redirect(request):
+    """Direct standalone URL untuk tim sales lapangan ke SCO Performance Suite."""
+    return RedirectResponse(url="/pages/sco/index.html", status_code=302)
 
 
 async def api_overview(request):
@@ -648,11 +757,65 @@ async def api_admin_product_export(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+# ─── Auth Middleware ─────────────────────────────────────────────────────────
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # 1. Workstation desktop lokal bebas login total
+        if is_local_request(request):
+            return await call_next(request)
+
+        path = request.url.path
+
+        # 2. Whitelist rute publik:
+        # - Halaman login & endpoint auth
+        # - Akses langsung tim sales lapangan ke SCO Suite (/sco, /pages/sco/*, /api/sco/*)
+        # - File statis (CSS, JS, logo, font)
+        # - Favicon
+        if (
+            path == "/login" or
+            path.startswith("/api/auth/") or
+            path == "/sco" or
+            path.startswith("/sco/") or
+            path.startswith("/pages/sco") or
+            path.startswith("/api/sco") or
+            path.startswith("/static/") or
+            path == "/favicon.ico"
+        ):
+            return await call_next(request)
+
+        # 3. Validasi token sesi untuk seluruh rute internal lainnya
+        token = request.cookies.get("depas_session")
+        valid, username = auth_engine.verify_session_token(token)
+        if valid:
+            return await call_next(request)
+
+        # 4. Jika unauthenticated:
+        if path.startswith("/api/"):
+            return JSONResponse(
+                {"ok": False, "error": "Akses ditolak. Sesi tidak ditemukan atau telah kedaluwarsa. Silakan login terlebih dahulu."},
+                status_code=401
+            )
+
+        # Jika buka halaman web: redirect ke /login
+        next_url = str(request.url.path)
+        if request.url.query:
+            next_url += f"?{request.url.query}"
+        return RedirectResponse(f"/login?next={next_url}", status_code=302)
+
+
 # ─── Routing ─────────────────────────────────────────────────────────────────
 
 routes = [
-    Route("/",                  homepage),
-    Route("/favicon.ico",       favicon),
+    Route("/",                          homepage),
+    Route("/login",                     page_login),
+    Route("/sco",                       page_sco_redirect),
+    Route("/sco/",                      page_sco_redirect),
+    Route("/favicon.ico",               favicon),
+    Route("/api/auth/login",            api_auth_login, methods=["POST"]),
+    Route("/api/auth/logout",           api_auth_logout, methods=["GET", "POST"]),
+    Route("/api/auth/status",           api_auth_status),
+    Route("/api/auth/change-password",  api_auth_change_password, methods=["POST"]),
     Route("/api/overview",      api_overview),
     Route("/api/daily/periods", api_daily_periods),
     Route("/api/daily",         api_daily),
@@ -695,6 +858,7 @@ routes = [
 ]
 
 app = Starlette(debug=True, routes=routes)
+app.add_middleware(AuthMiddleware)
 
 # ─── Prewarm ─────────────────────────────────────────────────────────────────
 

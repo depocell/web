@@ -18,6 +18,11 @@
           el.style.display = "none";
         }
       });
+      // Tampilkan profil user & tombol logout untuk host online
+      const userSec = document.getElementById("sidebar-user-section");
+      if (userSec) {
+        userSec.style.display = "flex";
+      }
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", hideAdminNav);
