@@ -158,7 +158,32 @@ def get_system_overview(year: str = "2026") -> dict:
                 "is_healthy": False
             }
 
-    # 2. Master Files Audit
+    # 2. Master Files Audit (Live Dynamic Counts from SQLite)
+    db_master_path = os.path.join(MASTER_DIR, "master_data.db")
+    role_agents_resellers = "Customer Master (SQLite)"
+    role_products = "Product Master (SQLite)"
+    role_branches = "10 Cabang Resmi & Depo Regional"
+
+    if os.path.exists(db_master_path):
+        try:
+            import sqlite3
+            with sqlite3.connect(db_master_path) as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT count(*) FROM resellers")
+                tot_res = cur.fetchone()[0]
+                cur.execute("SELECT count(*) FROM agents")
+                tot_ag = cur.fetchone()[0]
+                role_agents_resellers = f"{tot_res:,} Downline Reseller & {tot_ag:,} Agen Induk".replace(",", ".")
+
+                cur.execute("SELECT brand, count(*) FROM products GROUP BY brand")
+                prod_map = dict(cur.fetchall())
+                astaga_p = prod_map.get("ASTAGA", 0)
+                okipay_p = prod_map.get("OKIPAY", 0)
+                tot_p = astaga_p + okipay_p
+                role_products = f"{tot_p:,} SKU Produk (ASTAGA {astaga_p:,} & OKIPAY {okipay_p:,})".replace(",", ".")
+        except Exception:
+            pass
+
     master_files_to_check = [
         {
             "name": "master_data.db",
@@ -171,21 +196,21 @@ def get_system_overview(year: str = "2026") -> dict:
             "name": "Tabel: agents & resellers",
             "category": "Customer Master (SQLite)",
             "path": os.path.join(MASTER_DIR, "master_data.db"),
-            "role": "28.460+ Downline Reseller & 8.552 Agen Induk",
+            "role": role_agents_resellers,
             "cache_file": os.path.join(CACHE_DIR, "cust_astaga.parquet")
         },
         {
             "name": "Tabel: products",
             "category": "Product Master (SQLite)",
             "path": os.path.join(MASTER_DIR, "master_data.db"),
-            "role": "5.772 SKU Produk (ASTAGA 3.579 & OKIPAY 2.193)",
+            "role": role_products,
             "cache_file": os.path.join(CACHE_DIR, "prod_astaga.parquet")
         },
         {
             "name": "Tabel: branches",
             "category": "Wilayah & Cabang (SQLite)",
             "path": os.path.join(MASTER_DIR, "master_data.db"),
-            "role": "10 Cabang Resmi & Depo Regional",
+            "role": role_branches,
             "cache_file": os.path.join(CACHE_DIR, "cust_okipay.parquet")
         },
         {
