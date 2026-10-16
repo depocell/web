@@ -333,10 +333,19 @@ function switchAnalisaTab(tabName) {
 }
 
 // ── PROFIT & REVENUE ANALYTICS FETCHER ──
+const _FRONTEND_PROFIT_CACHE = {};
+
 async function fetchAndRenderProfitAnalisa() {
   const brand = activeFilters.brand === "ALL" ? "ALL" : (activeFilters.brand === "OKIPAY" ? "OKIPAY" : "ASTAGA");
   const year = activeFilters.year === "ALL" ? "2026" : activeFilters.year;
   const month = activeFilters.month === "ALL" ? "" : `${year}-${activeFilters.month}`;
+  const cacheKey = `${brand}_${year}_${month || 'ALL'}`;
+
+  // 1. Jika data sudah ada di frontend cache, render instan tanpa loading
+  if (_FRONTEND_PROFIT_CACHE[cacheKey]) {
+    renderProfitDataUI(_FRONTEND_PROFIT_CACHE[cacheKey]);
+    return;
+  }
 
   const catTbody = document.getElementById("table-profit-category-body");
   if (catTbody) {
@@ -358,6 +367,17 @@ async function fetchAndRenderProfitAnalisa() {
     }
 
     const data = json.data;
+    _FRONTEND_PROFIT_CACHE[cacheKey] = data;
+    renderProfitDataUI(data);
+  } catch (err) {
+    console.error("Error fetching profit data:", err);
+    if (catTbody) {
+      catTbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: #dc2626;">Terjadi kesalahan koneksi saat memuat profit</td></tr>`;
+    }
+  }
+}
+
+function renderProfitDataUI(data) {
     const kpi = data.kpi || {};
 
     // 1. KPI Cards

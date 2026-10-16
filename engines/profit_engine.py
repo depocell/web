@@ -151,12 +151,12 @@ def calculate_profit_analysis(
         total_modal=("beli", "sum"),
         gross_profit=("gross_profit", "sum"),
         komisi_upline=("markup", "sum"),
-        net_profit=("net_profit", "sum")
+        net_profit=("net_profit", "sum"),
+        days_active=("tgl_entry", lambda s: s.dt.day.nunique())
     )
     month_agg_dict = {row["ym"]: row for _, row in month_agg.iterrows()}
 
     for ym in available_months:
-        df_m = df_sukses[df_sukses["ym"] == ym]
         row_agg = month_agg_dict.get(ym)
         if row_agg is None:
             continue
@@ -167,7 +167,7 @@ def calculate_profit_analysis(
         m_gp = float(row_agg["gross_profit"])
         m_mk = float(row_agg["komisi_upline"])
         m_np = float(row_agg["net_profit"])
-        m_days = me.get_active_days(df_m)
+        m_days = max(1, int(row_agg["days_active"]))
 
         monthly_trend.append({
             "ym": ym,
@@ -215,7 +215,7 @@ def calculate_profit_analysis(
     tot_gp = float(df_target["gross_profit"].sum()) if not df_target.empty else 0.0
     tot_mk = float(df_target["markup"].sum()) if not df_target.empty else 0.0
     tot_np = float(df_target["net_profit"].sum()) if not df_target.empty else 0.0
-    days_act = me.get_active_days(df_target) if not df_target.empty else 0
+    days_act = int(df_target["tgl_entry"].dt.day.nunique()) if not df_target.empty else 0
 
     # 2. BREAKDOWN PER KATEGORI PRODUK - Vectorized
     cat_summary = []
