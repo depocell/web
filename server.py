@@ -692,7 +692,6 @@ routes = [
     Route("/api/trx/summary",   api_trx_summary),
     Mount("/pages",             app=StaticFiles(directory=PAGES_DIR), name="pages"),
     Mount("/static",            app=StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static"),
-    Mount("/data",              app=StaticFiles(directory=os.path.join(BASE_DIR, "data")), name="data"),
 ]
 
 app = Starlette(debug=True, routes=routes)
