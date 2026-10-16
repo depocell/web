@@ -1,0 +1,7 @@
+starlette
+uvicorn
+pandas
+numpy
+pyarrow
+openpyxl
+requests
