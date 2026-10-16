@@ -898,28 +898,25 @@ def generate_reseller_data(df_sukses: pd.DataFrame = None, months: list = None) 
 
 def push_to_github():
     """
-    Commit dan Push folder pages/sco langsung ke origin main (https://github.com/depocell/SCO).
+    Commit dan Push pembaruan data SCO langsung ke repositori GitHub Web Report (origin main).
     """
-    if not os.path.exists(os.path.join(SCO_DIR, ".git")):
-        return {"ok": False, "error": f"Folder {SCO_DIR} bukan repositori Git"}
-
     try:
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        subprocess.run(["git", "-C", SCO_DIR, "add", "-A"], capture_output=True, text=True, check=True)
+        subprocess.run(["git", "-C", BASE_DIR, "add", "pages/sco"], capture_output=True, text=True, check=True)
         
-        # Check if there are changes to commit
-        status_res = subprocess.run(["git", "-C", SCO_DIR, "status", "--porcelain"], capture_output=True, text=True)
+        # Check if there are changes to commit in pages/sco
+        status_res = subprocess.run(["git", "-C", BASE_DIR, "status", "--porcelain", "pages/sco"], capture_output=True, text=True)
         if not status_res.stdout.strip():
-            return {"ok": True, "message": "Tidak ada perubahan data yang perlu di-push (sudah up-to-date)", "timestamp": now_str}
+            return {"ok": True, "message": "Data SCO sudah up-to-date (tidak ada perubahan baru)", "timestamp": now_str}
 
-        subprocess.run(["git", "-C", SCO_DIR, "commit", "-m", f"Auto-update data SCO: {now_str}"], capture_output=True, text=True, check=True)
-        push_res = subprocess.run(["git", "-C", SCO_DIR, "push", "origin", "main"], capture_output=True, text=True, timeout=60)
+        subprocess.run(["git", "-C", BASE_DIR, "commit", "-m", f"chore(sco): auto-update data SCO: {now_str}"], capture_output=True, text=True, check=True)
+        push_res = subprocess.run(["git", "-C", BASE_DIR, "push", "origin", "main"], capture_output=True, text=True, timeout=60)
         
         if push_res.returncode != 0:
             err_msg = push_res.stderr or push_res.stdout or "Push error"
             return {"ok": False, "error": err_msg}
 
-        return {"ok": True, "message": "Berhasil push data ke GitHub Pages!", "timestamp": now_str}
+        return {"ok": True, "message": "Berhasil push data SCO ke GitHub Pages!", "timestamp": now_str}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
