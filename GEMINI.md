@@ -5,17 +5,36 @@ Setiap kali menghitung metrik, membuat tabel, grafik, atau memodifikasi engine, 
 
 ---
 
-## 1. HUKUM DAILY TRX (RUN-RATE HARIAN)
-> **Problem:** Jika bulan Oktober baru berjalan 9 hari (MTD), membandingkan total transaksi bulanan secara langsung dengan September (30 hari full) adalah KESALAHAN FATAL karena akan membuat performa terlihat anjlok drastis secara semu.
+## 1. HUKUM DAILY TRX (RUN-RATE HARIAN) & PENGHITUNGAN HIT
+> **Problem:** 
+> 1. Jika bulan Oktober baru berjalan 9 hari (MTD), membandingkan total transaksi bulanan secara langsung dengan September (30 hari full) adalah KESALAHAN FATAL karena membuat performa terlihat anjlok drastis secara semu.
+> 2. Menghitung hari aktif per baris toko/agen/sales di pivot table (filter context) membuat toko yang sering tutup/libur memiliki pembagi hari lebih sedikit (misal 12 hari), sehingga Daily Trx-nya melonjak semu dan tidak adil.
+> 3. Menjumlahkan `SUM(qty)` adalah KESALAHAN BESAR karena kolom `qty` di OtomaX untuk produk transfer saldo/denom bebas berisi nominal rupiah (50.000, 100.000).
 
 * **ATURAN WAJIB:**
-  1. Selalu hitung jumlah hari aktif data (`days_curr` dan `days_prev`).
-  2. Rumus:
-     $$\text{Daily Trx (Run-rate)} = \frac{\text{Total Trx Sukses}}{\text{Jumlah Hari Aktif Cut-off}}$$
-  3. Perbandingan pertumbuhan bulanan (MoM) **WAJIB** menggunakan selisih harian:
+  1. **Definisi Total Trx Sukses (Hits / COUNTROWS)**:
+     - Total transaksi sukses **WAJIB dihitung dari JUMLAH BARIS TRANSAKSI (`COUNTROWS` / Frekuensi Hit)**.
+     - **DILARANG KERAS menggunakan `SUM(qty)`**!
+  2. **Pembagi Hari Aktif Cut-off WAJIB GLOBAL SERVER**:
+     - `Jumlah Hari Aktif Cut-off` adalah jumlah hari kalender server bertransaksi **SECARA GLOBAL** pada bulan tersebut (misal: September full = 30 hari, Oktober cut-off MTD = 16 hari).
+     - **DILARANG KERAS menghitung hari aktif per-toko / per-agen / per-sales**. Toko yang hanya bertransaksi 12 hari di bulan September pembaginya **TETAP 30 HARI**.
+  3. **Rumus Resmi**:
+     $$\text{Daily Trx (Run-rate)} = \frac{\text{Total Trx Sukses (Hits)}}{\text{Jumlah Hari Aktif Cut-off Server (Global)}}$$
+  4. **Pedoman Khusus DAX (Power Pivot / Power BI)**:
+     Saat membuat measure DAX `[Jumlah Hari Aktif]`, **WAJIB menggunakan `ALLEXCEPT`** agar tidak terpengaruh filter context baris toko/sales:
+     ```dax
+     Jumlah Hari Aktif = 
+     CALCULATE(
+         COUNTROWS(SUMMARIZE('2026'; '2026'[Start of Month]; '2026'[Day]));
+         ALLEXCEPT('2026'; '2026'[Start of Month]);
+         '2026'[STATUS] = "Sukses";
+         NOT('2026'[AR_ID] IN {"AR00037"; "AR00009"})
+     )
+     ```
+  5. **Perbandingan Pertumbuhan Bulanan (MoM)**:
      $$\text{Growth Daily (Selisih)} = \text{Daily Bulan Ini} - \text{Daily Bulan Lalu}$$
      $$\text{Growth Daily \%} = \frac{\text{Daily Bulan Ini} - \text{Daily Bulan Lalu}}{\text{Daily Bulan Lalu}} \times 100\%$$
-  4. Penyajian di tabel selalu tampilkan: **Daily Trx (/hari)** sebagai angka utama, dan total kumulatif bulanan sebagai info pendukung.
+  6. Penyajian di tabel selalu tampilkan: **Daily Trx (/hari)** sebagai angka utama, dan total kumulatif bulanan sebagai info pendukung.
 
 ---
 
