@@ -378,6 +378,7 @@ async function fetchAndRenderProfitAnalisa() {
 }
 
 function renderProfitDataUI(data) {
+  try {
     const kpi = data.kpi || {};
 
     // 1. KPI Cards
@@ -584,7 +585,7 @@ function renderProfitDataUI(data) {
     }
 
   } catch (err) {
-    console.error("Error in fetchAndRenderProfitAnalisa:", err);
+    console.error("Error in renderProfitDataUI:", err);
   }
 }
 
