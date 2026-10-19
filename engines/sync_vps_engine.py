@@ -81,11 +81,18 @@ def sync_to_vps():
         transport.close()
         log("Pengunggahan data selesai.")
 
-        # 4. Restart service di VPS
-        log("Merestart service webreport di VPS...")
+        # 4. Pull git terbaru & Restart service di VPS
+        log("Menarik update kode terbaru dari GitHub di VPS...")
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(HOST, port=PORT, username=USER, password=PASS, timeout=15)
+        
+        # Git pull origin main
+        stdin, stdout, stderr = ssh.exec_command("git -C /var/www/webreport pull origin main")
+        git_out = stdout.read().decode().strip()
+        log(f"Git pull: {git_out}")
+
+        log("Merestart service webreport di VPS...")
         stdin, stdout, stderr = ssh.exec_command("systemctl restart webreport")
         exit_code = stdout.channel.recv_exit_status()
         ssh.close()
