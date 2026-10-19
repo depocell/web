@@ -1,36 +1,79 @@
 // app.js — Single Shell Router & Navigation
-// ── Online Public Mode & Admin Guard ──────────────────────────────────────────
-(function initHostEnvironment() {
-  const isOnlineHost = window.location.hostname === "depas.my.id" ||
-                       window.location.hostname.includes("45.66.153.150") ||
-                       window.location.hostname.includes("github.io");
+// ── Auth & Role-Based Access Control (RBAC) ──────────────────────────────────
+let currentAuthUser = {
+  authenticated: false,
+  username: "Guest",
+  role: "guest",
+  is_local: false
+};
 
-  // Jika dibuka di online publik, sembunyikan menu Admin dan tombol dapur
-  if (isOnlineHost) {
-    const hideAdminNav = () => {
-      const adminNav = document.getElementById("nav-admin-data");
-      if (adminNav && adminNav.closest("li")) {
-        adminNav.closest("li").style.display = "none";
+async function checkAuthStatus() {
+  try {
+    const res = await fetch("/api/auth/status?t=" + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.ok) {
+        currentAuthUser = {
+          authenticated: !!data.authenticated,
+          username: data.username || "Guest",
+          role: (data.role || "guest").toLowerCase(),
+          is_local: !!data.is_local
+        };
       }
-      // Sembunyikan label dapur
-      document.querySelectorAll(".nav-label").forEach(el => {
-        if (el.textContent.includes("Dapur") || el.textContent.includes("Administrasi")) {
-          el.style.display = "none";
-        }
-      });
-      // Tampilkan profil user & tombol logout untuk host online
-      const userSec = document.getElementById("sidebar-user-section");
-      if (userSec) {
-        userSec.style.display = "flex";
-      }
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", hideAdminNav);
+    }
+  } catch (e) {
+    console.warn("Gagal memeriksa status auth:", e);
+  }
+  applyAuthUI();
+}
+
+function applyAuthUI() {
+  const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  const isAdmin = isLocal || currentAuthUser.role === "admin";
+
+  const adminNav = document.getElementById("nav-admin-data");
+  if (adminNav && adminNav.closest("li")) {
+    adminNav.closest("li").style.display = isAdmin ? "block" : "none";
+  }
+
+  // Label Dapur Administrasi
+  document.querySelectorAll(".nav-label").forEach(el => {
+    if (el.textContent.includes("Dapur") || el.textContent.includes("Administrasi")) {
+      el.style.display = isAdmin ? "block" : "none";
+    }
+  });
+
+  // User Section di Sidebar
+  const userSec = document.getElementById("sidebar-user-section");
+  const usernameEl = document.getElementById("sidebar-username");
+  const roleBadgeEl = document.getElementById("sidebar-user-role");
+
+  if (userSec) {
+    userSec.style.display = "flex";
+  }
+  if (usernameEl) {
+    usernameEl.textContent = currentAuthUser.username || (isAdmin ? "admin" : "tamu");
+  }
+  if (roleBadgeEl) {
+    if (isAdmin) {
+      roleBadgeEl.textContent = "Admin";
+      roleBadgeEl.style.background = "#eff6ff";
+      roleBadgeEl.style.color = "#2563eb";
+      roleBadgeEl.style.borderColor = "#bfdbfe";
     } else {
-      hideAdminNav();
+      roleBadgeEl.textContent = "Tamu";
+      roleBadgeEl.style.background = "#f1f5f9";
+      roleBadgeEl.style.color = "#475569";
+      roleBadgeEl.style.borderColor = "#cbd5e1";
     }
   }
-})();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", checkAuthStatus);
+} else {
+  checkAuthStatus();
+}
 
 const ROUTES = {
   "#admin": {
@@ -171,11 +214,11 @@ async function navigate() {
     return;
   }
 
-  // Redirect admin di Online Hosting (depas.my.id / publik) ke overview
-  const isOnlineHost = window.location.hostname === "depas.my.id" || 
-                       window.location.hostname.includes("45.66.153.150") ||
-                       window.location.hostname.includes("github.io");
-  if (isOnlineHost && hash === "#admin") {
+  // Proteksi Menu Admin: Hanya dapat diakses oleh Administrator
+  const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  const isAdmin = isLocal || currentAuthUser.role === "admin";
+  if (hash === "#admin" && !isAdmin) {
+    alert("Akses ditolak: Menu Admin & Olah Data hanya dapat diakses oleh Administrator.");
     window.location.replace("#overview");
     return;
   }

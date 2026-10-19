@@ -50,6 +50,16 @@
         </svg>
         <span> Executive Financial &amp; Profit</span>
       </button>
+      <button type="button" id="tab-btn-users" onclick="switchAdminTab('users')" class="admin-subtab-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span> Pengaturan User</span>
+      </button>
       <button type="button" id="tab-btn-system" onclick="switchAdminTab('system')" class="admin-subtab-btn">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round" stroke-linejoin="round">
@@ -1092,6 +1102,101 @@
 
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- TAB 6: MANAJEMEN PENGGUNA & HAK AKSES (ROLE-BASED ACCESS CONTROL)          -->
+  <!-- ========================================================================= -->
+  <div id="view-admin-users" style="display: none; flex-direction: column; gap: 20px;">
+    <!-- HEADER ACTION STRIP -->
+    <div class="card-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 18px 20px;">
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main);">
+          Manajemen Pengguna &amp; Hak Akses
+        </h3>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
+          Kelola akun pengguna, peran akses (Role Admin vs Tamu), dan reset kata sandi portal web report.
+        </p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button type="button" onclick="loadAdminUsers()" class="btn-system-refresh" style="padding: 8px 14px; font-size: 13px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Refresh Data
+        </button>
+        <button type="button" onclick="openAddUserModal()" class="btn-primary" style="display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Tambah User Baru
+        </button>
+      </div>
+    </div>
+
+    <!-- HAK AKSES INFORMATION / ROLE MATRIX -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+      <div class="card-box" style="padding: 16px 18px; border-left: 4px solid var(--primary);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">
+            ROLE: ADMIN
+          </span>
+          <strong style="font-size: 13px; color: var(--text-main);">Hak Akses Penuh (Executive)</strong>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+          Dapat mengakses seluruh laporan, modul Ingestion, Master Agen &amp; Produk, Status Freshness Sistem, Executive Financial &amp; Profit Center, serta mengubah konfigurasi user dan password.
+        </p>
+      </div>
+
+      <div class="card-box" style="padding: 16px 18px; border-left: 4px solid #10b981;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span class="badge" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px;">
+            ROLE: TAMU
+          </span>
+          <strong style="font-size: 13px; color: var(--text-main);">Hak Akses Operasional Saja</strong>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+          Dapat memantau seluruh transaksi harian, pivot operasional, analisa tren penjualan, agen, fisik, dan SCO. Terproteksi penuh dari data laba/profit, harga beli, markup upline, dan portal admin.
+        </p>
+      </div>
+    </div>
+
+    <!-- USER TABLE CARD -->
+    <div class="card-box" style="padding: 0; overflow: hidden;">
+      <div style="padding: 14px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--table-header);">
+        <span style="font-size: 12.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Daftar Pengguna Aktif Terdaftar
+        </span>
+        <span id="admin-users-count" class="badge" style="background: var(--surface-bg); color: var(--text-muted); border: 1px solid var(--surface-border); font-size: 11px;">
+          Memuat...
+        </span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--surface-border); text-align: left; background: var(--surface-card);">
+              <th style="padding: 10px 16px; width: 50px;">NO</th>
+              <th style="padding: 10px 16px;">USERNAME</th>
+              <th style="padding: 10px 16px; width: 140px;">ROLE / HAK AKSES</th>
+              <th style="padding: 10px 16px; width: 180px;">TANGGAL DIBUAT</th>
+              <th style="padding: 10px 16px; width: 180px;">TERAKHIR DIPERBARUI</th>
+              <th style="padding: 10px 16px; width: 170px; text-align: center;">AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="table-admin-users-body">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                Memuat daftar pengguna...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 
@@ -1459,6 +1564,118 @@
         </button>
       </div>
 
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: TAMBAH USER BARU                                                   -->
+<!-- ========================================================================= -->
+<div id="modal-add-user" class="admin-modal-backdrop" style="display: none;">
+  <div class="admin-modal-box" style="max-width: 480px;">
+    <!-- HEADER -->
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" y1="8" x2="19" y2="14"></line>
+            <line x1="22" y1="11" x2="16" y2="11"></line>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">Tambah Pengguna Baru</h3>
+          <p style="font-size: 11.5px; color: var(--text-muted); margin: 0;">Buat akun akses portal web report</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeAddUserModal()" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+    </div>
+
+    <!-- BODY -->
+    <form id="form-add-user" onsubmit="submitAddUser(event)" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+      <div>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
+        <input type="text" id="add-user-username" required placeholder="Contoh: user_operasional, audit, dll" autocomplete="off"
+          style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; font-size: 13px;">
+      </div>
+
+      <div>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kata Sandi (Password)</label>
+        <input type="password" id="add-user-password" required placeholder="Minimal 4 karakter..."
+          style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px;">
+      </div>
+
+      <div>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Peran Akses (Role)</label>
+        <select id="add-user-role" required
+          style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px; font-weight: 600;">
+          <option value="tamu">Tamu (Hanya Laporan Operasional)</option>
+          <option value="admin">Admin (Akses Penuh Seluruh Modul)</option>
+        </select>
+      </div>
+
+      <div id="add-user-error" style="display: none; padding: 10px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 12px;"></div>
+
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 10px;">
+        <button type="button" onclick="closeAddUserModal()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
+          Batal
+        </button>
+        <button type="submit" id="btn-submit-add-user" class="btn-primary" style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          Simpan User
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: RESET PASSWORD PENGGUNA                                            -->
+<!-- ========================================================================= -->
+<div id="modal-reset-user-pwd" class="admin-modal-backdrop" style="display: none;">
+  <div class="admin-modal-box" style="max-width: 440px;">
+    <!-- HEADER -->
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fefce8; display: flex; align-items: center; justify-content: center; color: #ca8a04;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">Reset Password</h3>
+          <p style="font-size: 11.5px; color: var(--text-muted); margin: 0;" id="reset-pwd-subtitle">Ganti kata sandi akun</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeResetPasswordModal()" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+    </div>
+
+    <!-- BODY -->
+    <form id="form-reset-user-pwd" onsubmit="submitResetPassword(event)" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+      <input type="hidden" id="reset-pwd-username">
+
+      <div>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
+        <div id="reset-pwd-display-user" style="padding: 8px 12px; margin-top: 4px; border-radius: 6px; background: var(--surface-bg); border: 1px solid var(--surface-border); font-weight: 700; font-family: var(--font-mono); color: var(--primary);"></div>
+      </div>
+
+      <div>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kata Sandi Baru</label>
+        <input type="password" id="reset-pwd-new-password" required placeholder="Minimal 4 karakter..."
+          style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px;">
+      </div>
+
+      <div id="reset-pwd-error" style="display: none; padding: 10px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 12px;"></div>
+
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 10px;">
+        <button type="button" onclick="closeResetPasswordModal()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
+          Batal
+        </button>
+        <button type="submit" id="btn-submit-reset-pwd" class="btn-primary" style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          Perbarui Password
+        </button>
+      </div>
     </form>
   </div>
 </div>

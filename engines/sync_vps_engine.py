@@ -49,7 +49,7 @@ def sync_to_vps():
                 if os.path.isfile(local_path):
                     rem_path = f"/var/www/webreport/MASTER/{f}"
                     # Cek ukuran/timestamp jika perlu, atau unggah langsung db
-                    if f.endswith(".db") or f.endswith(".xlsx"):
+                    if f.endswith(".db") or f.endswith(".xlsx") or f == "auth_users.json":
                         log(f"Mengunggah MASTER/{f} ...")
                         sftp.put(local_path, rem_path)
 

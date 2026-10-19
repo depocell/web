@@ -1,0 +1,20 @@
+{
+  "users": {
+    "admin": {
+      "username": "admin",
+      "role": "admin",
+      "password_hash": "c3394a4c9695742014fc06a5a624a9ac3bacfab03abee37faff636141631d717",
+      "salt": "2938ab54b667b27afbfbb7177a9fc13e",
+      "created_at": 1792151368,
+      "updated_at": 1792151368
+    },
+    "tamu": {
+      "username": "tamu",
+      "role": "tamu",
+      "password_hash": "55f86921ec83ad8cdaa1ea3c886bfe9401b5f4d0468dbcb2c2120652bba9adbf",
+      "salt": "3b696f2a8d4ec35d7f6844319fbdad7e",
+      "created_at": 1792389561,
+      "updated_at": 1792389561
+    }
+  }
+}

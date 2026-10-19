@@ -116,7 +116,9 @@ let productState = {
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 function loadAdmin() {
   const hash = window.location.hash || "";
-  if (hash.includes("tab=financial")) {
+  if (hash.includes("tab=users")) {
+    switchAdminTab("users");
+  } else if (hash.includes("tab=financial")) {
     switchAdminTab("financial");
   } else if (hash.includes("tab=pivot")) {
     switchAdminTab("pivot");
@@ -146,6 +148,7 @@ async function switchAdminTab(tabName) {
   const viewPivot = document.getElementById("view-admin-pivot");
   const viewSystem = document.getElementById("view-admin-system");
   const viewFinancial = document.getElementById("view-admin-financial");
+  const viewUsers = document.getElementById("view-admin-users");
 
   const btnIngestion = document.getElementById("tab-btn-ingestion");
   const btnMaster = document.getElementById("tab-btn-master");
@@ -153,6 +156,7 @@ async function switchAdminTab(tabName) {
   const btnPivot = document.getElementById("tab-btn-pivot");
   const btnSystem = document.getElementById("tab-btn-system");
   const btnFinancial = document.getElementById("tab-btn-financial");
+  const btnUsers = document.getElementById("tab-btn-users");
 
   // Kontrol Tampilan Global Brand Ribbon (Hanya untuk Tab Financial, Pivot, Master, Products)
   const ribbon = document.getElementById("admin-global-brand-ribbon");
@@ -172,6 +176,7 @@ async function switchAdminTab(tabName) {
   if (viewPivot) viewPivot.style.display = "none";
   if (viewSystem) viewSystem.style.display = "none";
   if (viewFinancial) viewFinancial.style.display = "none";
+  if (viewUsers) viewUsers.style.display = "none";
 
   if (btnIngestion) btnIngestion.classList.remove("active");
   if (btnMaster) btnMaster.classList.remove("active");
@@ -179,8 +184,13 @@ async function switchAdminTab(tabName) {
   if (btnPivot) btnPivot.classList.remove("active");
   if (btnSystem) btnSystem.classList.remove("active");
   if (btnFinancial) btnFinancial.classList.remove("active");
+  if (btnUsers) btnUsers.classList.remove("active");
 
-  if (tabName === "financial") {
+  if (tabName === "users") {
+    if (viewUsers) viewUsers.style.display = "flex";
+    if (btnUsers) btnUsers.classList.add("active");
+    await loadAdminUsers();
+  } else if (tabName === "financial") {
     if (viewFinancial) viewFinancial.style.display = "flex";
     if (btnFinancial) btnFinancial.classList.add("active");
     await loadAdminFinancial();
@@ -2593,6 +2603,272 @@ async function syncToVpsCloud() {
   }
 }
 window.syncToVpsCloud = syncToVpsCloud;
+
+// ─── USER MANAGEMENT (PENGATURAN USER) ───────────────────────────────────────
+async function loadAdminUsers() {
+  const tbody = document.getElementById("table-admin-users-body");
+  const countBadge = document.getElementById("admin-users-count");
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">
+        <div style="display: inline-flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          <span>Memuat data pengguna...</span>
+        </div>
+      </td>
+    </tr>
+  `;
+
+  try {
+    const res = await fetch("/api/admin/users");
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: #dc2626; font-weight: 600;">Akses ditolak: Menu ini khusus untuk peran Admin.</td></tr>`;
+        return;
+      }
+      throw new Error("HTTP error " + res.status);
+    }
+    const data = await res.json();
+    if (!data.ok || !data.users) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: #dc2626;">${escapeHtml(data.error || "Gagal memuat pengguna")}</td></tr>`;
+      return;
+    }
+
+    const users = data.users;
+    if (countBadge) countBadge.textContent = `${users.length} User`;
+
+    if (users.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">Belum ada pengguna terdaftar.</td></tr>`;
+      return;
+    }
+
+    let html = "";
+    users.forEach((u, idx) => {
+      const isRoleAdmin = u.role === "admin";
+      const roleBadge = isRoleAdmin
+        ? `<span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">ADMIN</span>`
+        : `<span class="badge" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px;">TAMU</span>`;
+      
+      const createdStr = u.created_at ? new Date(u.created_at * 1000).toLocaleString("id-ID") : "-";
+      const updatedStr = u.updated_at ? new Date(u.updated_at * 1000).toLocaleString("id-ID") : "-";
+
+      const isProtected = u.username.toLowerCase() === "admin";
+      const deleteBtn = isProtected
+        ? `<button type="button" disabled style="opacity: 0.35; cursor: not-allowed; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-size: 11.5px; color: var(--text-muted);" title="Akun admin utama tidak dapat dihapus">Hapus</button>`
+        : `<button type="button" onclick="confirmDeleteUser('${escapeHtml(u.username)}')" class="btn-sm-edit" style="color: #dc2626; border-color: #fecaca; background: #fff5f5; padding: 4px 10px; font-size: 11.5px;">Hapus</button>`;
+
+      html += `
+        <tr style="border-bottom: 1px solid var(--surface-border);">
+          <td style="padding: 10px 16px; font-weight: 600; color: var(--text-muted);">${idx + 1}</td>
+          <td style="padding: 10px 16px;">
+            <div style="font-weight: 700; font-family: var(--font-mono); color: var(--text-main); font-size: 13px;">${escapeHtml(u.username)}</div>
+          </td>
+          <td style="padding: 10px 16px;">${roleBadge}</td>
+          <td style="padding: 10px 16px; color: var(--text-muted); font-size: 12px;">${createdStr}</td>
+          <td style="padding: 10px 16px; color: var(--text-muted); font-size: 12px;">${updatedStr}</td>
+          <td style="padding: 10px 16px; text-align: center;">
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <button type="button" onclick="openResetPasswordModal('${escapeHtml(u.username)}')" class="btn-sm-edit" style="padding: 4px 10px; font-size: 11.5px;">
+                Reset Password
+              </button>
+              ${deleteBtn}
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+  } catch (err) {
+    console.error("Gagal loadAdminUsers:", err);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: #dc2626;">Koneksi error: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function openAddUserModal() {
+  const modal = document.getElementById("modal-add-user");
+  const errDiv = document.getElementById("add-user-error");
+  if (errDiv) {
+    errDiv.style.display = "none";
+    errDiv.textContent = "";
+  }
+  const uInput = document.getElementById("add-user-username");
+  const pInput = document.getElementById("add-user-password");
+  const rInput = document.getElementById("add-user-role");
+  if (uInput) uInput.value = "";
+  if (pInput) pInput.value = "";
+  if (rInput) rInput.value = "tamu";
+  if (modal) modal.style.display = "flex";
+  if (uInput) uInput.focus();
+}
+
+function closeAddUserModal() {
+  const modal = document.getElementById("modal-add-user");
+  if (modal) modal.style.display = "none";
+}
+
+async function submitAddUser(e) {
+  if (e) e.preventDefault();
+  const username = document.getElementById("add-user-username")?.value?.trim();
+  const password = document.getElementById("add-user-password")?.value;
+  const role = document.getElementById("add-user-role")?.value || "tamu";
+  const errDiv = document.getElementById("add-user-error");
+  const submitBtn = document.getElementById("btn-submit-add-user");
+
+  if (!username || username.length < 3) {
+    if (errDiv) {
+      errDiv.textContent = "Username minimal 3 karakter.";
+      errDiv.style.display = "block";
+    }
+    return;
+  }
+  if (!password || password.length < 4) {
+    if (errDiv) {
+      errDiv.textContent = "Password minimal 4 karakter.";
+      errDiv.style.display = "block";
+    }
+    return;
+  }
+
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const res = await fetch("/api/admin/users/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, role })
+    });
+    const json = await res.json();
+    if (!json.ok) {
+      if (errDiv) {
+        errDiv.textContent = json.error || "Gagal membuat pengguna.";
+        errDiv.style.display = "block";
+      }
+      return;
+    }
+
+    closeAddUserModal();
+    alert(json.message || `Pengguna '${username}' berhasil dibuat!`);
+    loadAdminUsers();
+  } catch (err) {
+    if (errDiv) {
+      errDiv.textContent = "Error: " + err.message;
+      errDiv.style.display = "block";
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+function openResetPasswordModal(username) {
+  const modal = document.getElementById("modal-reset-user-pwd");
+  const errDiv = document.getElementById("reset-pwd-error");
+  if (errDiv) {
+    errDiv.style.display = "none";
+    errDiv.textContent = "";
+  }
+  const uHidden = document.getElementById("reset-pwd-username");
+  const uDisplay = document.getElementById("reset-pwd-display-user");
+  const pInput = document.getElementById("reset-pwd-new-password");
+
+  if (uHidden) uHidden.value = username;
+  if (uDisplay) uDisplay.textContent = username;
+  if (pInput) pInput.value = "";
+  if (modal) modal.style.display = "flex";
+  if (pInput) pInput.focus();
+}
+
+function closeResetPasswordModal() {
+  const modal = document.getElementById("modal-reset-user-pwd");
+  if (modal) modal.style.display = "none";
+}
+
+async function submitResetPassword(e) {
+  if (e) e.preventDefault();
+  const username = document.getElementById("reset-pwd-username")?.value;
+  const password = document.getElementById("reset-pwd-new-password")?.value;
+  const errDiv = document.getElementById("reset-pwd-error");
+  const submitBtn = document.getElementById("btn-submit-reset-pwd");
+
+  if (!password || password.length < 4) {
+    if (errDiv) {
+      errDiv.textContent = "Password baru minimal 4 karakter.";
+      errDiv.style.display = "block";
+    }
+    return;
+  }
+
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const res = await fetch("/api/admin/users/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const json = await res.json();
+    if (!json.ok) {
+      if (errDiv) {
+        errDiv.textContent = json.error || "Gagal memperbarui password.";
+        errDiv.style.display = "block";
+      }
+      return;
+    }
+
+    closeResetPasswordModal();
+    alert(json.message || `Password pengguna '${username}' berhasil diperbarui!`);
+    loadAdminUsers();
+  } catch (err) {
+    if (errDiv) {
+      errDiv.textContent = "Error: " + err.message;
+      errDiv.style.display = "block";
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+async function confirmDeleteUser(username) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus pengguna '${username}'?\nTindakan ini tidak dapat dibatalkan.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/admin/users/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username })
+    });
+    const json = await res.json();
+    if (!json.ok) {
+      alert("Gagal menghapus: " + (json.error || "Terjadi kesalahan"));
+      return;
+    }
+    alert(json.message || `Pengguna '${username}' berhasil dihapus.`);
+    loadAdminUsers();
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+}
+
+window.loadAdminUsers = loadAdminUsers;
+window.openAddUserModal = openAddUserModal;
+window.closeAddUserModal = closeAddUserModal;
+window.submitAddUser = submitAddUser;
+window.openResetPasswordModal = openResetPasswordModal;
+window.closeResetPasswordModal = closeResetPasswordModal;
+window.submitResetPassword = submitResetPassword;
+window.confirmDeleteUser = confirmDeleteUser;
+
 
 
 

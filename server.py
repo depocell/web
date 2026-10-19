@@ -104,7 +104,8 @@ async def api_auth_login(request):
     if not ok:
         return JSONResponse({"ok": False, "error": res}, status_code=401)
 
-    token = auth_engine.create_session_token(username, remember_me=remember_me)
+    role = res.get("role", "tamu")
+    token = auth_engine.create_session_token(username, role=role, remember_me=remember_me)
     max_age = auth_engine.SESSION_DURATION_LONG if remember_me else auth_engine.SESSION_DURATION_SHORT
 
     response = JSONResponse({"ok": True, "user": res, "message": "Login berhasil"})
@@ -129,17 +130,83 @@ async def api_auth_logout(request):
 
 
 async def api_auth_status(request):
-    """Cek status login pengguna saat ini."""
+    """Cek status login pengguna saat ini beserta role-nya."""
     if is_local_request(request):
-        return JSONResponse({"ok": True, "authenticated": True, "is_local": True, "username": "Admin (Lokal)"})
+        return JSONResponse({"ok": True, "authenticated": True, "is_local": True, "username": "Admin (Lokal)", "role": "admin"})
     token = request.cookies.get("depas_session")
-    valid, username = auth_engine.verify_session_token(token)
+    valid, username, role = auth_engine.verify_session_token(token)
     return JSONResponse({
         "ok": True,
         "authenticated": valid,
         "is_local": False,
-        "username": username if valid else None
+        "username": username if valid else None,
+        "role": role if valid else "guest"
     })
+
+
+async def api_admin_users_list(request):
+    """Mengembalikan daftar semua user untuk manajemen akun."""
+    token = request.cookies.get("depas_session")
+    valid, username, role = auth_engine.verify_session_token(token)
+    if not is_local_request(request) and (not valid or role != "admin"):
+        return JSONResponse({"ok": False, "error": "Akses khusus Administrator"}, status_code=403)
+    users = auth_engine.list_users()
+    return JSONResponse({"ok": True, "users": users})
+
+
+async def api_admin_users_create(request):
+    """Menambah user baru (Admin / Tamu)."""
+    token = request.cookies.get("depas_session")
+    valid, username, role = auth_engine.verify_session_token(token)
+    if not is_local_request(request) and (not valid or role != "admin"):
+        return JSONResponse({"ok": False, "error": "Akses khusus Administrator"}, status_code=403)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Format request tidak valid"}, status_code=400)
+
+    u_name = str(body.get("username", "")).strip()
+    u_pwd = str(body.get("password", "")).strip()
+    u_role = str(body.get("role", "tamu")).strip().lower()
+
+    ok, msg = auth_engine.create_user(u_name, u_pwd, u_role)
+    return JSONResponse({"ok": ok, "message" if ok else "error": msg}, status_code=200 if ok else 400)
+
+
+async def api_admin_users_password(request):
+    """Reset password user oleh Admin."""
+    token = request.cookies.get("depas_session")
+    valid, username, role = auth_engine.verify_session_token(token)
+    if not is_local_request(request) and (not valid or role != "admin"):
+        return JSONResponse({"ok": False, "error": "Akses khusus Administrator"}, status_code=403)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Format request tidak valid"}, status_code=400)
+
+    u_name = str(body.get("username", "")).strip()
+    new_pwd = str(body.get("new_password", "")).strip()
+
+    ok, msg = auth_engine.admin_reset_password(u_name, new_pwd)
+    return JSONResponse({"ok": ok, "message" if ok else "error": msg}, status_code=200 if ok else 400)
+
+
+async def api_admin_users_delete(request):
+    """Hapus user oleh Admin."""
+    token = request.cookies.get("depas_session")
+    valid, current_user, role = auth_engine.verify_session_token(token)
+    if not is_local_request(request) and (not valid or role != "admin"):
+        return JSONResponse({"ok": False, "error": "Akses khusus Administrator"}, status_code=403)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Format request tidak valid"}, status_code=400)
+
+    u_name = str(body.get("username", "")).strip()
+    curr_admin = current_user or "admin"
+
+    ok, msg = auth_engine.delete_user(u_name, current_admin=curr_admin)
+    return JSONResponse({"ok": ok, "message" if ok else "error": msg}, status_code=200 if ok else 400)
 
 
 async def api_auth_change_password(request):
@@ -798,8 +865,25 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # 3. Validasi token sesi untuk seluruh rute internal lainnya
         token = request.cookies.get("depas_session")
-        valid, username = auth_engine.verify_session_token(token)
+        valid, username, role = auth_engine.verify_session_token(token)
         if valid:
+            # 3a. Role-Based Access Control (RBAC):
+            # Jika user adalah 'tamu' (non-admin), blokir akses ke dapur admin & finansial
+            if role != "admin":
+                if path.startswith("/api/admin/") or path.startswith("/pages/admin"):
+                    if path.startswith("/api/"):
+                        return JSONResponse(
+                            {"ok": False, "error": "Akses ditolak. Fitur ini khusus Administrator."},
+                            status_code=403
+                        )
+                    return RedirectResponse("/#overview", status_code=302)
+
+                if path == "/api/analisa/profit":
+                    return JSONResponse(
+                        {"ok": False, "error": "Akses ditolak. Analisa profit & laba khusus Administrator."},
+                        status_code=403
+                    )
+
             return await call_next(request)
 
         # 4. Jika unauthenticated:
@@ -854,6 +938,10 @@ routes = [
     Route("/api/admin/products/detail", api_admin_product_detail),
     Route("/api/admin/products/save",   api_admin_product_save, methods=["POST"]),
     Route("/api/admin/products/export", api_admin_product_export),
+    Route("/api/admin/users",           api_admin_users_list),
+    Route("/api/admin/users/create",    api_admin_users_create, methods=["POST"]),
+    Route("/api/admin/users/password",  api_admin_users_password, methods=["POST"]),
+    Route("/api/admin/users/delete",    api_admin_users_delete, methods=["POST"]),
     Route("/api/analisa/data",   api_analisa_data),
     Route("/api/analisa",        api_analisa_data),
     Route("/api/analisa/overview", api_analisa_data),
