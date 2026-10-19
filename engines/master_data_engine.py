@@ -798,52 +798,6 @@ def sync_to_parquet(brand: str = "ALL"):
             df_full.to_parquet(out_full_parquet, index=False)
             print(f"[SYNC] Parquet {b} berhasil diperbarui: {len(df_combined):,} mapping & {len(df_full):,} full rows tersimpan.")
 
-            # 3. Khusus ASTAGA: perbarui juga cache reseller_meta_cache.json
-            if b == "ASTAGA":
-                cursor = conn.cursor()
-                cursor.execute("SELECT agen_id, nama_agen, cabang, sco, dso, jadwal, limit_saldo FROM agents WHERE brand = 'ASTAGA'")
-                agen_rows = cursor.fetchall()
-                agen_meta = {}
-                for aid, nama, cab, sco, dso, jadwal, lim in agen_rows:
-                    raw_name = nama or aid
-                    clean_name = raw_name
-                    if '-' in raw_name and raw_name.upper().startswith(aid.upper()):
-                        clean_name = raw_name.split('-', 1)[1].strip()
-                    agen_meta[aid] = {
-                        "agen_name": clean_name or aid,
-                        "raw_name": raw_name,
-                        "cabang": cab or "BSD",
-                        "sco": sco or "-",
-                        "dso": dso or "-",
-                        "jadwal": jadwal or "-",
-                        "limit": lim or 0.0,
-                        "status": "-"
-                    }
-
-                cursor.execute("SELECT kode_reseller, nama_reseller, grup, root_agen_id, cabang, limit_saldo FROM resellers WHERE brand = 'ASTAGA'")
-                reseller_rows = cursor.fetchall()
-                reseller_meta = {}
-                for rid, nama, grup, aid, cab, lim in reseller_rows:
-                    am = agen_meta.get(aid, {})
-                    reseller_meta[rid] = {
-                        "kode": rid,
-                        "name": nama or rid,
-                        "group": grup or "-",
-                        "cabang": cab or am.get("cabang", "BSD"),
-                        "agen_id": aid or "",
-                        "agen_name": am.get("agen_name", "-"),
-                        "sco": am.get("sco", "-"),
-                        "jadwal": am.get("jadwal", "-"),
-                        "limit": lim or 0.0,
-                        "status": "-"
-                    }
-
-                out_json = os.path.join(CACHE_DIR, "reseller_meta_cache.json")
-                try:
-                    with open(out_json, "w", encoding="utf-8") as fp:
-                        json.dump({"reseller": reseller_meta, "agen": agen_meta}, fp)
-                except Exception:
-                    pass
 
     # Invalidate in-memory caches
     try:

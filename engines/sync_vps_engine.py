@@ -60,8 +60,8 @@ def sync_to_vps():
                 local_path = os.path.join(local_cache, f)
                 if os.path.isfile(local_path):
                     rem_path = f"/var/www/webreport/.cache/{f}"
-                    # Upload file parquet & json cache
-                    if f.endswith(".parquet") or f.endswith(".json"):
+                    # Upload file parquet saja (data murni)
+                    if f.endswith(".parquet"):
                         # Periksa apakah remote file sudah ada dengan mtime/size sama
                         should_upload = True
                         try:

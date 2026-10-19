@@ -39,19 +39,6 @@ def load_master_meta(brand: str = "ASTAGA"):
     if brand in _MASTER_META_CACHE and _META_MTIME == mtime:
         return _MASTER_META_CACHE[brand]
 
-    json_cache = os.path.join(CACHE_DIR, f"reseller_meta_{brand.lower()}_cache.json")
-    if os.path.exists(json_cache) and (mtime == 0 or os.path.getmtime(json_cache) >= mtime):
-        try:
-            with open(json_cache, "r", encoding="utf-8") as fp:
-                cached_data = json.load(fp)
-            first_r = next(iter(cached_data.get("reseller", {}).values()), {})
-            if "tgl_daftar" in first_r:
-                _MASTER_META_CACHE[brand] = (cached_data["reseller"], cached_data["agen"])
-                _META_MTIME = mtime
-                return _MASTER_META_CACHE[brand]
-        except Exception:
-            pass
-
     # 1. Coba baca dari database SQLite master_data.db
     if os.path.exists(DB_PATH):
         try:
@@ -126,12 +113,6 @@ def load_master_meta(brand: str = "ASTAGA"):
 
             _MASTER_META_CACHE[brand] = (reseller_meta, agen_meta)
             _META_MTIME = mtime
-            os.makedirs(CACHE_DIR, exist_ok=True)
-            try:
-                with open(json_cache, "w", encoding="utf-8") as fp:
-                    json.dump({"reseller": reseller_meta, "agen": agen_meta}, fp)
-            except Exception:
-                pass
             return reseller_meta, agen_meta
         except Exception as e:
             print(f"[WARN] Gagal membaca reseller meta dari SQLite: {e}")
@@ -242,17 +223,10 @@ def load_master_meta(brand: str = "ASTAGA"):
 
 
 def clear_master_meta_cache():
-    """Bersihkan cache master meta (reseller & agen) di RAM dan disk untuk seluruh brand."""
+    """Bersihkan cache master meta (reseller & agen) di RAM untuk seluruh brand."""
     global _MASTER_META_CACHE, _META_MTIME
     _MASTER_META_CACHE.clear()
     _META_MTIME = 0
-    for b in ["astaga", "okipay"]:
-        jc = os.path.join(CACHE_DIR, f"reseller_meta_{b}_cache.json")
-        if os.path.exists(jc):
-            try:
-                os.remove(jc)
-            except Exception:
-                pass
 
 
 _RESELLER_DASHBOARD_CACHE: Dict[tuple, Dict[str, Any]] = {}

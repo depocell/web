@@ -23,12 +23,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 
 _AGEN_DASHBOARD_CACHE: Dict[tuple, Dict[str, Any]] = {}
+_TREN_AGEN_RAM_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 
 
 def clear_agen_dashboard_cache():
-    """Bersihkan in-memory cache dashboard agen."""
-    global _AGEN_DASHBOARD_CACHE
+    """Bersihkan in-memory RAM cache dashboard agen dan tren agen."""
+    global _AGEN_DASHBOARD_CACHE, _TREN_AGEN_RAM_CACHE
     _AGEN_DASHBOARD_CACHE.clear()
+    _TREN_AGEN_RAM_CACHE.clear()
 
 
 def calculate_agen_dashboard(brand: str = "ASTAGA", month_code: str = None, year: str = "2026") -> Dict[str, Any]:
@@ -365,17 +367,15 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
     Hitung tren daily run-rate transaksi 12 bulan terakhir (Nov 2025 - Okt 2026)
     serta evaluasi pertumbuhan YoY (Oktober 2026 vs Oktober 2025) per Toko Induk Agen.
     """
+    global _TREN_AGEN_RAM_CACHE
     brand = (brand or "ASTAGA").strip().upper()
-    json_path = os.path.join(CACHE_DIR, f"tren_agen_{brand.lower()}_1yr.json")
     db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
     db_mtime = os.path.getmtime(db_path) if os.path.exists(db_path) else 0
 
-    if not force and os.path.exists(json_path) and os.path.getmtime(json_path) >= db_mtime:
-        try:
-            with open(json_path, "r", encoding="utf-8") as fp:
-                return json.load(fp)
-        except Exception:
-            pass
+    if not force and brand in _TREN_AGEN_RAM_CACHE:
+        cached_mtime, cached_payload = _TREN_AGEN_RAM_CACHE[brand]
+        if cached_mtime >= db_mtime:
+            return cached_payload
 
     import time
     t0 = time.time()
@@ -515,10 +515,5 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
         "agents": agent_rows
     }
 
-    try:
-        with open(json_path, "w", encoding="utf-8") as fp:
-            json.dump(payload, fp)
-    except Exception as e:
-        print(f"[WARN] Gagal menyimpan cache {json_path}: {e}")
-
+    _TREN_AGEN_RAM_CACHE[brand] = (db_mtime, payload)
     return payload
