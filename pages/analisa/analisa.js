@@ -596,11 +596,24 @@ async function fetchAndRenderAnalisa() {
     currentAnalisaTab = "distribusi";
   }
 
+  const activeSection = document.getElementById(`section-analisa-${currentAnalisaTab}`);
+  if (activeSection && !cachedAnalisaData) {
+    activeSection.style.transition = "opacity 0.15s ease";
+    activeSection.style.opacity = "0.5";
+  }
+
+  const restoreActiveSection = () => {
+    const sec = document.getElementById(`section-analisa-${currentAnalisaTab}`);
+    if (sec) {
+      sec.style.opacity = "1";
+    }
+  };
+
   const isStaticHost = window.location.hostname.includes("github.io") || 
                        window.location.protocol === "file:" ||
                        window.location.port === "5500";
 
-  // 1. Coba fetch dari backend endpoint API jika live server lokal
+  // 1. Coba fetch dari backend endpoint API jika live server lokal / cloud
   if (!isStaticHost) {
     try {
       let url = `/api/analisa/data?brand=${activeFilters.brand}&year=${activeFilters.year}&month=${activeFilters.month}`;
@@ -609,6 +622,11 @@ async function fetchAndRenderAnalisa() {
       if (activeFilters.tipe !== "ALL") url += `&tipe=${encodeURIComponent(activeFilters.tipe)}`;
 
       const res = await fetch(url);
+      if (res.status === 401) {
+        restoreActiveSection();
+        console.warn("Sesi autentikasi telah berakhir.");
+        return;
+      }
       if (res.ok) {
         const json = await res.json();
         if (json && json.ok) {
@@ -618,6 +636,7 @@ async function fetchAndRenderAnalisa() {
           }
           cachedAnalisaData = json;
           renderCurrentTabCharts(json);
+          restoreActiveSection();
           return;
         }
       }
@@ -626,18 +645,27 @@ async function fetchAndRenderAnalisa() {
     }
   }
 
-  // 2. Gold OLAP Engine Client-Side (100% Offline / GitHub Pages)
+  // 2. Gold OLAP Engine Client-Side (100% Offline / GitHub Pages fallback)
   try {
     if (!rawGoldData) {
       const dataUrl = isStaticHost ? "./pages/analisa/data.json" : "/pages/analisa/data.json";
       const fRes = await fetch(dataUrl);
-      rawGoldData = await fRes.json();
+      if (fRes.ok) {
+        const ct = fRes.headers.get("content-type") || "";
+        if (ct.includes("json")) {
+          rawGoldData = await fRes.json();
+        }
+      }
     }
-    const processed = filterGoldDataLocal(rawGoldData, activeFilters.brand, activeFilters.year, activeFilters.month, activeFilters.kategori, activeFilters.operator, activeFilters.tipe);
-    cachedAnalisaData = processed;
-    renderCurrentTabCharts(processed);
+    if (rawGoldData) {
+      const processed = filterGoldDataLocal(rawGoldData, activeFilters.brand, activeFilters.year, activeFilters.month, activeFilters.kategori, activeFilters.operator, activeFilters.tipe);
+      cachedAnalisaData = processed;
+      renderCurrentTabCharts(processed);
+    }
   } catch (err) {
     console.error("Error loading gold data:", err);
+  } finally {
+    restoreActiveSection();
   }
 }
 

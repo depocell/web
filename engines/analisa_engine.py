@@ -160,8 +160,20 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
         os.path.getmtime(p_okipay) if os.path.exists(p_okipay) else 0
     )
 
+    gold_cache_file = os.path.join(CACHE_DIR, "analisa_gold_2026.json")
     if _ANALISA_2026_RAM_CACHE is not None and (p_mtime == 0 or _ANALISA_2026_MTIME >= p_mtime):
         return _ANALISA_2026_RAM_CACHE
+
+    if os.path.exists(gold_cache_file):
+        try:
+            f_mtime = os.path.getmtime(gold_cache_file)
+            if p_mtime == 0 or f_mtime >= p_mtime:
+                with open(gold_cache_file, "r", encoding="utf-8") as f:
+                    _ANALISA_2026_RAM_CACHE = json.load(f)
+                    _ANALISA_2026_MTIME = f_mtime
+                    return _ANALISA_2026_RAM_CACHE
+        except Exception as e:
+            print(f"[WARN] Failed to load {gold_cache_file}: {e}")
 
     def _norm_cat(kat):
         k = str(kat).upper().strip()
@@ -186,24 +198,33 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
             kat_map = {pid: _norm_cat(v["kategori"]) for pid, v in prod_map.items()}
             reseller_meta, agen_meta = re.load_master_meta(brand)
 
-            # Baseline Desember 2025 untuk perhitungan retensi 2026-01
+            # Baseline Desember 2025 untuk perhitungan retensi 2026-01 (Cached JSON)
             dec25_resellers = set()
             dec25_agens = set()
-            try:
-                p_25 = te._cache_path(brand, "2025")
-                if os.path.exists(p_25):
-                    df25 = te.load(brand, "2025")
-                    if brand == "ASTAGA":
-                        df25 = me.filter_astaga_internal(df25)
-                    df25["is_sukses"] = df25["status"].astype(str).str.lower().str.contains("sukses", na=False)
-                    df25["ym"] = df25["tgl_entry"].dt.strftime("%Y-%m")
-                    sub25 = df25[(df25["is_sukses"]) & (df25["ym"] == "2025-12")]
-                    dec25_resellers = set(sub25["ar_id"].dropna().astype(str).str.strip().str.upper())
-                    for ar in dec25_resellers:
-                        m = reseller_meta.get(ar, {})
-                        dec25_agens.add(m.get("agen_id") or ar)
-            except Exception as e:
-                print(f"[WARN] Failed loading 2025-12 for {brand}: {e}")
+            base_file = os.path.join(CACHE_DIR, "baseline_2025_12.json")
+            if os.path.exists(base_file):
+                try:
+                    with open(base_file, "r", encoding="utf-8") as f_base:
+                        b_json = json.load(f_base)
+                    b_brand = b_json.get(brand, {})
+                    dec25_resellers = set(b_brand.get("resellers", []))
+                    dec25_agens = set(b_brand.get("agens", []))
+                except Exception:
+                    pass
+            if not dec25_resellers:
+                try:
+                    p_25 = te._cache_path(brand, "2025")
+                    if os.path.exists(p_25):
+                        df25 = te.load(brand, "2025")
+                        if brand == "ASTAGA":
+                            df25 = me.filter_astaga_internal(df25)
+                        sub25 = df25[(df25["ym"] == "2025-12") & (df25.get("is_sukses", False))]
+                        dec25_resellers = set(sub25["ar_id"].dropna().astype(str).str.strip().str.upper())
+                        for ar in dec25_resellers:
+                            m = reseller_meta.get(ar, {})
+                            dec25_agens.add(m.get("agen_id") or ar)
+                except Exception as e:
+                    print(f"[WARN] Failed loading 2025-12 for {brand}: {e}")
 
             if "ym" not in df.columns:
                 df["ym"] = df["tgl_entry"].dt.strftime("%Y-%m")
@@ -261,74 +282,70 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
                 branches = suk["cabang_clean"].value_counts().to_dict()
                 categories = suk["kat_clean"].value_counts().to_dict()
 
-                # Agregasi metrik per modul untuk bulan ini
+                # Agregasi metrik per modul untuk bulan ini (Vectorized Fast Aggregation)
                 mod_stats = []
-                if "modul_id" in sub.columns:
-                    for mid, msub in sub.groupby("modul_id"):
-                        raw_mid = str(mid).strip()
-                        if not raw_mid or raw_mid.lower() in ["none", "nan", "<null>", "null", "-", ""]:
-                            continue
-                        m_tot = len(msub)
-                        m_suk_df = msub[msub["is_sukses"]]
-                        m_suk = len(m_suk_df)
-                        m_gagal = m_tot - m_suk
-                        m_pct = round(m_suk / m_tot * 100, 1) if m_tot > 0 else 0.0
-                        m_dur = float(m_suk_df["durasi_sec"].mean()) if not m_suk_df.empty and m_suk_df["durasi_sec"].notna().any() else 0.0
-                        m_dur = round(m_dur, 1)
+                if "modul_id" in sub.columns and not sub.empty:
+                    valid_mask = sub["modul_id"].notna()
+                    sub_valid = sub[valid_mask]
+                    if not sub_valid.empty:
+                        grp_status = sub_valid.groupby(["modul_id", "is_sukses"]).size().unstack(fill_value=0)
+                        grp_dur = sub_valid.groupby("modul_id")["sukses_durasi"].agg(["sum", "count"])
+                        grp_ops = sub_valid.groupby(["modul_id", "op_clean"]).size().unstack(fill_value=0)
+                        grp_tipes = sub_valid.groupby(["modul_id", "tipe_clean"]).size().unstack(fill_value=0)
+                        grp_kats = sub_valid.groupby(["modul_id", "kat_clean"]).size().unstack(fill_value=0)
 
-                        clean_name = raw_mid[4:].strip() if raw_mid.startswith("IP: ") else raw_mid
-                        tipe = mod_map.get(raw_mid)
-                        if not tipe:
-                            tipe = "CHIP" if any(k in raw_mid.upper() for k in ["CSK-MO", "CHIP", "MODEM"]) else "H2H"
+                        for mid in grp_status.index:
+                            raw_mid = str(mid).strip()
+                            if not raw_mid or raw_mid.lower() in ["none", "nan", "<null>", "null", "-", ""]:
+                                continue
+                            m_suk = int(grp_status.loc[mid, True]) if True in grp_status.columns else 0
+                            m_fail = int(grp_status.loc[mid, False]) if False in grp_status.columns else 0
+                            m_tot = m_suk + m_fail
+                            if m_tot == 0:
+                                continue
+                            m_pct = round(m_suk / m_tot * 100, 1)
 
-                        # Ekstrak operator dominan modul
-                        top_op = "-"
-                        ops_dict = {}
-                        if "op_clean" in msub.columns and not msub["op_clean"].empty:
-                            op_counts = msub["op_clean"].value_counts()
-                            ops_dict = {str(k).upper(): int(v) for k, v in op_counts.items()}
-                            if not op_counts.empty:
-                                top_op = str(op_counts.index[0]).strip().upper()
+                            dur_row = grp_dur.loc[mid] if mid in grp_dur.index else None
+                            m_dur = round(float(dur_row["sum"] / dur_row["count"]), 1) if (dur_row is not None and dur_row["count"] > 0) else 0.0
 
-                        # Ekstrak paket / tipe produk yang dilayani modul
-                        top_tipe = "-"
-                        tipes_dict = {}
-                        if "tipe_clean" in msub.columns and not msub["tipe_clean"].empty:
-                            tipes_counts = msub["tipe_clean"].value_counts()
-                            tipes_dict = {str(k).upper(): int(v) for k, v in tipes_counts.items()}
-                            if not tipes_counts.empty:
-                                top_tipe = str(tipes_counts.index[0]).strip().upper()
+                            clean_name = raw_mid[4:].strip() if raw_mid.startswith("IP: ") else raw_mid
+                            tipe = mod_map.get(raw_mid)
+                            if not tipe:
+                                tipe = "CHIP" if any(k in raw_mid.upper() for k in ["CSK-MO", "CHIP", "MODEM"]) else "H2H"
 
-                        # Ekstrak kategori dominan modul
-                        top_kat = "-"
-                        if "kat_clean" in msub.columns and not msub["kat_clean"].empty:
-                            kat_counts = msub["kat_clean"].value_counts()
-                            if not kat_counts.empty:
-                                top_kat = str(kat_counts.index[0]).strip().upper()
-                        if top_kat in ["-", "", "NONE", "NAN"] and top_op in OPERATOR_TO_CATEGORY_MAP:
-                            top_kat = OPERATOR_TO_CATEGORY_MAP[top_op]
+                            ops_s = grp_ops.loc[mid] if mid in grp_ops.index else pd.Series(dtype=int)
+                            ops_dict = {str(k).upper(): int(v) for k, v in ops_s.items() if v > 0}
+                            top_op = ops_s.idxmax() if (not ops_s.empty and ops_s.max() > 0) else "-"
 
-                        # Status kesehatan SLA via metrics_engine helper
-                        status = me.classify_sla_status(m_pct, m_dur, naming="BAIK")
+                            tipes_s = grp_tipes.loc[mid] if mid in grp_tipes.index else pd.Series(dtype=int)
+                            tipes_dict = {str(k).upper(): int(v) for k, v in tipes_s.items() if v > 0}
+                            top_tipe = tipes_s.idxmax() if (not tipes_s.empty and tipes_s.max() > 0) else "-"
 
-                        mod_stats.append({
-                            "modul_id": raw_mid,
-                            "nama_modul": clean_name,
-                            "tipe": tipe,
-                            "tipe_produk": top_tipe,
-                            "tipes": tipes_dict,
-                            "operator": top_op,
-                            "operators": ops_dict,
-                            "kategori": top_kat,
-                            "brand": brand,
-                            "trx": m_tot,
-                            "sukses": m_suk,
-                            "gagal": m_gagal,
-                            "sukses_pct": m_pct,
-                            "avg_speed": m_dur,
-                            "dur_str": _format_duration(m_dur),
-                            "status": status
-                        })
+                            kats_s = grp_kats.loc[mid] if mid in grp_kats.index else pd.Series(dtype=int)
+                            top_kat = kats_s.idxmax() if (not kats_s.empty and kats_s.max() > 0) else "-"
+                            if top_kat in ["-", "", "NONE", "NAN"] and str(top_op).upper() in OPERATOR_TO_CATEGORY_MAP:
+                                top_kat = OPERATOR_TO_CATEGORY_MAP[str(top_op).upper()]
+
+                            status = me.classify_sla_status(m_pct, m_dur, naming="BAIK")
+
+                            mod_stats.append({
+                                "modul_id": raw_mid,
+                                "nama_modul": clean_name,
+                                "tipe": tipe,
+                                "tipe_produk": top_tipe,
+                                "tipes": tipes_dict,
+                                "operator": top_op,
+                                "operators": ops_dict,
+                                "kategori": top_kat,
+                                "brand": brand,
+                                "trx": m_tot,
+                                "sukses": m_suk,
+                                "gagal": m_fail,
+                                "sukses_pct": m_pct,
+                                "avg_speed": m_dur,
+                                "dur_str": _format_duration(m_dur),
+                                "status": status
+                            })
 
                 # Helper kalkulasi kinerja per dimensi (Vectorized Fast Aggregation)
                 def _calc_dim_perf(dim_col):
@@ -521,6 +538,11 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
 
     _ANALISA_2026_RAM_CACHE = results
     _ANALISA_2026_MTIME = p_mtime
+    try:
+        with open(gold_cache_file, "w", encoding="utf-8") as f_out:
+            json.dump(results, f_out)
+    except Exception as e:
+        print(f"[WARN] Failed to write {gold_cache_file}: {e}")
     return results
 
 
@@ -841,9 +863,30 @@ def get_analisa_dataset() -> Dict[str, Any]:
         os.path.getmtime(p_astaga) if os.path.exists(p_astaga) else 0,
         os.path.getmtime(p_okipay) if os.path.exists(p_okipay) else 0
     )
-    if _ANALISA_CACHE is None or _ANALISA_MTIME < curr_mtime:
-        _ANALISA_CACHE = _build_gold_monthly_history()
-        _ANALISA_MTIME = curr_mtime
+    if _ANALISA_CACHE is not None and (curr_mtime == 0 or _ANALISA_MTIME >= curr_mtime):
+        return _ANALISA_CACHE
+
+    hist_cache_file = os.path.join(CACHE_DIR, "analisa_gold_history.json")
+    for fpath in [hist_cache_file, os.path.join(BASE_DIR, "pages", "analisa", "data.json")]:
+        if os.path.exists(fpath):
+            try:
+                f_mtime = os.path.getmtime(fpath)
+                if curr_mtime == 0 or f_mtime >= curr_mtime:
+                    with open(fpath, "r", encoding="utf-8") as f:
+                        _ANALISA_CACHE = json.load(f)
+                        _ANALISA_MTIME = f_mtime
+                        return _ANALISA_CACHE
+            except Exception as e:
+                print(f"[WARN] Failed to load {fpath}: {e}")
+
+    _ANALISA_CACHE = _build_gold_monthly_history()
+    _ANALISA_MTIME = curr_mtime
+    try:
+        with open(hist_cache_file, "w", encoding="utf-8") as f_out:
+            json.dump(_ANALISA_CACHE, f_out)
+    except Exception as e:
+        print(f"[WARN] Failed to write {hist_cache_file}: {e}")
+
     return _ANALISA_CACHE
 
 

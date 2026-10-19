@@ -1026,6 +1026,11 @@ def _prewarm():
             profit_engine.calculate_profit_analysis(brand="ASTAGA", year="2026")
             profit_engine.calculate_profit_analysis(brand="OKIPAY", year="2026")
             profit_engine.calculate_profit_analysis(brand="ALL", year="2026")
+            import engines.analisa_engine as an_engine
+            an_engine.get_analisa_dataset()
+            an_engine.query_analisa_data(brand="ASTAGA", year="ALL", month="ALL")
+            an_engine.query_analisa_data(brand="OKIPAY", year="ALL", month="ALL")
+            an_engine.query_analisa_data(brand="ALL", year="ALL", month="ALL")
         except Exception as e:
             telemetry_engine.log(f"[BOOT] Gagal pre-compute dashboard: {e}", state="warning")
             print(f"[BOOT] Gagal pre-compute dashboard: {e}")
