@@ -13,7 +13,7 @@ import os
 import json
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 import engines.transaction_engine as te
 import engines.product_engine as pe
 import engines.reseller_engine as re
