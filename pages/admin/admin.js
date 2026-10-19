@@ -878,13 +878,28 @@ async function loadMasterAgents() {
     if (options.stats) {
       const elTotA = document.getElementById("kpi-total-agents");
       const elTotR = document.getElementById("kpi-total-resellers");
-      const elMapS = document.getElementById("kpi-mapped-sco");
+      const elSalS = document.getElementById("kpi-sales-sco") || document.getElementById("kpi-mapped-sco");
+      const elNonS = document.getElementById("kpi-non-sco");
+      const elOnlS = document.getElementById("kpi-online-sco");
       const elUnmS = document.getElementById("kpi-unmapped-sco");
+      const elUnmSub = document.getElementById("kpi-unmapped-sco-sub");
 
-      if (elTotA) elTotA.textContent = options.stats.total_agents.toLocaleString();
-      if (elTotR) elTotR.textContent = options.stats.total_resellers.toLocaleString();
-      if (elMapS) elMapS.textContent = options.stats.mapped_sco.toLocaleString();
-      if (elUnmS) elUnmS.textContent = options.stats.unmapped_sco.toLocaleString();
+      if (elTotA) elTotA.textContent = (options.stats.total_agents || 0).toLocaleString("id-ID");
+      if (elTotR) elTotR.textContent = (options.stats.total_resellers || 0).toLocaleString("id-ID");
+      if (elSalS) elSalS.textContent = (options.stats.sales_sco !== undefined ? options.stats.sales_sco : (options.stats.mapped_sco || 0)).toLocaleString("id-ID");
+      if (elNonS) elNonS.textContent = (options.stats.non_sco || 0).toLocaleString("id-ID");
+      if (elOnlS) elOnlS.textContent = (options.stats.online_sco || 0).toLocaleString("id-ID");
+      if (elUnmS) {
+        const unmappedCount = options.stats.unmapped_sco || 0;
+        elUnmS.textContent = unmappedCount.toLocaleString("id-ID");
+        if (unmappedCount > 0) {
+          elUnmS.style.color = "#dc2626";
+          if (elUnmSub) elUnmSub.textContent = "Perlu pemetaan cabang/SCO";
+        } else {
+          elUnmS.style.color = "#16a34a";
+          if (elUnmSub) elUnmSub.textContent = "Semua agen terpetakan";
+        }
+      }
     }
 
     // 2. Populate Dropdowns if needed
@@ -935,12 +950,15 @@ function populateFilterOptions(options) {
 
   if (selSco) {
     let optHtml = `
-      <option value="ALL">Semua SCO (${options.scos.length})</option>
+      <option value="ALL">Semua SCO / Sales</option>
+      <option value="NON SCO">Cabang (NON SCO - Omset Langsung)</option>
+      <option value="ONLINE">Cabang ONLINE (Mandiri)</option>
+      <option value="SALES_ONLY">Hanya Tim Sales Lapangan (PIC)</option>
       <option value="UNMAPPED">Belum Dipetakan (UNMAPPED)</option>
     `;
     options.scos.forEach(s => {
-      if (s !== "NON SCO" && s !== "BELUM DIPETAKAN") {
-        optHtml += `<option value="${s}">${s}</option>`;
+      if (s !== "NON SCO" && s !== "ONLINE" && s !== "BELUM DIPETAKAN" && s !== "UNMAPPED") {
+        optHtml += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`;
       }
     });
     selSco.innerHTML = optHtml;
@@ -974,9 +992,19 @@ function renderAgentsTable(rows) {
 
   let html = "";
   rows.forEach(r => {
-    const isUnmapped = !r.sco || r.sco === "NON SCO" || r.sco === "BELUM DIPETAKAN" || r.sco === "-";
-    const scoBadgeClass = isUnmapped ? "badge-warning" : "badge-sco";
-    const scoLabel = isUnmapped ? "NON SCO" : r.sco;
+    const scoVal = (r.sco || "").trim();
+    const scoUpper = scoVal.toUpperCase();
+    let scoBadgeHtml = "";
+
+    if (!scoVal || scoUpper === "BELUM DIPETAKAN" || scoUpper === "UNMAPPED" || scoUpper === "-") {
+      scoBadgeHtml = `<span class="badge" style="background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; font-weight: 700; font-size: 11px;">BELUM DIPETAKAN</span>`;
+    } else if (scoUpper === "NON SCO") {
+      scoBadgeHtml = `<span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700; font-size: 11px;">NON SCO (CABANG)</span>`;
+    } else if (scoUpper === "ONLINE") {
+      scoBadgeHtml = `<span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">ONLINE</span>`;
+    } else {
+      scoBadgeHtml = `<span class="badge badge-sco">${escapeHtml(scoVal)}</span>`;
+    }
 
     html += `
       <tr style="border-bottom: 1px solid var(--surface-border); transition: background 0.15s ease;">
@@ -1010,9 +1038,7 @@ function renderAgentsTable(rows) {
 
         <!-- KOLOM 3: SALES TEAM (SCO & DSO) -->
         <td style="padding: 12px 14px;">
-          <span class="badge ${scoBadgeClass}">
-            ${scoLabel}
-          </span>
+          ${scoBadgeHtml}
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">
             DSO: ${r.dso || '-'}
           </div>

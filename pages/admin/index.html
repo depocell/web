@@ -318,40 +318,37 @@
     </div>
 
     <!-- STAT KPI SUMMARY CARDS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;"
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 14px;"
       id="master-kpi-cards">
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Agen
-          (Induk)</div>
-        <div
-          style="font-size: 24px; font-weight: 800; color: var(--primary); font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-total-agents">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Entitas induk langsung di bawah
-          cabang</div>
+      <div class="card-box" style="padding: 16px 18px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Agen (Induk)</div>
+        <div style="font-size: 24px; font-weight: 800; color: var(--primary); font-family: var(--font-mono); margin-top: 4px;" id="kpi-total-agents">-</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Entitas induk terdaftar</div>
       </div>
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
-          Reseller (MLM)</div>
-        <div
-          style="font-size: 24px; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-total-resellers">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Seluruh toko downline &amp; agen
-          terdata</div>
+      <div class="card-box" style="padding: 16px 18px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tim Sales (SCO)</div>
+        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;" id="kpi-sales-sco">-</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Ber-PIC sales lapangan</div>
       </div>
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Agen
-          Terpetakan SCO</div>
-        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-mapped-sco">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Memiliki PIC tim sales aktif</div>
+      <div class="card-box" style="padding: 16px 18px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang (NON SCO)</div>
+        <div style="font-size: 24px; font-weight: 800; color: #475569; font-family: var(--font-mono); margin-top: 4px;" id="kpi-non-sco">-</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Omset langsung cabang fisik</div>
       </div>
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Belum
-          Terpetakan (Unmapped)</div>
-        <div style="font-size: 24px; font-weight: 800; color: #eab308; font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-unmapped-sco">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Status NON SCO / Belum Dipetakan
-        </div>
+      <div class="card-box" style="padding: 16px 18px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang ONLINE</div>
+        <div style="font-size: 24px; font-weight: 800; color: #2563eb; font-family: var(--font-mono); margin-top: 4px;" id="kpi-online-sco">-</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Mandiri via PlayStore</div>
+      </div>
+      <div class="card-box" style="padding: 16px 18px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Belum Dipetakan</div>
+        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;" id="kpi-unmapped-sco">-</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="kpi-unmapped-sco-sub">Semua agen terpetakan</div>
+      </div>
+      <div class="card-box" style="padding: 16px 18px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Reseller (MLM)</div>
+        <div style="font-size: 24px; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); margin-top: 4px;" id="kpi-total-resellers">-</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Seluruh downline &amp; agen</div>
       </div>
     </div>
 
@@ -436,7 +433,10 @@
           <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">SCO:</label>
           <select id="master-filter-sco" onchange="executeMasterFilter()"
             style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px;">
-            <option value="ALL">Semua SCO</option>
+            <option value="ALL">Semua SCO / Sales</option>
+            <option value="NON SCO">Cabang (NON SCO - Omset Langsung)</option>
+            <option value="ONLINE">Cabang ONLINE (Mandiri)</option>
+            <option value="SALES_ONLY">Hanya Tim Sales Lapangan (PIC)</option>
             <option value="UNMAPPED">Belum Dipetakan (UNMAPPED)</option>
           </select>
         </div>

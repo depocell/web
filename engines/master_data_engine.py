@@ -905,9 +905,42 @@ def get_filter_options(brand: str = "ASTAGA") -> dict:
         cursor.execute("SELECT COUNT(*) FROM resellers WHERE brand = ?", (brand,))
         total_resellers = cursor.fetchone()[0]
 
+        # 1. SCO Sales Aktif (bukan NON SCO, bukan ONLINE, bukan kosong/unmapped)
         cursor.execute("""
             SELECT COUNT(*) FROM agents 
-            WHERE brand = ? AND (sco IS NULL OR sco = '' OR sco = 'NON SCO' OR sco = 'BELUM DIPETAKAN')
+            WHERE brand = ? 
+              AND sco IS NOT NULL 
+              AND sco != '' 
+              AND sco != '-' 
+              AND sco != 'NON SCO' 
+              AND sco != 'ONLINE'
+              AND sco != 'BELUM DIPETAKAN'
+              AND sco != 'UNMAPPED'
+        """, (brand,))
+        sales_sco = cursor.fetchone()[0]
+
+        # 2. NON SCO (Omset Cabang Fisik / Non-Sales)
+        cursor.execute("""
+            SELECT COUNT(*) FROM agents 
+            WHERE brand = ? AND sco = 'NON SCO'
+        """, (brand,))
+        non_sco = cursor.fetchone()[0]
+
+        # 3. ONLINE (Pendaftaran Mandiri)
+        cursor.execute("""
+            SELECT COUNT(*) FROM agents 
+            WHERE brand = ? AND (sco = 'ONLINE' OR cabang = 'ONLINE')
+        """, (brand,))
+        online_sco = cursor.fetchone()[0]
+
+        # 4. Truly Unmapped (Belum dipetakan sama sekali)
+        cursor.execute("""
+            SELECT COUNT(*) FROM agents 
+            WHERE brand = ? 
+              AND (
+                sco IS NULL OR sco = '' OR sco = '-' OR sco = 'BELUM DIPETAKAN' OR sco = 'UNMAPPED'
+                OR cabang IS NULL OR cabang = '' OR cabang = '-' OR cabang = 'UNMAPPED'
+              )
         """, (brand,))
         unmapped_sco = cursor.fetchone()[0]
 
@@ -919,8 +952,11 @@ def get_filter_options(brand: str = "ASTAGA") -> dict:
             "stats": {
                 "total_agents": total_agents,
                 "total_resellers": total_resellers,
-                "mapped_sco": total_agents - unmapped_sco,
-                "unmapped_sco": unmapped_sco
+                "sales_sco": sales_sco,
+                "non_sco": non_sco,
+                "online_sco": online_sco,
+                "unmapped_sco": unmapped_sco,
+                "mapped_sco": sales_sco
             }
         }
 
@@ -941,7 +977,24 @@ def query_agents(brand: str = "ASTAGA", cabang: str = None, sco: str = None, typ
 
     if sco and sco != "ALL":
         if sco == "UNMAPPED":
-            where_clauses.append("(a.sco IS NULL OR a.sco = '' OR a.sco = 'NON SCO' OR a.sco = 'BELUM DIPETAKAN')")
+            where_clauses.append("""(
+                a.sco IS NULL OR a.sco = '' OR a.sco = '-' OR a.sco = 'BELUM DIPETAKAN' OR a.sco = 'UNMAPPED'
+                OR a.cabang IS NULL OR a.cabang = '' OR a.cabang = '-' OR a.cabang = 'UNMAPPED'
+            )""")
+        elif sco in ("NON_SCO", "NON SCO"):
+            where_clauses.append("a.sco = 'NON SCO'")
+        elif sco == "ONLINE":
+            where_clauses.append("(a.sco = 'ONLINE' OR a.cabang = 'ONLINE')")
+        elif sco == "SALES_ONLY":
+            where_clauses.append("""(
+                a.sco IS NOT NULL 
+                AND a.sco != '' 
+                AND a.sco != '-' 
+                AND a.sco != 'NON SCO' 
+                AND a.sco != 'ONLINE'
+                AND a.sco != 'BELUM DIPETAKAN'
+                AND a.sco != 'UNMAPPED'
+            )""")
         else:
             where_clauses.append("a.sco = ?")
             params.append(sco)
