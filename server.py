@@ -836,6 +836,12 @@ async def api_admin_product_export(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+async def api_system_pulse(request):
+    """Live Server Pulse & Telemetry Status + terminal log stream."""
+    import engines.telemetry_engine as telemetry_engine
+    return JSONResponse(telemetry_engine.get_telemetry())
+
+
 # ─── Auth Middleware ─────────────────────────────────────────────────────────
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -850,10 +856,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # - Halaman login & endpoint auth
         # - Akses langsung tim sales lapangan ke SCO Suite (/sco, /pages/sco/*, /api/sco/*)
         # - File statis (CSS, JS, logo, font)
+        # - Telemetry status pulse
         # - Favicon
         if (
             path == "/login" or
             path.startswith("/api/auth/") or
+            path == "/api/system/pulse" or
             path == "/sco" or
             path.startswith("/sco/") or
             path.startswith("/pages/sco") or
@@ -951,6 +959,7 @@ routes = [
     Route("/api/sco/push",      api_sco_push,     methods=["GET", "POST"]),
     Route("/api/sco/check",     api_sco_check,    methods=["GET", "POST"]),
     Route("/api/status",        api_status),
+    Route("/api/system/pulse",  api_system_pulse),
     Route("/api/trx/build",     api_trx_build,   methods=["GET", "POST"]),
     Route("/api/trx/summary",   api_trx_summary),
     Mount("/pages",             app=StaticFiles(directory=PAGES_DIR), name="pages"),
@@ -968,16 +977,21 @@ def _prewarm():
     import engines.customer_engine as cust_engine
     import engines.product_engine as prod_engine
     import engines.reseller_engine as res_engine
+    import engines.telemetry_engine as telemetry_engine
 
     def run():
         time.sleep(1)
+        telemetry_engine.set_busy("Boot Pre-warm Cache 2026...", "Memeriksa Parquet & RAM")
         print("[BOOT] Pre-warming cache transaksi & RAM 2026...")
         for brand in ["ASTAGA", "OKIPAY"]:
             # 1. Pastikan parquet valid
+            telemetry_engine.set_busy(f"Pre-warm Parquet {brand} 2026...", "Cek integritas file")
             trx_engine.build_cache(brand, "2026")
             # 2. Muat langsung ke RAM (_MEMORY_CACHE) dengan kolom ym & is_sukses
+            telemetry_engine.set_busy(f"Pre-warm RAM {brand} 2026...", "Memuat dataset ke memori")
             trx_engine.load(brand, "2026")
             # 3. Preload master customer & produk
+            telemetry_engine.set_busy(f"Pre-load Master {brand}...", "Customer & Product Map")
             cust_engine.get_ar_to_cabang(brand)
             prod_engine.get_product_map(brand)
             # Preload pivot prepared transactions
@@ -989,16 +1003,20 @@ def _prewarm():
             for b in ["ASTAGA", "OKIPAY"]:
                 if radar.get(b, {}).get("needs_sync"):
                     fn = radar.get(b, {}).get("tsv", {}).get("filename", "")
+                    telemetry_engine.set_busy(f"Auto-sync TSV Reseller {b}...", fn)
                     print(f"[BOOT] Terdeteksi TSV Reseller baru {fn} ({b}), auto-sync & filter < 2023...")
                     master_data_engine.sync_resellers_from_tsv(b)
         except Exception as e:
+            telemetry_engine.log(f"[BOOT] Gagal auto-sync TSV: {e}", state="warning")
             print(f"[BOOT] Gagal auto-sync TSV Reseller: {e}")
 
         # 4. Preload reseller meta
+        telemetry_engine.set_busy("Pre-load Master Reseller Meta...", "SQLite & Hierarchy")
         res_engine.load_master_meta()
 
         # 5. Precompute dashboard Reseller, Agen, System, dan Admin di background RAM
         try:
+            telemetry_engine.set_busy("Pre-computing Dashboards 2026...", "Reseller, Agen, System, Profit")
             print("[BOOT] Pre-computing Dashboard Reseller, Agen, System & Admin 2026...")
             res_engine.calculate_reseller_dashboard(year="2026")
             import engines.agen_engine as ag_engine
@@ -1009,8 +1027,10 @@ def _prewarm():
             profit_engine.calculate_profit_analysis(brand="OKIPAY", year="2026")
             profit_engine.calculate_profit_analysis(brand="ALL", year="2026")
         except Exception as e:
+            telemetry_engine.log(f"[BOOT] Gagal pre-compute dashboard: {e}", state="warning")
             print(f"[BOOT] Gagal pre-compute dashboard: {e}")
 
+        telemetry_engine.set_idle("Server Ready — Parquet & SQLite Sinkron", "RAM Cache Aktif & Sat-set")
         print("[BOOT] Pre-warm RAM & Master selesai! Semua engine siap sat-set.")
 
     threading.Thread(target=run, daemon=True).start()

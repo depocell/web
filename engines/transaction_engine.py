@@ -16,6 +16,11 @@ import pandas as pd
 import openpyxl
 from datetime import datetime
 
+try:
+    import engines.telemetry_engine as telemetry
+except Exception:
+    telemetry = None
+
 # ─── Konfigurasi Path ────────────────────────────────────────────────────────
 RAW_DATA_ROOT = r"C:\RAW DATA"
 CACHE_DIR     = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".cache")
@@ -249,11 +254,19 @@ def build_cache(brand: str, year: str, force: bool = False) -> dict:
             df = pd.read_parquet(mini)
             frames.append(df)
             files_cached += 1
-            print(f"  [CACHE] {brand}/{year} -- {fname} -> {len(df):,} baris (instan)")
+            log_msg = f"[CACHE] {brand}/{year} -- {fname} -> {len(df):,} baris (instan)"
+            print(f"  {log_msg}")
+            if telemetry:
+                telemetry.log(log_msg, state="idle")
         else:
             # File baru/berubah → baca dari Excel
             size_mb = os.path.getsize(f) / (1024 * 1024)
-            print(f"  [READ]  {brand}/{year} -- {fname} ({size_mb:.1f} MB)")
+            read_msg = f"[READ]  {brand}/{year} -- {fname} ({size_mb:.1f} MB)"
+            print(f"  {read_msg}")
+            if telemetry:
+                telemetry.set_busy(f"Membaca {fname}...", f"{brand} {year} ({size_mb:.1f} MB)")
+                telemetry.log(read_msg, state="busy")
+
             t0 = datetime.now()
             df = _read_gross_fast(f, col_map)
             elapsed = (datetime.now() - t0).total_seconds()
@@ -284,13 +297,24 @@ def build_cache(brand: str, year: str, force: bool = False) -> dict:
                 df.to_parquet(mini, index=False)
                 frames.append(df)
                 files_read += 1
-                print(f"          -> {len(df):,} baris, {elapsed:.1f}s")
+                res_msg = f"          -> {len(df):,} baris, {elapsed:.1f}s"
+                print(res_msg)
+                if telemetry:
+                    telemetry.log(res_msg, state="busy")
             else:
                 files_read += 1
-                print(f"          -> kosong, {elapsed:.1f}s")
+                res_msg = f"          -> kosong, {elapsed:.1f}s"
+                print(res_msg)
+                if telemetry:
+                    telemetry.log(res_msg, state="busy")
 
     if not frames:
+        if telemetry:
+            telemetry.set_idle(f"Error {brand} {year}: Tidak ada data", "Gagal membaca")
         return {"success": False, "error": "Tidak ada data berhasil dibaca."}
+
+    if telemetry and files_read > 0:
+        telemetry.set_busy(f"Menggabungkan Parquet {brand} {year}...", f"{len(frames)} file")
 
     combined = pd.concat(frames, ignore_index=True)
 
@@ -315,6 +339,9 @@ def build_cache(brand: str, year: str, force: bool = False) -> dict:
     msg = (f"Incremental: {files_read} file dibaca, {files_cached} dari cache, "
            f"{len(combined):,} baris dalam {total_sec:.0f} detik.")
     print(f"  [OK] {msg}")
+    if telemetry:
+        telemetry.log(f"[OK] {msg}", state="success")
+        telemetry.set_idle(f"Parquet {brand} {year} Sinkron", f"{len(combined):,} baris")
     return {
         "success": True, "cached": False,
         "brand": brand, "year": year,
