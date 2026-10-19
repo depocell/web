@@ -151,7 +151,7 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
     import engines.master_product_engine as mpe
     import engines.reseller_engine as re
 
-    cache_file = os.path.join(CACHE_DIR, "analisa_gold_2026.json")
+    global _ANALISA_2026_RAM_CACHE, _ANALISA_2026_MTIME
     p_astaga = te._cache_path("ASTAGA", "2026")
     p_okipay = te._cache_path("OKIPAY", "2026")
 
@@ -160,14 +160,8 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
         os.path.getmtime(p_okipay) if os.path.exists(p_okipay) else 0
     )
 
-    if os.path.exists(cache_file) and (p_mtime == 0 or os.path.getmtime(cache_file) >= p_mtime):
-        try:
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cached_data = json.load(f)
-                if "ASTAGA" in cached_data and "OKIPAY" in cached_data and cached_data["ASTAGA"]:
-                    return cached_data
-        except Exception:
-            pass
+    if _ANALISA_2026_RAM_CACHE is not None and (p_mtime == 0 or _ANALISA_2026_MTIME >= p_mtime):
+        return _ANALISA_2026_RAM_CACHE
 
     def _norm_cat(kat):
         k = str(kat).upper().strip()
@@ -525,13 +519,8 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
         except Exception as e:
             print(f"[WARN] Gagal build analisa 2026 untuk {brand}: {e}")
 
-    try:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(results, f)
-    except Exception:
-        pass
-
+    _ANALISA_2026_RAM_CACHE = results
+    _ANALISA_2026_MTIME = p_mtime
     return results
 
 
@@ -832,18 +821,16 @@ def _build_gold_monthly_history() -> Dict[str, Any]:
 # Cache Singleton in RAM
 _ANALISA_CACHE = None
 _ANALISA_MTIME = 0
+_ANALISA_2026_RAM_CACHE = None
+_ANALISA_2026_MTIME = 0
 
 def clear_cache():
-    """Reset seluruh in-memory cache dan cache JSON untuk Analisa Distribusi."""
-    global _ANALISA_CACHE, _ANALISA_MTIME
+    """Reset seluruh in-memory RAM cache untuk Analisa Distribusi."""
+    global _ANALISA_CACHE, _ANALISA_MTIME, _ANALISA_2026_RAM_CACHE, _ANALISA_2026_MTIME
     _ANALISA_CACHE = None
     _ANALISA_MTIME = 0
-    cache_file = os.path.join(CACHE_DIR, "analisa_gold_2026.json")
-    if os.path.exists(cache_file):
-        try:
-            os.remove(cache_file)
-        except Exception:
-            pass
+    _ANALISA_2026_RAM_CACHE = None
+    _ANALISA_2026_MTIME = 0
 
 def get_analisa_dataset() -> Dict[str, Any]:
     global _ANALISA_CACHE, _ANALISA_MTIME

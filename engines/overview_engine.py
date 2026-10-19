@@ -58,13 +58,6 @@ def get_latest_month_summary(year: str = "2026") -> Dict[str, Any]:
             }
         }
 
-        # Simpan snapshot lokal agar selalu terlayani instan
-        try:
-            snap_path = os.path.join(BASE_DIR, "pages", "home", "overview_data.json")
-            with open(snap_path, "w", encoding="utf-8") as f:
-                json.dump({"ok": True, "data": res_data}, f, indent=2)
-        except Exception:
-            pass
 
         return res_data
     except Exception as e:

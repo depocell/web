@@ -212,12 +212,6 @@ def load_master_meta(brand: str = "ASTAGA"):
     _AGEN_META_CACHE = agen_meta
     _META_MTIME = mtime
 
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    try:
-        with open(json_cache, "w", encoding="utf-8") as fp:
-            json.dump({"reseller": reseller_meta, "agen": agen_meta}, fp)
-    except Exception:
-        pass
 
     return reseller_meta, agen_meta
 
