@@ -58,68 +58,82 @@
     </div>
   </div>
 
-  <!-- ROW 1: 4 COMPACT KPI CARDS -->
+  <!-- ROW 1: 4 COMPACT KPI CARDS - OPSI 1: MONOKROMATIK SLATE / MINIMALIS ELEGAN -->
   <div class="grid-kpi-4"
     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
     <!-- KPI 1: AVG Trx / Hari -->
-    <div class="card" style="padding: 16px 20px; border-top: 4px solid #0284c7;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span
-          style="font-size: 11px; font-weight: 700; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">AVG
-          DAILY TRX</span>
+    <div class="card daily-kpi-card">
+      <div class="daily-kpi-header">
+        <span class="daily-kpi-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="daily-kpi-icon">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          AVG DAILY TRX
+        </span>
         <span id="kpi-growth-trx" class="pill positive">-</span>
       </div>
-      <div id="kpi-val-trx" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
-      <div
-        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+      <div id="kpi-val-trx" class="daily-kpi-val">-</div>
+      <div class="daily-kpi-footer">
         <span id="kpi-prev-trx">BL: -</span>
-        <span id="kpi-mtd-trx" style="font-weight: 600; color: #0284c7;">Total MTD: -</span>
+        <span id="kpi-mtd-trx" class="daily-kpi-meta-highlight">Total MTD: -</span>
       </div>
     </div>
 
     <!-- KPI 2: AVG Daily Member -->
-    <div class="card" style="padding: 16px 20px; border-top: 4px solid #10b981;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span
-          style="font-size: 11px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;">AVG
-          DAILY MEMBER</span>
+    <div class="card daily-kpi-card">
+      <div class="daily-kpi-header">
+        <span class="daily-kpi-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="daily-kpi-icon">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          AVG DAILY MEMBER
+        </span>
         <span id="kpi-growth-mem" class="pill positive">-</span>
       </div>
-      <div id="kpi-val-mem" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
-      <div
-        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+      <div id="kpi-val-mem" class="daily-kpi-val">-</div>
+      <div class="daily-kpi-footer">
         <span id="kpi-prev-mem">BL: -</span>
-        <span style="font-weight: 600; color: #10b981;">Daily Agen Aktif</span>
+        <span>Daily Agen Aktif</span>
       </div>
     </div>
 
     <!-- KPI 3: Daily Trx / Member (TPM) -->
-    <div class="card" style="padding: 16px 20px; border-top: 4px solid #8b5cf6;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span
-          style="font-size: 11px; font-weight: 700; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.5px;">DAILY
-          TRX/MEMBER (TPM)</span>
+    <div class="card daily-kpi-card">
+      <div class="daily-kpi-header">
+        <span class="daily-kpi-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="daily-kpi-icon">
+            <line x1="12" y1="20" x2="12" y2="10"></line>
+            <line x1="18" y1="20" x2="18" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="16"></line>
+          </svg>
+          DAILY TRX/MEMBER (TPM)
+        </span>
         <span id="kpi-growth-tpm" class="pill positive">-</span>
       </div>
-      <div id="kpi-val-tpm" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-</div>
-      <div
-        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+      <div id="kpi-val-tpm" class="daily-kpi-val">-</div>
+      <div class="daily-kpi-footer">
         <span id="kpi-prev-tpm">BL: -</span>
-        <span style="font-weight: 600; color: #8b5cf6;">Produktivitas</span>
+        <span>Produktivitas</span>
       </div>
     </div>
 
     <!-- KPI 4: Kualitas Layanan (%Sukses & Speed) -->
-    <div class="card" style="padding: 16px 20px; border-top: 4px solid #f59e0b;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span
-          style="font-size: 11px; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">%SUKSES
-          &amp; SPEED</span>
+    <div class="card daily-kpi-card">
+      <div class="daily-kpi-header">
+        <span class="daily-kpi-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="daily-kpi-icon">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          %SUKSES &amp; SPEED
+        </span>
         <span id="kpi-growth-sukses" class="pill positive">-</span>
       </div>
-      <div id="kpi-val-sukses" style="font-size: 24px; font-weight: 800; line-height: 1.1; margin: 4px 0;">-%</div>
-      <div
-        style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+      <div id="kpi-val-sukses" class="daily-kpi-val">-%</div>
+      <div class="daily-kpi-footer">
         <span id="kpi-val-dur">Avg: 00:00</span>
         <span id="kpi-prev-dur">BL: 00:00</span>
       </div>
@@ -215,6 +229,75 @@
 </div> <!-- End daily-report-capture -->
 
 <style>
+  /* ── OPSI 1: MONOKROMATIK SLATE / MINIMALIS ELEGAN (KPI CARDS) ── */
+  .daily-kpi-card {
+    padding: 18px 20px !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--surface-border) !important;
+    border-radius: 10px !important;
+    box-shadow: var(--card-shadow) !important;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .daily-kpi-card:hover {
+    box-shadow: var(--card-shadow-hover) !important;
+    border-color: var(--text-subtle, #94a3b8) !important;
+    transform: translateY(-2px);
+  }
+
+  .daily-kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .daily-kpi-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .daily-kpi-icon {
+    color: var(--text-muted);
+    opacity: 0.8;
+    flex-shrink: 0;
+  }
+
+  .daily-kpi-val {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 6px 0 8px 0;
+    color: var(--text-main);
+    font-family: var(--font-mono, inherit);
+    letter-spacing: -0.5px;
+  }
+
+  .daily-kpi-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--surface-border-subtle, rgba(0, 0, 0, 0.04));
+  }
+
+  .daily-kpi-meta-highlight {
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
   .btn-download-hd {
     padding: 7px 14px;
     border-radius: 8px;
