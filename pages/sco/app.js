@@ -433,7 +433,7 @@
       return s === 'grand total' || s === 'total';
     }) || { prev: 0, curr: 0, Growth: 0, '%': 0 };
 
-    function makeKpiCard(title, icon, row, colorAccent, iconBg, iconColor) {
+    function makeKpiCard(title, icon, row) {
       const valCurr = row.curr || 0;
       const valPrev = row.prev || 0;
       const growth = (row['Growth'] !== undefined && row['Growth'] !== '')
@@ -442,10 +442,10 @@
       const isPos = growth >= 0;
 
       return `
-        <div class="metric-card" style="--card-accent: ${colorAccent};">
+        <div class="metric-card">
           <div class="metric-header">
             <span class="metric-label">${title}</span>
-            <div class="metric-icon-box" style="background: ${iconBg}; color: ${iconColor};">
+            <div class="metric-icon-box">
               <i class="${icon}"></i>
             </div>
           </div>
@@ -469,12 +469,12 @@
     });
 
     container.innerHTML = `
-      <!-- 4 KPI CARDS: DAILY TRX (SCO, NON SCO, ONLINE, TOTAL) -->
+      <!-- 4 KPI CARDS: DAILY TRX (SCO, NON SCO, ONLINE, TOTAL) - OPSI 1: MONOKROMATIK SLATE -->
       <div class="metrics-grid">
-        ${makeKpiCard('TOTAL SCO (DAILY TRX)', 'fa-solid fa-user-check', rowTotSco, 'var(--primary)', 'var(--primary-light)', 'var(--primary)')}
-        ${makeKpiCard('TOTAL NON SCO (DAILY TRX)', 'fa-solid fa-users', rowTotNon, '#8b5cf6', 'rgba(139, 92, 246, 0.15)', '#8b5cf6')}
-        ${makeKpiCard('ONLINE (DAILY TRX)', 'fa-solid fa-globe', rowOnline, 'var(--success)', 'rgba(16, 185, 129, 0.15)', 'var(--success)')}
-        ${makeKpiCard('GRAND TOTAL (DAILY TRX)', 'fa-solid fa-chart-pie', rowGrand, '#f59e0b', 'rgba(245, 158, 11, 0.15)', '#f59e0b')}
+        ${makeKpiCard('TOTAL SCO (DAILY TRX)', 'fa-solid fa-user-check', rowTotSco)}
+        ${makeKpiCard('TOTAL NON SCO (DAILY TRX)', 'fa-solid fa-users', rowTotNon)}
+        ${makeKpiCard('ONLINE (DAILY TRX)', 'fa-solid fa-globe', rowOnline)}
+        ${makeKpiCard('GRAND TOTAL (DAILY TRX)', 'fa-solid fa-chart-pie', rowGrand)}
       </div>
 
       <!-- CHART SECTION: DAILY TRX PER SCO (DI-HIDE SEMENTARA, JANGAN DIHAPUS) -->

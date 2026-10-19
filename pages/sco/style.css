@@ -516,12 +516,7 @@ body {
 
 .metric-card::before {
   content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--card-accent, var(--primary));
+  display: none;
 }
 
 .metric-header {
