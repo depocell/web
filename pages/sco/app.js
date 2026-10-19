@@ -11,7 +11,7 @@
     selectedPeriod: null,
     selectedSales: 'ALL',
     selectedJadwal: 'ALL',
-    detailSort: 'growth_desc',
+    detailSort: 'growth_asc',
     searchQuery: '',
     detailPageLimit: 100,
     kpiScoMonth: 'ALL',
@@ -377,7 +377,7 @@
       '#ringkasan': '<i class="fa-solid fa-chart-line" style="color:var(--primary);"></i> Ringkasan Performa',
       '#coverage': '<i class="fa-solid fa-map-location-dot" style="color:var(--primary);"></i> Area Coverage',
       '#profil-agen': '<i class="fa-solid fa-store" style="color:var(--primary);"></i> Profil Tren Agen',
-      '#detail': '<i class="fa-solid fa-users" style="color:var(--primary);"></i> Detail Performa Agen',
+      '#detail': '<i class="fa-solid fa-users" style="color:var(--primary);"></i> Performa MTD',
       '#kpi-sco': '<i class="fa-solid fa-bullseye" style="color:var(--primary);"></i> KPI & Insentif SCO',
       '#kpi-dso': '<i class="fa-solid fa-award" style="color:var(--primary);"></i> KPI & Insentif DSO',
       '#settings': '<i class="fa-solid fa-gear" style="color:var(--primary);"></i> Pengaturan'
@@ -1168,15 +1168,32 @@
     const periodCode = state.selectedPeriod || (state.data && state.data.latest_period) || '1026';
     const pData = (state.data && state.data.periods && state.data.periods[periodCode]) ? state.data.periods[periodCode] : null;
     
-    function parseCodeToMonth(code) {
-      if (!code || code.length !== 4) return '';
-      const mo = code.substring(0, 2);
-      const yr = '20' + code.substring(2, 4);
-      return formatBulan(`${yr}-${mo}-01`);
+    function toShortMonth(code, rawName) {
+      if (code && code.length === 4) {
+        const mo = parseInt(code.substring(0, 2), 10) - 1;
+        const shortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        if (mo >= 0 && mo < 12) return shortNames[mo];
+      }
+      if (rawName) {
+        const s = String(rawName).toLowerCase();
+        if (s.includes('sep')) return 'Sep';
+        if (s.includes('okt') || s.includes('oct')) return 'Oct';
+        if (s.includes('jan')) return 'Jan';
+        if (s.includes('feb')) return 'Feb';
+        if (s.includes('mar')) return 'Mar';
+        if (s.includes('apr')) return 'Apr';
+        if (s.includes('mei') || s.includes('may')) return 'May';
+        if (s.includes('jun')) return 'Jun';
+        if (s.includes('jul')) return 'Jul';
+        if (s.includes('agu') || s.includes('aug')) return 'Aug';
+        if (s.includes('nov')) return 'Nov';
+        if (s.includes('des') || s.includes('dec')) return 'Dec';
+      }
+      return rawName || '';
     }
 
-    const prevLabel = (pData && pData.prev_code) ? parseCodeToMonth(pData.prev_code) : (pData ? pData.prev_name : 'Lalu');
-    const currLabel = (pData && pData.code) ? parseCodeToMonth(pData.code) : (pData ? pData.curr_name : 'Ini');
+    const prevLabel = toShortMonth(pData && pData.prev_code, pData ? pData.prev_name : 'Sep');
+    const currLabel = toShortMonth(pData && pData.code, pData ? pData.curr_name : 'Oct');
 
     return { prev: prevLabel, curr: currLabel };
   }
@@ -1327,7 +1344,7 @@
 
     const resetWrapper = document.getElementById('detail-reset-btn-wrapper');
     if (resetWrapper) {
-      const hasFilter = state.selectedJadwal !== 'ALL' || state.searchQuery || state.detailSort !== 'growth_desc';
+      const hasFilter = state.selectedJadwal !== 'ALL' || state.searchQuery || state.detailSort !== 'growth_asc';
       resetWrapper.innerHTML = hasFilter ? `
         <button class="action-btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="window.resetDetailFilters()">
           <i class="fa-solid fa-xmark"></i> Reset Filter
@@ -1398,8 +1415,8 @@
             <div>
               <label class="filter-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Urutan</label>
               <select class="form-select" id="detail-sort-select" onchange="window.setDetailSort(this.value)" style="width: 100%;">
+                <option value="growth_asc" ${state.detailSort === 'growth_asc' ? 'selected' : ''}>Growth Terendah / Penurunan (Default)</option>
                 <option value="growth_desc" ${state.detailSort === 'growth_desc' ? 'selected' : ''}>Growth Tertinggi (+)</option>
-                <option value="growth_asc" ${state.detailSort === 'growth_asc' ? 'selected' : ''}>Growth Terendah (-)</option>
                 <option value="curr_desc" ${state.detailSort === 'curr_desc' ? 'selected' : ''}>Daily Ini Tertinggi</option>
                 <option value="curr_asc" ${state.detailSort === 'curr_asc' ? 'selected' : ''}>Daily Ini Terendah</option>
                 <option value="name_asc" ${state.detailSort === 'name_asc' ? 'selected' : ''}>Nama Toko (A-Z)</option>
@@ -1420,7 +1437,7 @@
           Menampilkan <strong style="color:var(--text-main);">${Math.min(filtered.length, state.detailPageLimit)}</strong> dari <strong style="color:var(--text-main);">${filtered.length}</strong> Toko
         </span>
         <div id="detail-reset-btn-wrapper">
-          ${(state.selectedJadwal !== 'ALL' || state.searchQuery || state.detailSort !== 'growth_desc') ? `
+          ${(state.selectedJadwal !== 'ALL' || state.searchQuery || state.detailSort !== 'growth_asc') ? `
             <button class="action-btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="window.resetDetailFilters()">
               <i class="fa-solid fa-xmark"></i> Reset Filter
             </button>` : ''}
@@ -1482,7 +1499,7 @@
   window.resetDetailFilters = function () {
     state.selectedJadwal = 'ALL';
     state.searchQuery = '';
-    state.detailSort = 'growth_desc';
+    state.detailSort = 'growth_asc';
     state.detailPageLimit = 100;
     renderDetailView(document.getElementById('view-container'));
   };
@@ -2325,7 +2342,7 @@
             </a>
             <a href="#detail" class="nav-link">
               <i class="fa-solid fa-users"></i>
-              <span>Detail Performa Agen</span>
+              <span>Performa MTD</span>
             </a>
             <a href="#kpi-sco" class="nav-link">
               <i class="fa-solid fa-bullseye"></i>
