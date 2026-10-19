@@ -78,7 +78,7 @@ async def page_login(request):
     if is_local_request(request):
         return RedirectResponse("/", status_code=302)
     token = request.cookies.get("depas_session")
-    valid, _ = auth_engine.verify_session_token(token)
+    valid, _, _ = auth_engine.verify_session_token(token)
     if valid:
         return RedirectResponse("/", status_code=302)
 
@@ -217,7 +217,7 @@ async def api_auth_change_password(request):
         return JSONResponse({"ok": False, "error": "Format request tidak valid"}, status_code=400)
 
     token = request.cookies.get("depas_session")
-    valid, session_user = auth_engine.verify_session_token(token)
+    valid, session_user, _ = auth_engine.verify_session_token(token)
     username = session_user if valid else body.get("username", "admin")
 
     old_password = body.get("old_password", "")
