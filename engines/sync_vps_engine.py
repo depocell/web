@@ -35,7 +35,7 @@ def sync_to_vps():
         log("Koneksi SFTP berhasil.")
 
         # 1. Pastikan remote direktori ada
-        for rem_dir in ["/var/www/webreport/MASTER", "/var/www/webreport/.cache"]:
+        for rem_dir in ["/var/www/webreport/MASTER", "/var/www/webreport/.cache", "/var/www/webreport/.cache/parts"]:
             try:
                 sftp.stat(rem_dir)
             except IOError:
@@ -53,16 +53,16 @@ def sync_to_vps():
                         log(f"Mengunggah MASTER/{f} ...")
                         sftp.put(local_path, rem_path)
 
-        # 3. Sinkronisasi .cache/
+        # 3. Sinkronisasi .cache/ & .cache/parts/ (HANYA Parquet data murni)
         local_cache = os.path.join(BASE_DIR, ".cache")
         if os.path.exists(local_cache):
-            for f in os.listdir(local_cache):
-                local_path = os.path.join(local_cache, f)
-                if os.path.isfile(local_path):
-                    rem_path = f"/var/www/webreport/.cache/{f}"
-                    # Upload file parquet saja (data murni)
+            for root, dirs, files in os.walk(local_cache):
+                rel_dir = os.path.relpath(root, local_cache)
+                rem_base = "/var/www/webreport/.cache" if rel_dir == "." else f"/var/www/webreport/.cache/{rel_dir.replace(os.sep, '/')}"
+                for f in files:
                     if f.endswith(".parquet"):
-                        # Periksa apakah remote file sudah ada dengan mtime/size sama
+                        local_path = os.path.join(root, f)
+                        rem_path = f"{rem_base}/{f}"
                         should_upload = True
                         try:
                             rem_stat = sftp.stat(rem_path)
@@ -74,7 +74,8 @@ def sync_to_vps():
 
                         if should_upload:
                             size_mb = os.path.getsize(local_path) / (1024 * 1024)
-                            log(f"Mengunggah .cache/{f} ({size_mb:.2f} MB)...")
+                            disp = f".cache/{f}" if rel_dir == "." else f".cache/{rel_dir}/{f}"
+                            log(f"Mengunggah {disp} ({size_mb:.2f} MB)...")
                             sftp.put(local_path, rem_path)
 
         sftp.close()
