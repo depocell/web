@@ -46,12 +46,55 @@ def get_current_watermark(brand: str, year: str = "2026") -> dict:
     files = glob.glob(os.path.join(folder, target_pattern))
     files = [f for f in files if not os.path.basename(f).startswith("~$") and not f.endswith(".bak") and not f.endswith("_test.xlsx")]
 
-    if not files:
+    if not files and os.path.exists(folder):
         # Fallback ke file excel terbaru
         all_files = sorted(glob.glob(os.path.join(folder, "*.xlsx")))
         files = [f for f in all_files if "TEMPLATE" not in os.path.basename(f).upper() and not os.path.basename(f).startswith("~$") and not f.endswith(".bak")]
 
     if not files:
+        # Fallback langsung ke cache Parquet (terutama di VPS yang tidak menyimpan raw Excel)
+        p_cache = os.path.join(BASE_DIR, ".cache", f"trx_{brand.lower()}_{year}.parquet")
+        if os.path.exists(p_cache):
+            file_mtime = os.path.getmtime(p_cache)
+            file_size = os.path.getsize(p_cache)
+            cache_key = (p_cache, file_mtime, file_size)
+            if cache_key in _WATERMARK_CACHE:
+                return _WATERMARK_CACHE[cache_key]
+            try:
+                import pyarrow.parquet as pq
+                pf = pq.ParquetFile(p_cache)
+                num_rows = pf.metadata.num_rows
+
+                # Baca tanggal awal dari row group pertama
+                t_first = pf.read_row_group(0, columns=['tgl_entry'])
+                first_date = str(t_first['tgl_entry'][0].as_py())
+
+                # Baca tanggal akhir dan trx_id terakhir dari row group terakhir
+                t_last = pf.read_row_group(pf.num_row_groups - 1, columns=['tgl_entry', 'trx_id'])
+                last_date = str(t_last['tgl_entry'][-1].as_py())
+                raw_id = t_last['trx_id'][-1].as_py()
+                try:
+                    last_id = int(raw_id) if raw_id is not None and str(raw_id).isdigit() else str(raw_id)
+                except Exception:
+                    last_id = str(raw_id) if raw_id is not None else None
+
+                def_name = "1026.xlsx" if brand == "ASTAGA" else "OP1026.xlsx"
+                res = {
+                    "file": f"{def_name} (Parquet Sinkron)",
+                    "path": p_cache,
+                    "exists": True,
+                    "total_rows": int(num_rows),
+                    "min_date": first_date,
+                    "max_date": last_date,
+                    "last_trx_id": last_id,
+                    "file_size_mb": round(file_size / (1024 * 1024), 2),
+                    "mtime": datetime.fromtimestamp(file_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                }
+                _WATERMARK_CACHE[cache_key] = res
+                return res
+            except Exception:
+                pass
+
         return {
             "file": None,
             "exists": False,
@@ -269,7 +312,7 @@ def get_admin_dashboard_data(year: str = "2026") -> dict:
             "incoming": incoming
         }
     try:
-        res["unmapped"] = oe.check_unmapped_entities(year=year, force=True)
+        res["unmapped"] = oe.check_unmapped_entities(year=year, force=False)
     except Exception as e:
         res["unmapped"] = {}
     return res
