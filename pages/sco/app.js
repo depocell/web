@@ -477,8 +477,8 @@
         ${makeKpiCard('GRAND TOTAL (DAILY TRX)', 'fa-solid fa-chart-pie', rowGrand, '#f59e0b', 'rgba(245, 158, 11, 0.15)', '#f59e0b')}
       </div>
 
-      <!-- CHART SECTION: DAILY TRX PER SCO -->
-      <div class="content-card">
+      <!-- CHART SECTION: DAILY TRX PER SCO (DI-HIDE SEMENTARA, JANGAN DIHAPUS) -->
+      <div class="content-card" id="sco-trend-card" style="display: none;">
         <div class="card-header">
           <div class="card-title">
             <i class="fa-solid fa-chart-column" style="color:var(--primary);"></i>
@@ -575,6 +575,15 @@
 
     const canvas = document.getElementById('sco-trend-chart');
     if (!canvas) return;
+
+    const card = document.getElementById('sco-trend-card') || canvas.closest('.content-card');
+    if (card && card.style.display === 'none') {
+      if (trendChartInstance) {
+        trendChartInstance.destroy();
+        trendChartInstance = null;
+      }
+      return;
+    }
 
     if (trendChartInstance) {
       trendChartInstance.destroy();
@@ -2486,10 +2495,15 @@
             c.style.marginBottom = '14px';
           });
 
-          // Rapikan Chart Canvas Container agar tingginya pas dengan lebar 680px
-          const chartBody = cloneTarget.querySelector('#sco-trend-chart')?.parentElement;
-          if (chartBody) {
-            chartBody.style.height = '260px';
+          // Rapikan Chart Canvas Container jika ditampilkan (tidak di-hide)
+          const chartCard = cloneTarget.querySelector('#sco-trend-card');
+          if (chartCard && chartCard.style.display === 'none') {
+            chartCard.style.display = 'none';
+          } else {
+            const chartBody = cloneTarget.querySelector('#sco-trend-chart')?.parentElement;
+            if (chartBody) {
+              chartBody.style.height = '260px';
+            }
           }
 
           // Sembunyikan elemen navigasi / tombol aksi interaktif pada foto rekap
