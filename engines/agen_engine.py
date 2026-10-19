@@ -51,6 +51,9 @@ def calculate_agen_dashboard(brand: str = "ASTAGA", month_code: str = None, year
     if brand == "ASTAGA":
         reseller_meta = {k: v for k, v in reseller_meta.items() if str(k).strip().upper() not in me.EXCLUDED_ASTAGA_ACCOUNTS}
         agen_meta = {k: v for k, v in agen_meta.items() if str(k).strip().upper() not in me.EXCLUDED_ASTAGA_ACCOUNTS}
+    elif brand == "OKIPAY":
+        reseller_meta = {k: v for k, v in reseller_meta.items() if str(k).strip().upper() not in me.DISBANDED_OKIPAY_SALES}
+        agen_meta = {k: v for k, v in agen_meta.items() if str(k).strip().upper() not in me.DISBANDED_OKIPAY_SALES}
     prod_map = pe.get_product_map(brand)
 
     # Sukses only & month tagging
@@ -364,7 +367,10 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
     """
     brand = (brand or "ASTAGA").strip().upper()
     json_path = os.path.join(CACHE_DIR, f"tren_agen_{brand.lower()}_1yr.json")
-    if not force and os.path.exists(json_path):
+    db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+    db_mtime = os.path.getmtime(db_path) if os.path.exists(db_path) else 0
+
+    if not force and os.path.exists(json_path) and os.path.getmtime(json_path) >= db_mtime:
         try:
             with open(json_path, "r", encoding="utf-8") as fp:
                 return json.load(fp)
@@ -380,6 +386,9 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
     if brand == "ASTAGA":
         reseller_meta = {k: v for k, v in reseller_meta.items() if str(k).strip().upper() not in me.EXCLUDED_ASTAGA_ACCOUNTS}
         agen_meta = {k: v for k, v in agen_meta.items() if str(k).strip().upper() not in me.EXCLUDED_ASTAGA_ACCOUNTS}
+    elif brand == "OKIPAY":
+        reseller_meta = {k: v for k, v in reseller_meta.items() if str(k).strip().upper() not in me.DISBANDED_OKIPAY_SALES}
+        agen_meta = {k: v for k, v in agen_meta.items() if str(k).strip().upper() not in me.DISBANDED_OKIPAY_SALES}
 
     reseller_to_agen = {}
     for rid, rmeta in reseller_meta.items():
@@ -440,6 +449,8 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
     all_aids.update(daily_1025.keys())
     if brand == "ASTAGA":
         all_aids = {aid for aid in all_aids if aid not in me.EXCLUDED_ASTAGA_ACCOUNTS}
+    elif brand == "OKIPAY":
+        all_aids = {aid for aid in all_aids if aid not in me.DISBANDED_OKIPAY_SALES}
 
     agent_rows = []
     for aid in all_aids:

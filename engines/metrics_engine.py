@@ -22,6 +22,9 @@ import numpy as np
 # Akun internal operasional ASTAGA yang wajib di-exclude
 EXCLUDED_ASTAGA_ACCOUNTS = {"AR00037", "AR00009", "AR20408"}
 
+# Akun sales lawas OKIPAY yang telah dibubarkan (downline berdiri sendiri sebagai agen ONLINE)
+DISBANDED_OKIPAY_SALES = {"OP07367", "OP07683", "OP07725", "OP13982"}
+
 
 def filter_astaga_internal(df: pd.DataFrame) -> pd.DataFrame:
     """

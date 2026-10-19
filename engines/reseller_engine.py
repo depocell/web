@@ -242,17 +242,17 @@ def load_master_meta(brand: str = "ASTAGA"):
 
 
 def clear_master_meta_cache():
-    """Bersihkan cache master meta (reseller & agen) di RAM dan disk."""
-    global _RESELLER_META_CACHE, _AGEN_META_CACHE, _META_MTIME
-    _RESELLER_META_CACHE = None
-    _AGEN_META_CACHE = None
+    """Bersihkan cache master meta (reseller & agen) di RAM dan disk untuk seluruh brand."""
+    global _MASTER_META_CACHE, _META_MTIME
+    _MASTER_META_CACHE.clear()
     _META_MTIME = 0
-    json_cache = os.path.join(CACHE_DIR, "reseller_meta_cache.json")
-    if os.path.exists(json_cache):
-        try:
-            os.remove(json_cache)
-        except Exception:
-            pass
+    for b in ["astaga", "okipay"]:
+        jc = os.path.join(CACHE_DIR, f"reseller_meta_{b}_cache.json")
+        if os.path.exists(jc):
+            try:
+                os.remove(jc)
+            except Exception:
+                pass
 
 
 _RESELLER_DASHBOARD_CACHE: Dict[tuple, Dict[str, Any]] = {}
