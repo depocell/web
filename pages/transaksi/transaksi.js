@@ -27,7 +27,7 @@ async function loadPivotOptions() {
   try {
     const yearSel = document.getElementById("piv-filter-year");
     const yearVal = yearSel ? yearSel.value : "2026";
-    const res = await fetch(`/api/pivot/options?brand=${pivotBrand}&year=${yearVal}&type=${pivotSubPage}`);
+    const res = await fetch(`/api/pivot/options?brand=${pivotBrand}&year=${yearVal}&type=${pivotSubPage}&mode=operational`);
     const json = await res.json();
     if (!json.ok || !json.data) return;
 
@@ -212,7 +212,8 @@ async function runPivot() {
       cabang: cabangFilter,
       kategori: kategoriFilter,
       operator: operatorFilter,
-      limit: limit
+      limit: limit,
+      mode: "operational"
     });
 
     const res = await fetch(`/api/pivot/query?${params.toString()}`);

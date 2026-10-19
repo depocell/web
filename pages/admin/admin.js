@@ -47,7 +47,7 @@ function switchAdminGlobalBrand(brand) {
     : document.getElementById("admin-global-brand-okipay");
 
   if (window.triggerBrandSwitchVisual) {
-    const targetId = activeAdminTab === "master" ? "view-admin-master" : (activeAdminTab === "products" ? "view-admin-products" : "view-admin-pivot");
+    const targetId = activeAdminTab === "master" ? "view-admin-master" : (activeAdminTab === "products" ? "view-admin-products" : (activeAdminTab === "financial" ? "view-admin-financial" : "view-admin-pivot"));
     window.triggerBrandSwitchVisual(brand, activeBtn, targetId);
   }
 
@@ -55,7 +55,11 @@ function switchAdminGlobalBrand(brand) {
   masterState.brand = brand;
   productState.brand = brand;
 
-  if (activeAdminTab === "master") {
+  if (activeAdminTab === "financial") {
+    if (typeof onAdminFinancialBrandChanged === "function") {
+      onAdminFinancialBrandChanged(brand);
+    }
+  } else if (activeAdminTab === "master") {
     masterState.page = 1;
     masterState.cabang = "ALL";
     masterState.sco = "ALL";
@@ -112,7 +116,9 @@ let productState = {
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 function loadAdmin() {
   const hash = window.location.hash || "";
-  if (hash.includes("tab=pivot")) {
+  if (hash.includes("tab=financial")) {
+    switchAdminTab("financial");
+  } else if (hash.includes("tab=pivot")) {
     switchAdminTab("pivot");
   } else if (hash.includes("tab=system")) {
     switchAdminTab("system");
@@ -139,17 +145,19 @@ async function switchAdminTab(tabName) {
   const viewProducts = document.getElementById("view-admin-products");
   const viewPivot = document.getElementById("view-admin-pivot");
   const viewSystem = document.getElementById("view-admin-system");
+  const viewFinancial = document.getElementById("view-admin-financial");
 
   const btnIngestion = document.getElementById("tab-btn-ingestion");
   const btnMaster = document.getElementById("tab-btn-master");
   const btnProducts = document.getElementById("tab-btn-products");
   const btnPivot = document.getElementById("tab-btn-pivot");
   const btnSystem = document.getElementById("tab-btn-system");
+  const btnFinancial = document.getElementById("tab-btn-financial");
 
-  // Kontrol Tampilan Global Brand Ribbon (Hanya untuk Tab Pivot, Master, Products)
+  // Kontrol Tampilan Global Brand Ribbon (Hanya untuk Tab Financial, Pivot, Master, Products)
   const ribbon = document.getElementById("admin-global-brand-ribbon");
   if (ribbon) {
-    if (tabName === "pivot" || tabName === "master" || tabName === "products") {
+    if (tabName === "financial" || tabName === "pivot" || tabName === "master" || tabName === "products") {
       ribbon.style.display = "flex";
       updateAdminGlobalBrandUI(adminActiveBrand);
     } else {
@@ -163,14 +171,20 @@ async function switchAdminTab(tabName) {
   if (viewProducts) viewProducts.style.display = "none";
   if (viewPivot) viewPivot.style.display = "none";
   if (viewSystem) viewSystem.style.display = "none";
+  if (viewFinancial) viewFinancial.style.display = "none";
 
   if (btnIngestion) btnIngestion.classList.remove("active");
   if (btnMaster) btnMaster.classList.remove("active");
   if (btnProducts) btnProducts.classList.remove("active");
   if (btnPivot) btnPivot.classList.remove("active");
   if (btnSystem) btnSystem.classList.remove("active");
+  if (btnFinancial) btnFinancial.classList.remove("active");
 
-  if (tabName === "ingestion") {
+  if (tabName === "financial") {
+    if (viewFinancial) viewFinancial.style.display = "flex";
+    if (btnFinancial) btnFinancial.classList.add("active");
+    await loadAdminFinancial();
+  } else if (tabName === "ingestion") {
     if (viewIngestion) viewIngestion.style.display = "flex";
     if (btnIngestion) btnIngestion.classList.add("active");
     loadAdminStatus();
@@ -196,7 +210,21 @@ async function switchAdminTab(tabName) {
   }
 }
 
-// ─── Dynamic Loaders for Sub-Modules (Pivot & System) ────────────────────────
+// ─── Dynamic Loaders for Sub-Modules (Financial, Pivot & System) ─────────────
+async function loadAdminFinancial() {
+  if (typeof initAdminFinancial === "function") {
+    await initAdminFinancial();
+    return;
+  }
+  try {
+    await loadScriptDynamic("/pages/admin/admin_financial.js?t=" + Date.now());
+    if (typeof initAdminFinancial === "function") {
+      await initAdminFinancial();
+    }
+  } catch (err) {
+    console.error("Gagal memuat admin_financial.js:", err);
+  }
+}
 async function loadAdminPivot() {
   const container = document.getElementById("view-admin-pivot");
   if (!container) return;

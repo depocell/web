@@ -216,8 +216,9 @@ async def api_pivot_options(request):
     brand = request.query_params.get("brand", "ASTAGA").upper()
     year = request.query_params.get("year", "2026")
     piv_type = request.query_params.get("type", "channel").lower()
+    mode = request.query_params.get("mode", "operational").lower()
     try:
-        opts = pivot_engine.get_options(brand=brand, year=year, pivot_type=piv_type)
+        opts = pivot_engine.get_options(brand=brand, year=year, pivot_type=piv_type, mode=mode)
         return JSONResponse({"ok": True, "data": opts})
     except Exception as e:
         import traceback
@@ -232,17 +233,27 @@ async def api_pivot_query(request):
         import engines.metrics_engine as me
         importlib.reload(me)
         importlib.reload(pivot_engine)
-    brand = request.query_params.get("brand", "ASTAGA").upper()
-    year = request.query_params.get("year", "2026")
-    row_dim = request.query_params.get("row", "cabang")
-    col_dim = request.query_params.get("col", "none")
-    metric = request.query_params.get("metric", "trx_count")
-    month_filter = request.query_params.get("month", "ALL")
-    status_filter = request.query_params.get("status", "ALL")
-    cabang_filter = request.query_params.get("cabang", "ALL")
-    kategori_filter = request.query_params.get("kategori", "ALL")
-    operator_filter = request.query_params.get("operator", "ALL")
-    limit = int(request.query_params.get("limit", "100"))
+
+    body = {}
+    if request.method == "POST":
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+    params = request.query_params
+    brand = (body.get("brand") or params.get("brand", "ASTAGA")).upper()
+    year = body.get("year") or params.get("year", "2026")
+    row_dim = body.get("row_dim") or body.get("row") or params.get("row", "cabang")
+    col_dim = body.get("col_dim") or body.get("col") or params.get("col", "none")
+    metric = body.get("metric") or params.get("metric", "trx_count")
+    month_filter = body.get("month_filter") or body.get("month") or params.get("month", "ALL")
+    status_filter = body.get("status_filter") or body.get("status") or params.get("status", "ALL")
+    cabang_filter = body.get("cabang_filter") or body.get("cabang") or params.get("cabang", "ALL")
+    kategori_filter = body.get("kategori_filter") or body.get("kategori") or params.get("kategori", "ALL")
+    operator_filter = body.get("operator_filter") or body.get("operator") or params.get("operator", "ALL")
+    limit = int(body.get("top_limit") or body.get("limit") or params.get("limit", "100"))
+    mode = str(body.get("mode") or params.get("mode", "operational")).lower()
     try:
         res = pivot_engine.execute_pivot(
             brand=brand,
@@ -255,7 +266,8 @@ async def api_pivot_query(request):
             cabang_filter=cabang_filter,
             kategori_filter=kategori_filter,
             operator_filter=operator_filter,
-            top_limit=limit
+            top_limit=limit,
+            mode=mode
         )
         return JSONResponse({"ok": True, "data": res})
     except Exception as e:
@@ -820,7 +832,7 @@ routes = [
     Route("/api/daily/periods", api_daily_periods),
     Route("/api/daily",         api_daily),
     Route("/api/pivot/options", api_pivot_options),
-    Route("/api/pivot/query",   api_pivot_query),
+    Route("/api/pivot/query",   api_pivot_query, methods=["GET", "POST"]),
     Route("/api/reseller",      api_reseller),
     Route("/api/agen/tren",     api_agen_tren),
     Route("/api/agen",          api_agen),

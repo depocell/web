@@ -265,7 +265,9 @@ def get_prepared_trx(brand: str, year: str = "2026") -> pd.DataFrame:
     return df
 
 
-def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "channel") -> Dict[str, Any]:
+OPERATIONAL_METRICS_IDS = {"trx_count", "daily_trx", "qty_sum", "sukses_pct"}
+
+def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "channel", mode: str = "operational") -> Dict[str, Any]:
     """Kembalikan opsi dropdown dimensi, metrik, dan filter yang tersedia."""
     brand = brand.upper()
     pivot_type = pivot_type.lower()
@@ -295,6 +297,10 @@ def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "ch
         {"id": "qty_sum", "label": "Total Qty Volume (Sum)", "is_curr": False},
         {"id": "sukses_pct", "label": "Success Rate (% Sukses)", "is_curr": False}
     ]
+
+    # Filter metrik jika dalam mode operasional (non-profit untuk staf/publik)
+    if str(mode).strip().lower() not in ("financial", "management", "admin", "full"):
+        metrics = [m for m in metrics if m["id"] in OPERATIONAL_METRICS_IDS]
 
     if pivot_type == "product":
         dimensions = [
@@ -377,11 +383,18 @@ def execute_pivot(
     cabang_filter: str = "ALL",
     kategori_filter: str = "ALL",
     operator_filter: str = "ALL",
-    top_limit: int = 100
+    top_limit: int = 100,
+    mode: str = "operational"
 ) -> Dict[str, Any]:
     """Eksekusi kalkulasi pivot table dinamis untuk Channel & Product."""
     t0 = time.time()
     brand = brand.upper()
+
+    # Validasi metrik sesuai mode (cegah akses metrik profit jika mode operasional)
+    if str(mode).strip().lower() not in ("financial", "management", "admin", "full"):
+        if metric not in OPERATIONAL_METRICS_IDS:
+            metric = "trx_count"
+
     df = get_prepared_trx(brand, year)
 
     # 1. Filter Global

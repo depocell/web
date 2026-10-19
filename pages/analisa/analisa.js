@@ -293,6 +293,7 @@ function updateYearPillsVisibility(tabName) {
 
 // ── TAB SWITCHER HANDLER ──
 function switchAnalisaTab(tabName) {
+  if (tabName === "profit") tabName = "distribusi";
   currentAnalisaTab = tabName;
 
   // Sinkronisasi status sub-tab ke URL tanpa reload
@@ -316,7 +317,7 @@ function switchAnalisaTab(tabName) {
   }
 
   // Update tab buttons
-  ["distribusi", "service", "supplier", "profit", "lain"].forEach(t => {
+  ["distribusi", "service", "supplier", "lain"].forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const sec = document.getElementById(`section-analisa-${t}`);
     if (btn) {
@@ -592,8 +593,7 @@ function renderProfitDataUI(data) {
 // ── DATA FETCHING (API DENGAN GOLD STATIC OLAP ENGINE) ──
 async function fetchAndRenderAnalisa() {
   if (currentAnalisaTab === "profit") {
-    await fetchAndRenderProfitAnalisa();
-    return;
+    currentAnalisaTab = "distribusi";
   }
 
   const isStaticHost = window.location.hostname.includes("github.io") || 

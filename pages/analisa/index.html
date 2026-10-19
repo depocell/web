@@ -8,11 +8,11 @@
       <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
         <h2
           style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">
-          Dashboard Analisa
+          Dashboard Analisa Operasional
         </h2>
       </div>
       <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px; margin-bottom: 0;">
-        Eksplorasi visualisasi grafis tren bulanan
+        Eksplorasi visualisasi grafis tren operasional bulanan (Distribusi, Service Produk &amp; Suplier)
       </p>
     </div>
 
@@ -51,14 +51,6 @@
             <line x1="6" y1="18" x2="6.01" y2="18"></line>
           </svg>
           <span>Analisa Supplier</span>
-        </button>
-        <button type="button" id="tab-btn-profit" onclick="switchAnalisaTab('profit')" class="analisa-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <span>Analisa Revenue &amp; Profit</span>
         </button>
         <button type="button" id="tab-btn-lain" onclick="switchAnalisaTab('lain')" class="analisa-subtab-btn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -842,207 +834,6 @@
         </div>
         <div style="position: relative; height: 280px; width: 100%;">
           <canvas id="chart-lain-weekday"></canvas>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 5. TAB: ANALISA REVENUE & PROFIT (MURNI LABA SERVER & MARKUP OTOMAX)       -->
-  <!-- ========================================================================= -->
-  <div id="section-analisa-profit" class="analisa-tab-content"
-    style="display: none; flex-direction: column; gap: 20px;">
-
-    <!-- FINANCIAL STRIP SUMMARY (Opsi 3: 1 Container Terpadu, Ramping & Elegan) -->
-    <div class="card" style="padding: 12px 18px; display: grid; grid-template-columns: repeat(6, 1fr); align-items: center; gap: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); background: var(--surface-card);">
-      
-      <!-- Col 1: Gross Revenue -->
-      <div style="padding: 4px 14px 4px 6px; border-right: 1px solid var(--border);">
-        <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: #2563eb;"></span>
-          Gross Revenue
-        </div>
-        <div id="profit-kpi-revenue" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #1e3a8a; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Total Omset Penjualan Kotor">Rp 0</div>
-        <div id="profit-kpi-daily-rev" style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Rp 0 / hari</div>
-      </div>
-
-      <!-- Col 2: Total Modal (HPP) -->
-      <div style="padding: 4px 14px; border-right: 1px solid var(--border);">
-        <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: #64748b;"></span>
-          Total Modal (HPP)
-        </div>
-        <div id="profit-kpi-modal" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #334155; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="HPP Pembelian ke Supplier">Rp 0</div>
-        <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Ke Supplier</div>
-      </div>
-
-      <!-- Col 3: Gross Profit -->
-      <div style="padding: 4px 14px; border-right: 1px solid var(--border);">
-        <div style="font-size: 11px; font-weight: 700; color: #0891b2; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: #0891b2;"></span>
-          Gross Profit
-        </div>
-        <div id="profit-kpi-gross" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #0e7490; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Gross Margin Kotor">Rp 0</div>
-        <div id="profit-kpi-gross-margin" style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Margin: 0%</div>
-      </div>
-
-      <!-- Col 4: Komisi Upline (Markup) -->
-      <div style="padding: 4px 14px; border-right: 1px solid var(--border);">
-        <div style="font-size: 11px; font-weight: 700; color: #d97706; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: #f59e0b;"></span>
-          Komisi Upline
-        </div>
-        <div id="profit-kpi-markup" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #b45309; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Rabat Reseller (Bukan Laba Server)">Rp 0</div>
-        <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Rabat Reseller</div>
-      </div>
-
-      <!-- Col 5: Net Profit Server (Hero Highlight) -->
-      <div style="padding: 4px 14px; border-right: 1px solid var(--border); background: rgba(16, 185, 129, 0.05); border-radius: 6px;">
-        <div style="font-size: 11px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
-          Net Profit Server
-        </div>
-        <div id="profit-kpi-net" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #047857; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Keuntungan Bersih Murni Milik Server">Rp 0</div>
-        <div id="profit-kpi-net-margin" style="font-size: 10.5px; color: #059669; font-weight: 700; margin-top: 1px; white-space: nowrap;">Margin: 0%</div>
-      </div>
-
-      <!-- Col 6: Yield per Trx -->
-      <div style="padding: 4px 6px 4px 14px;">
-        <div style="font-size: 11px; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: #8b5cf6;"></span>
-          Yield / Trx
-        </div>
-        <div id="profit-kpi-yield" style="font-family: var(--font-mono); font-size: 14.5px; font-weight: 800; color: #6d28d9; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Rata-rata Laba per Trx Sukses">Rp 0</div>
-        <div id="profit-kpi-daily-net" style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;">Rp 0 / hari</div>
-      </div>
-
-    </div>
-
-
-    <!-- MAIN CHART: TREN BULANAN REVENUE & PROFIT -->
-    <div class="card" style="padding: 22px;">
-      <div
-        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
-        <div>
-          <h3
-            style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
-            Tren Bulanan Revenue, Komisi Upline &amp; Net Profit Server (2026)
-          </h3>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
-            Evolusi Omset, Rabat Downline, dan Keuntungan Bersih Riil Server OtomaX
-          </p>
-        </div>
-        <span class="badge"
-          style="background: #ecfdf5; color: #059669; font-weight: 700; font-size: 11.5px; border: 1px solid #a7f3d0;">
-          Net Profit = (Jual - Markup) - Beli
-        </span>
-      </div>
-      <div style="position: relative; height: 350px; width: 100%;">
-        <canvas id="chart-profit-monthly"></canvas>
-      </div>
-    </div>
-
-    <!-- BREAKDOWN PER KATEGORI PRODUK -->
-    <div class="card" style="padding: 22px;">
-      <div style="margin-bottom: 16px;">
-        <h3
-          style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
-          Analisa Kontribusi Margin &amp; Laba Bersih per Kategori Produk
-        </h3>
-        <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
-          Porsi Transaksi, Omset Kotor, Komisi Rabat, Net Profit Bersih, dan Yield per Trx
-        </p>
-      </div>
-      <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
-        <table id="table-profit-category"
-          style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
-          <thead style="background: var(--surface-card); border-bottom: 2px solid var(--border);">
-            <tr>
-              <th style="padding: 10px 14px; font-weight: 700;">Kategori Produk</th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">Total Trx</th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">% Porsi Trx</th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">Gross Revenue (Jual)</th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">Total Modal (Beli)</th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right; color: #b45309;">Komisi Upline</th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right; color: #059669;">Net Profit Server
-              </th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right;">% Porsi Profit</th>
-              <th style="padding: 10px 14px; font-weight: 700; text-align: right; color: #7c3aed;">Yield / Trx</th>
-            </tr>
-          </thead>
-          <tbody id="table-profit-category-body">
-            <tr>
-              <td colspan="9" style="text-align: center; padding: 24px; color: var(--text-muted);">Memuat data analisa
-                profit...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- DUA GRID: TOP 10 PRODUK & TOP 10 RESELLER KONTRIBUTOR NET PROFIT -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px;">
-
-      <!-- Top 10 Produk Kontributor Net Profit -->
-      <div class="card" style="padding: 20px;">
-        <div style="margin-bottom: 14px;">
-          <h3
-            style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0; color: var(--text-main);">
-            Top 10 Produk Penghasil Net Profit Terbesar
-          </h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
-            Produk penyumbang laba bersih murni server tertinggi
-          </p>
-        </div>
-        <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-            <thead style="background: var(--surface-card); border-bottom: 1px solid var(--border);">
-              <tr>
-                <th style="padding: 8px 10px; font-weight: 700;">Produk</th>
-                <th style="padding: 8px 10px; font-weight: 700; text-align: right;">Trx</th>
-                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #059669;">Net Profit</th>
-                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #7c3aed;">Yield / Trx</th>
-              </tr>
-            </thead>
-            <tbody id="table-top-products-body">
-              <tr>
-                <td colspan="4" style="text-align: center; padding: 18px; color: var(--text-muted);">Memuat data...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Top 10 Reseller Kontributor Net Profit -->
-      <div class="card" style="padding: 20px;">
-        <div style="margin-bottom: 14px;">
-          <h3
-            style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0; color: var(--text-main);">
-            Top 10 Reseller Kontributor Net Profit Terbesar
-          </h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
-            Mitra reseller yang menghasilkan laba bersih server terbanyak
-          </p>
-        </div>
-        <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-            <thead style="background: var(--surface-card); border-bottom: 1px solid var(--border);">
-              <tr>
-                <th style="padding: 8px 10px; font-weight: 700;">Reseller</th>
-                <th style="padding: 8px 10px; font-weight: 700;">Cabang</th>
-                <th style="padding: 8px 10px; font-weight: 700; text-align: right;">Trx</th>
-                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #059669;">Net Profit</th>
-                <th style="padding: 8px 10px; font-weight: 700; text-align: right; color: #7c3aed;">Yield / Trx</th>
-              </tr>
-            </thead>
-            <tbody id="table-top-resellers-body">
-              <tr>
-                <td colspan="5" style="text-align: center; padding: 18px; color: var(--text-muted);">Memuat data...</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
 
