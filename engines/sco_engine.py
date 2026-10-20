@@ -898,25 +898,55 @@ def generate_reseller_data(df_sukses: pd.DataFrame = None, months: list = None) 
 
 def push_to_github():
     """
-    Commit dan Push pembaruan data SCO langsung ke repositori GitHub Web Report (origin main).
+    Commit dan Push pembaruan data SCO ke:
+    1. Repositori GitHub Web Report (origin main).
+    2. Repositori Standalone depocell/SCO (https://github.com/depocell/SCO -> depocell.github.io/SCO).
     """
     try:
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        env = os.environ.copy()
+        env["GCM_INTERACTIVE"] = "never"
+
+        # 1. Push ke repositori Web Report utama
         subprocess.run(["git", "-C", BASE_DIR, "add", "pages/sco"], capture_output=True, text=True, check=True)
-        
-        # Check if there are changes to commit in pages/sco
         status_res = subprocess.run(["git", "-C", BASE_DIR, "status", "--porcelain", "pages/sco"], capture_output=True, text=True)
-        if not status_res.stdout.strip():
-            return {"ok": True, "message": "Data SCO sudah up-to-date (tidak ada perubahan baru)", "timestamp": now_str}
+        if status_res.stdout.strip():
+            subprocess.run(["git", "-C", BASE_DIR, "commit", "-m", f"chore(sco): auto-update data SCO: {now_str}"], capture_output=True, text=True, check=True)
+            subprocess.run(["git", "-C", BASE_DIR, "push", "origin", "main"], capture_output=True, text=True, env=env, timeout=60)
 
-        subprocess.run(["git", "-C", BASE_DIR, "commit", "-m", f"chore(sco): auto-update data SCO: {now_str}"], capture_output=True, text=True, check=True)
-        push_res = subprocess.run(["git", "-C", BASE_DIR, "push", "origin", "main"], capture_output=True, text=True, timeout=60)
+        # 2. Sync dan Push ke depocell/SCO (GitHub Pages)
+        target_repo = os.path.join(BASE_DIR, ".cache", "sco_git")
+        if not os.path.exists(target_repo):
+            os.makedirs(os.path.dirname(target_repo), exist_ok=True)
+            subprocess.run(["git", "clone", "https://github.com/depocell/SCO.git", target_repo], capture_output=True, text=True, env=env)
+        else:
+            subprocess.run(["git", "-C", target_repo, "pull", "origin", "main"], capture_output=True, text=True, env=env)
+
+        subprocess.run(["git", "-C", target_repo, "config", "credential.username", "depocell"], capture_output=True, text=True)
+
+        files_to_sync = [
+            "index.html", "app.js", "style.css", "data_sco.json", "data_reseller.json",
+            "KPI_SCO.xlsx", "leaflet.js", "leaflet.css", "html2canvas.min.js",
+            "logo_myastaga.png", "unnamed.png"
+        ]
+        import shutil
+        for fname in files_to_sync:
+            src = os.path.join(SCO_DIR, fname)
+            dst = os.path.join(target_repo, fname)
+            if os.path.exists(src):
+                shutil.copy2(src, dst)
+
+        subprocess.run(["git", "-C", target_repo, "add", "-A"], capture_output=True, text=True)
+        sco_status = subprocess.run(["git", "-C", target_repo, "status", "--porcelain"], capture_output=True, text=True)
         
-        if push_res.returncode != 0:
-            err_msg = push_res.stderr or push_res.stdout or "Push error"
-            return {"ok": False, "error": err_msg}
+        if sco_status.stdout.strip():
+            subprocess.run(["git", "-C", target_repo, "commit", "-m", f"chore: update SCO performance data ({now_str})"], capture_output=True, text=True, env=env)
+            push_res = subprocess.run(["git", "-C", target_repo, "push", "origin", "main"], capture_output=True, text=True, env=env, timeout=60)
+            if push_res.returncode != 0:
+                err_msg = push_res.stderr or push_res.stdout or "Push error ke depocell/SCO"
+                return {"ok": False, "error": err_msg}
 
-        return {"ok": True, "message": "Berhasil push data SCO ke GitHub Pages!", "timestamp": now_str}
+        return {"ok": True, "message": "Berhasil push data SCO ke GitHub Pages & Web Report!", "timestamp": now_str}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

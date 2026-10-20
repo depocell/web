@@ -100,9 +100,19 @@ def sync_to_vps():
 
         if exit_code == 0:
             log("Service webreport berhasil direstart di VPS.")
+
+            # 5. Sinkronisasi data SCO ke GitHub Pages (depocell/SCO)
+            try:
+                log("Menyinkronkan data SCO ke GitHub Pages (depocell/SCO)...")
+                import engines.sco_engine as sco_engine
+                sco_res = sco_engine.push_to_github()
+                log(f"SCO GitHub push: {sco_res.get('message') or sco_res.get('error')}")
+            except Exception as e_sco:
+                log(f"Warning SCO GitHub push: {e_sco}")
+
             return {
                 "ok": True,
-                "message": f"Data berhasil disinkronkan ke depas.my.id! ({now_str})",
+                "message": f"Data berhasil disinkronkan ke depas.my.id & GitHub Pages SCO! ({now_str})",
                 "timestamp": now_str,
                 "logs": log_messages
             }
