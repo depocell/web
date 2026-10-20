@@ -636,6 +636,29 @@ async def api_survey_gateway_status(request):
         return JSONResponse({"ok": True, "connected": False, "phone": None})
 
 
+async def api_survey_check_phones(request):
+    """Mengecek validitas akun WhatsApp untuk daftar nomor (batch)."""
+    try:
+        body = await request.json()
+        phones = body.get("phones", [])
+        if not phones:
+            return JSONResponse({"ok": True, "results": {}})
+
+        import urllib.request
+        payload = json.dumps({"phones": phones}).encode("utf-8")
+        req = urllib.request.Request(
+            "http://127.0.0.1:3000/check-phones",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            return JSONResponse(data)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e), "results": {}})
+
+
 async def api_survey_reset_session(request):
     """Menghapus sesi WhatsApp lama agar siap scan nomor baru."""
     import shutil
@@ -1079,6 +1102,7 @@ routes = [
     Route("/api/survey/incoming-wa", api_survey_incoming_wa, methods=["POST"]),
     Route("/api/survey/logs",       api_survey_logs),
     Route("/api/survey/logs/delete", api_survey_log_delete, methods=["POST"]),
+    Route("/api/survey/check-phones", api_survey_check_phones, methods=["POST"]),
     Route("/api/survey/gateway-status", api_survey_gateway_status),
     Route("/api/survey/reset-session",  api_survey_reset_session, methods=["POST"]),
     Route("/api/fisik",         api_fisik),

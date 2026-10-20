@@ -173,6 +173,57 @@ app.post('/check-phone', async (req, res) => {
   }
 });
 
+app.post('/check-phones', async (req, res) => {
+  try {
+    if (!isConnected || !sock) {
+      return res.status(503).json({ ok: false, error: 'WhatsApp Gateway belum terhubung.' });
+    }
+    const { phones } = req.body;
+    if (!Array.isArray(phones) || phones.length === 0) {
+      return res.json({ ok: true, results: {} });
+    }
+
+    const jidList = [];
+    phones.forEach(p => {
+      let clean = String(p).replace(/[^0-9]/g, '');
+      if (clean.startsWith('08')) clean = '628' + clean.slice(2);
+      else if (clean.startsWith('8')) clean = '628' + clean.slice(1);
+      if (clean.length >= 10) {
+        jidList.push(`${clean}@s.whatsapp.net`);
+      }
+    });
+
+    let waResults = [];
+    try {
+      waResults = await sock.onWhatsApp(...jidList);
+    } catch (e) {
+      console.warn('[Warning check-phones]:', e.message);
+    }
+
+    const existsMap = {};
+    if (Array.isArray(waResults)) {
+      waResults.forEach(r => {
+        if (r && r.exists) {
+          const num = (r.jid || '').split('@')[0];
+          existsMap[num] = true;
+        }
+      });
+    }
+
+    const finalResults = {};
+    phones.forEach(p => {
+      let clean = String(p).replace(/[^0-9]/g, '');
+      if (clean.startsWith('08')) clean = '628' + clean.slice(2);
+      else if (clean.startsWith('8')) clean = '628' + clean.slice(1);
+      finalResults[p] = !!existsMap[clean];
+    });
+
+    res.json({ ok: true, results: finalResults });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/send-message', async (req, res) => {
   try {
     if (!isConnected || !sock) {

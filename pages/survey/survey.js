@@ -17,6 +17,7 @@ const surveyState = {
   },
   currentCandidate: null,
   batchCandidates: [],
+  waStatus: {},
   donutChart: null,
   barChart: null,
   gatewayInterval: null
@@ -181,6 +182,9 @@ async function loadSurveyCandidates() {
       // Populate cabang filter dropdown
       populateCabangFilter(json.candidates);
       applySurveyFilters();
+
+      // Cek status validitas nomor WhatsApp di latar belakang (Pre-Check Otomatis)
+      checkCandidatesWaStatus(json.candidates);
     } else {
       if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding: 24px; text-align: center; color: #ef4444;">Gagal mengambil data kandidat.</td></tr>';
     }
@@ -205,6 +209,31 @@ function populateCabangFilter(candidates) {
     sel.value = currentVal;
   }
 }
+
+async function checkCandidatesWaStatus(candidates) {
+  const phones = Array.from(new Set((candidates || []).map(c => c.no_wa).filter(Boolean)));
+  if (phones.length === 0) return;
+
+  try {
+    const res = await fetch('/api/survey/check-phones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phones })
+    });
+    const json = await res.json();
+    if (json.ok && json.results) {
+      surveyState.waStatus = { ...surveyState.waStatus, ...json.results };
+      renderCandidatesTable();
+      const modal = document.getElementById('survey-batch-modal');
+      if (modal && modal.style.display !== 'none') {
+        renderBatchTable();
+      }
+    }
+  } catch (err) {
+    console.debug('checkCandidatesWaStatus error:', err);
+  }
+}
+window.checkCandidatesWaStatus = checkCandidatesWaStatus;
 
 function applySurveyFilters() {
   const tSel = document.getElementById('survey-filter-trx');
@@ -264,7 +293,32 @@ function renderCandidatesTable() {
 
   let html = '';
   list.forEach((c, idx) => {
-    const phone = c.no_wa ? `<span style="font-family: monospace; font-weight: 600; color: #16a34a;">${escapeHtml(c.no_wa)}</span>` : '<span style="color: #ef4444; font-size: 11px;">Belum Ada</span>';
+    let phone = '<span style="color: #ef4444; font-size: 11px;">Belum Ada</span>';
+    if (c.no_wa) {
+      const hasWa = surveyState.waStatus[c.no_wa];
+      if (hasWa === true) {
+        phone = `
+          <div style="font-family: monospace; font-weight: 700; color: #16a34a; display: inline-flex; align-items: center; gap: 6px;" title="Terverifikasi: Akun WhatsApp Aktif">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
+            <span>${escapeHtml(c.no_wa)}</span>
+          </div>
+        `;
+      } else if (hasWa === false) {
+        phone = `
+          <div style="font-family: monospace; font-weight: 500; color: #94a3b8; display: inline-flex; align-items: center; gap: 6px;" title="Nomor tidak terdaftar di WhatsApp">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; display: inline-block;"></span>
+            <span style="opacity: 0.85;">${escapeHtml(c.no_wa)}</span>
+            <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 10px; padding: 1px 5px; font-weight: 600;">Non-WA</span>
+          </div>
+        `;
+      } else {
+        phone = `
+          <div style="font-family: monospace; font-weight: 600; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
+            <span>${escapeHtml(c.no_wa)}</span>
+          </div>
+        `;
+      }
+    }
     
     let statusBadge = '<span class="badge" style="background: var(--table-header); color: var(--text-muted);">Belum</span>';
     if (c.status === 'REPLIED') {
@@ -824,10 +878,10 @@ function updateBatchList(trxFilter, cabangFilter) {
   if (totalElem) totalElem.textContent = list.length;
 
   const readyElem = document.getElementById('batch-ready-count');
-  if (readyElem) readyElem.textContent = list.filter(c => c.no_wa).length;
+  if (readyElem) readyElem.textContent = list.filter(c => c.no_wa && surveyState.waStatus[c.no_wa] !== false).length;
 
   const selectElem = document.getElementById('batch-selected-count');
-  if (selectElem) selectElem.textContent = list.length;
+  if (selectElem) selectElem.textContent = list.filter(c => c.no_wa && surveyState.waStatus[c.no_wa] !== false).length;
 
   renderBatchTable();
 }
@@ -844,7 +898,30 @@ function renderBatchTable() {
 
   let html = '';
   surveyState.batchCandidates.forEach((c, idx) => {
-    const phone = c.no_wa ? `<code>${c.no_wa}</code>` : '<span style="color: #ef4444;">Tidak ada</span>';
+    let phone = '<span style="color: #ef4444;">Tidak ada</span>';
+    const hasWa = c.no_wa ? surveyState.waStatus[c.no_wa] : null;
+
+    if (c.no_wa) {
+      if (hasWa === true) {
+        phone = `
+          <div style="font-family: monospace; font-weight: 700; color: #16a34a; display: inline-flex; align-items: center; gap: 5px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
+            <code>${escapeHtml(c.no_wa)}</code>
+          </div>
+        `;
+      } else if (hasWa === false) {
+        phone = `
+          <div style="font-family: monospace; font-weight: 500; color: #94a3b8; display: inline-flex; align-items: center; gap: 5px;" title="Nomor tidak terdaftar di WhatsApp">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; display: inline-block;"></span>
+            <code style="opacity: 0.85;">${escapeHtml(c.no_wa)}</code>
+            <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 9.5px; padding: 1px 4px; font-weight: 600;">Non-WA</span>
+          </div>
+        `;
+      } else {
+        phone = `<code>${escapeHtml(c.no_wa)}</code>`;
+      }
+    }
+
     let statusBadge = '<span class="badge" style="background: var(--table-header); color: var(--text-muted);">Belum</span>';
     if (c.status === 'REPLIED') {
       statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Sudah Balas</span>';
@@ -855,11 +932,13 @@ function renderBatchTable() {
     }
 
     const displayInduk = c.agen_name && c.agen_name !== '-' ? `<div style="font-size: 10.5px; color: var(--text-muted);">Induk: ${escapeHtml(c.agen_name)}</div>` : '';
+    const isChecked = (c.no_wa && hasWa !== false) ? 'checked' : '';
+    const rowStyle = (hasWa === false) ? 'opacity: 0.65;' : '';
 
     html += `
-      <tr style="border-bottom: 1px solid var(--surface-border);">
+      <tr style="border-bottom: 1px solid var(--surface-border); ${rowStyle}">
         <td style="padding: 8px 12px; text-align: center;">
-          <input type="checkbox" class="batch-check-item" data-idx="${idx}" checked onchange="updateBatchSelectedCount()">
+          <input type="checkbox" class="batch-check-item" data-idx="${idx}" ${isChecked} onchange="updateBatchSelectedCount()">
         </td>
         <td style="padding: 8px 12px;">
           <strong style="color: var(--text-main);">${escapeHtml(c.reseller_name || c.reseller_id)}</strong>
