@@ -318,7 +318,6 @@ function renderPivotTable(data, metric) {
         <th>${rowLabelText}</th>
         <th class="text-right">Total Trx</th>
         <th class="text-right" style="color: #2563eb;">Daily Trx</th>
-        <th class="text-right" style="color: #0891b2;">Total Qty Volume</th>
         <th class="text-right">% Sukses</th>
       </tr>
     `;
@@ -326,7 +325,7 @@ function renderPivotTable(data, metric) {
 
     let bodyHtml = "";
     if (!data.rows || data.rows.length === 0) {
-      bodyHtml = `<tr><td colspan="5" class="loader">Tidak ada data ditemukan untuk filter ini</td></tr>`;
+      bodyHtml = `<tr><td colspan="4" class="loader">Tidak ada data ditemukan untuk filter ini</td></tr>`;
     } else {
       data.rows.forEach(r => {
         bodyHtml += `
@@ -334,7 +333,6 @@ function renderPivotTable(data, metric) {
             <td class="font-semibold">${r._row_label}</td>
             <td class="text-right">${formatInt(r.trx_count)}</td>
             <td class="text-right" style="color: #2563eb; font-weight: 600;">${formatInt(Math.round(r.daily_trx))}</td>
-            <td class="text-right" style="color: #0891b2; font-weight: 600;">${formatInt(r.qty_sum || 0)}</td>
             <td class="text-right" style="font-weight: 600;">${(r.sukses_pct || 0).toFixed(1)}%</td>
           </tr>
         `;
@@ -349,7 +347,6 @@ function renderPivotTable(data, metric) {
           <td>TOTAL</td>
           <td class="text-right">${formatInt(tot.trx_count)}</td>
           <td class="text-right" style="color: #2563eb; font-weight: 800;">${formatInt(Math.round(tot.daily_trx))}</td>
-          <td class="text-right" style="color: #0891b2; font-weight: 800;">${formatInt(tot.qty_sum || 0)}</td>
           <td class="text-right" style="font-weight: 800;">${(tot.sukses_pct || 0).toFixed(1)}%</td>
         </tr>
       `;

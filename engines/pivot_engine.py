@@ -265,7 +265,7 @@ def get_prepared_trx(brand: str, year: str = "2026") -> pd.DataFrame:
     return df
 
 
-OPERATIONAL_METRICS_IDS = {"trx_count", "daily_trx", "qty_sum", "sukses_pct"}
+OPERATIONAL_METRICS_IDS = {"trx_count", "daily_trx", "sukses_pct"}
 
 def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "channel", mode: str = "operational") -> Dict[str, Any]:
     """Kembalikan opsi dropdown dimensi, metrik, dan filter yang tersedia."""
@@ -485,7 +485,6 @@ def execute_pivot(
             "active_days": active_days,
             "total_trx": total_trx,
             "daily_trx": me.calculate_daily_rate(total_trx, active_days),
-            "qty_sum": round(float(df["qty"].sum()), 0) if "qty" in df.columns else 0,
             "sukses_rate": overall_sukses_rate
         }
 
@@ -711,7 +710,6 @@ def execute_pivot(
                     "_row_label": str(idx_val),
                     "trx_count": int(r_s["trx_count"]),
                     "daily_trx": round(float(r_s["daily_trx"]), 1),
-                    "qty_sum": round(float(r_s["qty_sum"]), 0),
                     "sukses_pct": round(float(r_s["sukses_pct"]), 2)
                 })
 
@@ -719,14 +717,13 @@ def execute_pivot(
                 "_row_label": "TOTAL",
                 "trx_count": total_trx,
                 "daily_trx": me.calculate_daily_rate(total_trx, active_days),
-                "qty_sum": round(float(df["qty"].sum()), 0) if "qty" in df.columns else 0,
                 "sukses_pct": overall_sukses_rate
             }
 
             return {
                 "is_2d": False,
                 "row_dim": row_dim,
-                "columns": ["trx_count", "daily_trx", "qty_sum", "sukses_pct"],
+                "columns": ["trx_count", "daily_trx", "sukses_pct"],
                 "rows": rows_data,
                 "total_row": total_dict,
                 "summary": summary,
