@@ -103,10 +103,44 @@ Sistem telah diuji coba secara langsung dari ujung ke ujung (*end-to-end*):
 
 ---
 
-## 6. Kesiapan Deployment ke VPS (`https://depas.my.id`)
+## 6. Status Deployment & Operasional di Cloud VPS (`https://depas.my.id`)
 
-Agar fitur ini bisa digunakan oleh tim Marketing dari mana saja lewat browser web:
-1. **Node.js 20 LTS** telah berhasil diinstal di sistem VPS `45.66.153.150` (Ubuntu 24.04).
-2. Kode frontend (`pages/survey`) dan backend (`survey_engine.py`) sudah siap di-push dan di-sync ke VPS.
-3. Di VPS, WhatsApp Gateway akan dijalankan sebagai background daemon service 24/7 (`wa-gateway.service`), sehingga bot selalu siaga menerima dan mengirim chat tanpa bergantung pada laptop kantor.
-4. Sesi login nomor bot `+6281389779977` yang sudah tersimpan di lokal dapat langsung disinkronkan ke VPS tanpa perlu scan QR ulang.
+Fitur Survei Interaktif AI telah **100% TERPASANG DAN AKTIF DI PRODUCTION VPS**:
+1. **Node.js 20 LTS** & dependensi Baileys telah terpasang di VPS `45.66.153.150` (Ubuntu 24.04).
+2. **Daemon Background Service 24/7 (`wa-gateway.service`)**:
+   * Dikelola langsung oleh `systemd` di VPS.
+   * Auto-start saat VPS reboot dan auto-recover jika ada gangguan koneksi.
+   * Log live service dapat dicek via: `journalctl -u wa-gateway -f`.
+3. **Status Sesi WhatsApp Bot**:
+   * Sesi login aktif: **`+6281389779977`** (Status: `Online / Standby`).
+   * Terhubung langsung ke Web Report API lokal VPS (`http://127.0.0.1:8000/api/survey/incoming-wa`).
+4. **Database Sinkron**:
+   * SQLite `master_data.db` di VPS telah memuat 25.849 kontak terverifikasi dan tabel log `survey_churn_logs`.
+
+---
+
+## 7. Panduan Operasional Tim Marketing (User Guide)
+
+Tim Marketing dapat langsung mengakses fitur ini dari laptop/HP tanpa instalasi aplikasi teknis apa pun:
+
+1. **Akses Dashboard**:
+   * Buka browser dan login ke: **`https://depas.my.id/#survey`**
+   * Pastikan badge indikator di kanan atas menampilkan: 🟢 **`Online (+6281389779977)`**.
+
+2. **Langkah Survei Reseller (Tab 1: List Reseller Target)**:
+   * **Pilih Reseller**: Telusuri daftar 159 reseller churn bulan ini atau gunakan filter Cabang (BSD, ICON, PP, PRG, ONLINE).
+   * **Uji Coba Terlebih Dahulu (Mode Uji Coba)**:
+     - Klik tombol **Kirim Survei** pada salah satu baris reseller.
+     - Centang kotak **Kirim sebagai uji coba ke nomor ini**.
+     - Masukkan nomor HP marketing sendiri.
+     - Klik **Kirim Pesan WhatsApp**. Pesan personalisasi akan masuk ke HP marketing untuk diverifikasi formatnya.
+   * **Kirim Nyata ke Reseller**:
+     - Jangan centang mode uji coba, klik **Kirim Pesan WhatsApp**.
+     - Atau centang banyak reseller sekaligus di tabel, lalu klik tombol **Survei AI Batch** di pojok kanan atas.
+
+3. **Memantau Balasan & Kategori AI (Tab 2: Log Survei)**:
+   * Setiap kali reseller membalas di WhatsApp, balasan otomatis masuk dalam hitungan detik.
+   * AI secara otomatis melabeli kategori kendala (`KENDALA_SALDO`, `KENDALA_HARGA`, `KENDALA_APLIKASI`, `TOKO_TUTUP`, `LAINNYA`) dan menyalakan tanda **Butuh Kunjungan SCO** jika reseller butuh bantuan lapangan.
+
+4. **Melihat Rekapitulasi & KPI (Tab 3: Chart Hasil Survei)**:
+   * Menampilkan Response Rate (%), Kendala Dominan, Donut Chart Kategori, dan Bar Chart Sebaran Respon per Cabang untuk bahan laporan mingguan ke manajemen/pimpinan.
