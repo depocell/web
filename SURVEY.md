@@ -73,10 +73,12 @@ Untuk mencegah chat terkirim sia-sia ke nomor hangus atau HP mati:
 Telah dibuat modul halaman terpisah khusus survei di menu sidebar:
 
 ### Tab 1: List Reseller Target (Siap Disurvei)
-* Tabel 159 reseller pasif/churn lengkap dengan nama toko induk, cabang, SCO, transaksi lalu, dan nomor WA.
-* Filter per Cabang (BSD, ICON, PP, PRG, ONLINE) dan kotak pencarian instan.
+* **Filter Segmentasi Volume Transaksi**:
+  * **`Target Utama (> 5 Trx)` (Default - 43 Reseller)**: Menyaring konter-konter riil dan pedagang aktif beromset besar yang berhenti transaksi bulan ini.
+  * **`Semua Churn (≥ 1 Trx)` (159 Reseller)**: Menampilkan seluruh churn termasuk akun retail pemakai pribadi.
+* **Filter per Cabang**: (BSD, ICON, PP, PRG, ONLINE) dan kotak pencarian instan.
 * **Tombol Survei Satuan**: Membuka modal pop-up untuk melihat/mengedit pesan AI, serta opsi **Mode Uji Coba** (kirim ke nomor sendiri).
-* **Tombol Survei AI Batch**: Memproses sapaan masal ke seluruh reseller yang dicentang.
+* **Tombol Survei AI Batch**: Memproses sapaan masal ke seluruh reseller yang dicentang (jumlah target pada tombol otomatis menyesuaikan filter yang aktif).
 
 ### Tab 2: Log Survei (Riwayat Percakapan)
 * Rekapitulasi seluruh survei yang pernah dikirim dan dibalas.
