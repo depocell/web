@@ -58,6 +58,14 @@ Saat reseller membalas chat di WhatsApp dengan bahasa bebas, sistem langsung men
 * **Sentimen Pelanggan**: `POSITIF`, `NETRAL`, `NEGATIF`.
 * **Kebutuhan Kunjungan SCO**: Otomatis bernilai `1` jika reseller meminta spanduk, brosur, atau didatangi tim sales lapangan.
 
+### C. Proteksi & Validasi Nomor WhatsApp Otomatis (`onWhatsApp` Pre-Check)
+Untuk mencegah chat terkirim sia-sia ke nomor hangus atau HP mati:
+* Gateway Baileys melakukan query instan (0.1 detik) ke server WhatsApp: `sock.onWhatsApp(nomor)`.
+* **Jika Nomor Tidak Terdaftar di WhatsApp**:
+  * Gateway membatalkan pengiriman pesan dan bot tidak terkena penalti/skor spam WhatsApp.
+  * Status di log otomatis dilabeli: 🔴 **`TIDAK ADA WA`** (`NOT_ON_WA`).
+  * Sistem memberikan saran pengalihan: *"Nomor tidak terdaftar di WhatsApp. Dialihkan ke Panggilan Telepon GSM atau Kunjungan Fisik Tim SCO."*
+
 ---
 
 ## 4. Halaman Baru di Web Report: `Survei AI` (`#survey`)
