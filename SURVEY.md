@@ -60,11 +60,14 @@ Saat reseller membalas chat di WhatsApp dengan bahasa bebas, sistem langsung men
 
 ### C. Proteksi & Validasi Nomor WhatsApp Otomatis (`onWhatsApp` Pre-Check)
 Untuk mencegah chat terkirim sia-sia ke nomor hangus atau HP mati:
-* Gateway Baileys melakukan query instan (0.1 detik) ke server WhatsApp: `sock.onWhatsApp(nomor)`.
-* **Jika Nomor Tidak Terdaftar di WhatsApp**:
-  * Gateway membatalkan pengiriman pesan dan bot tidak terkena penalti/skor spam WhatsApp.
-  * Status di log otomatis dilabeli: 🔴 **`TIDAK ADA WA`** (`NOT_ON_WA`).
-  * Sistem memberikan saran pengalihan: *"Nomor tidak terdaftar di WhatsApp. Dialihkan ke Panggilan Telepon GSM atau Kunjungan Fisik Tim SCO."*
+* **Validasi Otomatis Begitu Halaman Dibuka (Upfront Background Check)**:
+  - Begitu marketing membuka halaman survei, sistem langsung memindai status WhatsApp seluruh nomor target ke server WhatsApp secara paralel.
+  - Nomor yang **Aktif di WhatsApp** langsung bertanda dot **🟢 HIJAU** terverifikasi.
+  - Nomor yang **Tidak Ada WhatsApp** langsung otomatis berubah menjadi **GREY / ABU-ABU** dengan badge `Non-WA`.
+* **Proteksi Otomatis di Modal Batch**:
+  - Reseller yang berstatus Non-WA (Grey) secara otomatis **di-uncheck (tidak dicentang)** dari pengiriman survei masal, sehingga tidak akan terkirim chat sia-sia.
+  - Status di log otomatis dilabeli: 🔴 **`TIDAK ADA WA`** (`NOT_ON_WA`).
+  - Sistem memberikan saran pengalihan: *"Nomor tidak terdaftar di WhatsApp. Dialihkan ke Panggilan Telepon GSM atau Kunjungan Fisik Tim SCO."*
 
 ---
 
