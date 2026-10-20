@@ -424,12 +424,64 @@ function renderLogsTable() {
         <td style="padding: 10px 12px; max-width: 280px;">${replyText}</td>
         <td style="padding: 10px 12px; text-align: center;">${catBadge}</td>
         <td style="padding: 10px 12px; text-align: center;">${visitBadge}</td>
+        <td style="padding: 10px 12px; text-align: center;">
+          <button type="button" onclick="deleteSingleLogAction(${l.id})" title="Hapus log #${l.id}"
+            style="border: 1px solid #fecaca; background: #fff1f2; color: #e11d48; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600; cursor: pointer;">
+            Hapus
+          </button>
+        </td>
       </tr>
     `;
   });
 
   tbody.innerHTML = html;
 }
+
+async function deleteSingleLogAction(logId) {
+  if (!confirm(`Hapus riwayat survei #${logId}?`)) return;
+  try {
+    const res = await fetch('/api/survey/logs/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: logId })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      loadSurveyLogs();
+      loadSurveyCandidates();
+    } else {
+      alert('Gagal menghapus log: ' + (json.error || 'Terjadi kesalahan'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+window.deleteSingleLogAction = deleteSingleLogAction;
+
+async function clearAllSurveyLogsAction() {
+  if (!confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat log survei?\nTindakan ini akan mengosongkan seluruh riwayat dan mereset status survei.')) {
+    return;
+  }
+  try {
+    const res = await fetch('/api/survey/logs/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clear_all: true, brand: surveyState.brand, periode: surveyState.period })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      alert(`Berhasil menghapus ${json.deleted_count || 0} riwayat log.`);
+      loadSurveyLogs();
+      loadSurveyCandidates();
+    } else {
+      alert('Gagal menghapus log: ' + (json.error || 'Terjadi kesalahan'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+window.clearAllLogsAction = clearAllSurveyLogsAction;
+window.clearAllSurveyLogsAction = clearAllSurveyLogsAction;
 
 // =========================================================================
 // TAB 3: CHARTS & ANALYTICS

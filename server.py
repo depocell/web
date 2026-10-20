@@ -603,6 +603,28 @@ async def api_survey_logs(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+async def api_survey_log_delete(request):
+    """Menghapus satu baris log survey atau seluruh log."""
+    try:
+        body = await request.json()
+        log_id = body.get("id")
+        clear_all = body.get("clear_all", False)
+        brand = body.get("brand", "ASTAGA").upper()
+        periode = body.get("periode")
+
+        if clear_all:
+            res = await asyncio.to_thread(survey_engine.clear_all_survey_logs, brand=brand, periode=periode)
+            return JSONResponse(res)
+
+        if not log_id:
+            return JSONResponse({"ok": False, "error": "ID log wajib diisi"}, status_code=400)
+
+        res = await asyncio.to_thread(survey_engine.delete_survey_log, log_id=int(log_id))
+        return JSONResponse(res)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 async def api_survey_gateway_status(request):
     """Mengecek status live koneksi WhatsApp Gateway di localhost:3000."""
     try:
@@ -1056,6 +1078,7 @@ routes = [
     Route("/api/survey/reply",      api_survey_reply,      methods=["POST"]),
     Route("/api/survey/incoming-wa", api_survey_incoming_wa, methods=["POST"]),
     Route("/api/survey/logs",       api_survey_logs),
+    Route("/api/survey/logs/delete", api_survey_log_delete, methods=["POST"]),
     Route("/api/survey/gateway-status", api_survey_gateway_status),
     Route("/api/survey/reset-session",  api_survey_reset_session, methods=["POST"]),
     Route("/api/fisik",         api_fisik),

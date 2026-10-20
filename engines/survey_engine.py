@@ -377,20 +377,6 @@ def process_incoming_wa_webhook(phone: str, text: str) -> Dict[str, Any]:
         (clean_p, f"%{last_9}%"),
     )
     row = cur.fetchone()
-
-    # Fallback jika pengirim menggunakan format enkripsi LID
-    if not row:
-        cur.execute(
-            """
-            SELECT id, agen_id, agen_name, status
-            FROM survey_churn_logs
-            WHERE status IN ('SENT', 'TEST_SENT')
-            ORDER BY id DESC
-            LIMIT 1
-            """
-        )
-        row = cur.fetchone()
-
     conn.close()
 
     if not row:
@@ -399,6 +385,30 @@ def process_incoming_wa_webhook(phone: str, text: str) -> Dict[str, Any]:
 
     log_id = row["id"]
     return record_survey_reply(log_id, text)
+
+
+def delete_survey_log(log_id: int) -> Dict[str, Any]:
+    """Menghapus satu baris log survey berdasarkan ID."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM survey_churn_logs WHERE id = ?", (log_id,))
+    conn.commit()
+    conn.close()
+    return {"ok": True, "deleted_id": log_id}
+
+
+def clear_all_survey_logs(brand: str = "ASTAGA", periode: Optional[str] = None) -> Dict[str, Any]:
+    """Menghapus seluruh riwayat log survey untuk brand / periode tertentu."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if periode:
+        cur.execute("DELETE FROM survey_churn_logs WHERE brand = ? AND periode = ?", (brand, periode))
+    else:
+        cur.execute("DELETE FROM survey_churn_logs WHERE brand = ?", (brand,))
+    deleted_count = cur.rowcount
+    conn.commit()
+    conn.close()
+    return {"ok": True, "deleted_count": deleted_count}
 
 
 def get_survey_history(brand: str = "ASTAGA", periode: Optional[str] = None) -> List[Dict[str, Any]]:
