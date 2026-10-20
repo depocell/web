@@ -82,7 +82,8 @@ Telah dibuat modul halaman terpisah khusus survei di menu sidebar:
 
 ### Tab 2: Log Survei (Riwayat Percakapan)
 * Rekapitulasi seluruh survei yang pernah dikirim dan dibalas.
-* Kolom tabel: Waktu Kirim, Reseller, Nomor Tujuan, Status (`TERKIRIM` / `SUDAH BALAS`), **Balasan Asli dari WhatsApp**, Kategori Kendala AI, dan Status Kebutuhan Kunjungan SCO.
+* Kolom tabel: ID, Waktu Kirim, Reseller, Nomor Tujuan, Status (`TERKIRIM` / `SUDAH BALAS` / `TIDAK ADA WA`), **Balasan Asli dari WhatsApp**, Kategori Kendala AI, Status Kebutuhan Kunjungan SCO, dan **Tombol Hapus Log Satuan**.
+* **Tombol Hapus Semua Log**: Tombol di pojok kanan atas untuk mengosongkan riwayat log survei dan mereset status kandidat (dengan konfirmasi keamanan).
 
 ### Tab 3: Chart Hasil Survei (Analitik Visual)
 * **4 Kartu KPI**: Total Survei Terkirim, Tingkat Respon (*Response Rate %*), Kendala Terbanyak, Jumlah Butuh Visit SCO.
