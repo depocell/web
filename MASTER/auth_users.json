@@ -8,13 +8,29 @@
       "created_at": 1792151368,
       "updated_at": 1792151368
     },
+    "marketing": {
+      "username": "marketing",
+      "role": "tamu",
+      "password_hash": "fc9fde5d7c1152f53dfbda46dfce7c073647a5d7a1e31c5118ee64d36de2a471",
+      "salt": "9f00b274ea65c027f50dc1095b700ce6",
+      "created_at": 1792468314,
+      "updated_at": 1792468314
+    },
     "tamu": {
       "username": "tamu",
       "role": "tamu",
-      "password_hash": "55f86921ec83ad8cdaa1ea3c886bfe9401b5f4d0468dbcb2c2120652bba9adbf",
-      "salt": "3b696f2a8d4ec35d7f6844319fbdad7e",
-      "created_at": 1792389561,
-      "updated_at": 1792389561
+      "password_hash": "dd9ee467554754cc927207e144bb2a953016c86f33f418869061186503c397f6",
+      "salt": "96206e589c0812f407f614c2fcaa4473",
+      "created_at": 1792468348,
+      "updated_at": 1792468348
+    },
+    "user": {
+      "username": "user",
+      "role": "tamu",
+      "password_hash": "909a6e9406e6b9c5b4a359788a12b2f4d5b3796d623d9ca7313712459e47086e",
+      "salt": "a6417196082aab7f0a1917211eab5552",
+      "created_at": 1792468359,
+      "updated_at": 1792468359
     }
   }
 }

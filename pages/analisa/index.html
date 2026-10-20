@@ -52,15 +52,6 @@
           </svg>
           <span>Analisa Supplier</span>
         </button>
-        <button type="button" id="tab-btn-lain" onclick="switchAnalisaTab('lain')" class="analisa-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-          <span>Analisa Lain Lain</span>
-        </button>
       </div>
 
     </div>
@@ -137,7 +128,7 @@
 
     <!-- 4. Filter Master Produk (Kategori, Operator, Tipe) -->
     <div id="filter-master-produk-container"
-      style="display: none; flex-direction: column; gap: 12px; border-top: 1px dashed var(--surface-border); padding-top: 14px;">
+      style="display: flex; flex-direction: column; gap: 12px; border-top: 1px dashed var(--surface-border); padding-top: 14px;">
       <!-- Baris Kategori -->
       <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
         <span class="filter-pill-label">KATEGORI:</span>
@@ -301,67 +292,7 @@
         </div>
       </div>
 
-      <!-- Chart D3: Proporsi Segmentasi Customer -->
-      <div class="card" style="padding: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
-          <div>
-            <h3 style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0;">
-              Segmentasi Retensi Customer (Rutin vs Reaktivasi vs Churn)
-            </h3>
-            <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
-              Porsi customer bertransaksi rutin tiap bulan vs customer baru / reaktivasi
-            </p>
-          </div>
-          <span id="dist-seg-total-badge" class="badge"
-            style="background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.3); font-weight: 800; font-family: var(--font-mono); font-size: 11.5px; padding: 4px 10px;">
-            - Reseller Aktif
-          </span>
-        </div>
 
-        <!-- 4 Stat Badges / Pills -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px;">
-          <!-- Aktif Rutin -->
-          <div style="background: rgba(22, 163, 74, 0.06); border: 1px solid rgba(22, 163, 74, 0.2); border-radius: 8px; padding: 10px 12px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Aktif Rutin</div>
-            <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 3px;">
-              <span id="seg-val-rutin" style="font-size: 17px; font-weight: 800; color: #16a34a; font-family: var(--font-mono);">-</span>
-              <span id="seg-pct-rutin" style="font-size: 11.5px; font-weight: 700; color: #16a34a; font-family: var(--font-mono);">-%</span>
-            </div>
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">Retained MoM</div>
-          </div>
-          <!-- Member Baru -->
-          <div style="background: rgba(37, 99, 235, 0.06); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 8px; padding: 10px 12px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Member Baru</div>
-            <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 3px;">
-              <span id="seg-val-baru" style="font-size: 17px; font-weight: 800; color: #2563eb; font-family: var(--font-mono);">-</span>
-              <span id="seg-pct-baru" style="font-size: 11.5px; font-weight: 700; color: #2563eb; font-family: var(--font-mono);">-%</span>
-            </div>
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">Daftar &amp; Langsung Trx</div>
-          </div>
-          <!-- Reaktivasi -->
-          <div style="background: rgba(217, 119, 6, 0.06); border: 1px solid rgba(217, 119, 6, 0.2); border-radius: 8px; padding: 10px 12px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Reaktivasi</div>
-            <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 3px;">
-              <span id="seg-val-reaktivasi" style="font-size: 17px; font-weight: 800; color: #d97706; font-family: var(--font-mono);">-</span>
-              <span id="seg-pct-reaktivasi" style="font-size: 11.5px; font-weight: 700; color: #d97706; font-family: var(--font-mono);">-%</span>
-            </div>
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">Bangkit dari Pasif</div>
-          </div>
-          <!-- Pasif / Churn -->
-          <div style="background: rgba(220, 38, 38, 0.06); border: 1px solid rgba(220, 38, 38, 0.2); border-radius: 8px; padding: 10px 12px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Pasif / Churn</div>
-            <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 3px;">
-              <span id="seg-val-churn" style="font-size: 17px; font-weight: 800; color: #dc2626; font-family: var(--font-mono);">-</span>
-              <span id="seg-sub-churn" style="font-size: 11px; font-weight: 600; color: var(--text-muted);"></span>
-            </div>
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">0 Trx Bulan Ini</div>
-          </div>
-        </div>
-
-        <div style="position: relative; height: 260px; width: 100%;">
-          <canvas id="chart-dist-segment"></canvas>
-        </div>
-      </div>
 
     </div>
 
@@ -743,100 +674,6 @@
           </tbody>
         </table>
       </div>
-    </div>
-
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 3. TAB: ANALISA LAIN LAIN (PEAK HOURS, STATUS, DLL)                      -->
-  <!-- ========================================================================= -->
-  <div id="section-analisa-lain" class="analisa-tab-content" style="display: none; flex-direction: column; gap: 20px;">
-
-    <!-- Mini KPI Cards: Pola Waktu & Status -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
-      <div class="card" style="padding: 16px 20px; border-left: 4px solid #f59e0b;">
-        <div
-          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-          Peak Hours Transaksi</div>
-        <div id="lain-stat-peak" class="kpi-num" style="color: #f59e0b;">-</div>
-        <div id="lain-sub-peak" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Jam Puncak Transaksi Terpadat</div>
-      </div>
-
-      <div class="card" style="padding: 16px 20px; border-left: 4px solid #10b981;">
-        <div
-          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-          Tingkat Keberhasilan</div>
-        <div id="lain-stat-sukses-rate" class="kpi-num" style="color: #10b981;">-</div>
-        <div id="lain-sub-sukses" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Total Transaksi Sukses</div>
-      </div>
-
-      <div class="card" style="padding: 16px 20px; border-left: 4px solid #ef4444;">
-        <div
-          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-          Tingkat Kendala / Reject</div>
-        <div id="lain-stat-gagal-rate" class="kpi-num" style="color: #ef4444;">-</div>
-        <div id="lain-sub-gagal" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Gagal Nomor, Saldo, &amp; Timeout
-        </div>
-      </div>
-
-      <div class="card" style="padding: 16px 20px; border-left: 4px solid #6366f1;">
-        <div
-          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-          Hari Terpadat</div>
-        <div id="lain-stat-hari" class="kpi-num" style="color: #6366f1;">-</div>
-        <div id="lain-sub-hari" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Lonjakan Transaksi Mingguan</div>
-      </div>
-    </div>
-
-    <!-- Chart L1: Pola Jam Sibuk (Hourly Peak 00:00 - 23:00) -->
-    <div class="card" style="padding: 22px;">
-      <div style="margin-bottom: 16px;">
-        <h3
-          style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; margin: 0; color: var(--text-main);">
-          Pola Jam Sibuk Transaksi (Hourly Distribution 24 Jam)
-        </h3>
-        <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
-          Rata-rata volume per jam untuk analisis kapasitas server dan alokasi saldo suplier
-        </p>
-      </div>
-      <div style="position: relative; height: 320px; width: 100%;">
-        <canvas id="chart-lain-hourly"></canvas>
-      </div>
-    </div>
-
-    <!-- Row 2: Status Breakdown & Pola Hari Mingguan -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px;">
-
-      <!-- Chart L2: Breakdown Status Transaksi -->
-      <div class="card" style="padding: 20px;">
-        <div style="margin-bottom: 14px;">
-          <h3 style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0;">
-            Rincian Status Transaksi
-          </h3>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
-            Proporsi Sukses vs Gagal Nomor vs Gagal Saldo vs Timeout
-          </p>
-        </div>
-        <div style="position: relative; height: 280px; width: 100%;">
-          <canvas id="chart-lain-status"></canvas>
-        </div>
-      </div>
-
-      <!-- Chart L3: Pola Hari dalam Seminggu -->
-      <div class="card" style="padding: 20px;">
-        <div style="margin-bottom: 14px;">
-          <h3 style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; margin: 0;">
-            Distribusi Hari dalam Seminggu
-          </h3>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
-            Rata-rata transaksi harian per hari (Senin s/d Minggu)
-          </p>
-        </div>
-        <div style="position: relative; height: 280px; width: 100%;">
-          <canvas id="chart-lain-weekday"></canvas>
-        </div>
-      </div>
-
     </div>
 
   </div>

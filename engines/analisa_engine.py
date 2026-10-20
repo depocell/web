@@ -925,6 +925,37 @@ def get_product_hierarchy() -> Dict[str, Any]:
         return {}
 
 
+def _matches_category_name(k1: str, k2: str) -> bool:
+    if not k1 or not k2:
+        return False
+    u1 = str(k1).upper().strip()
+    u2 = str(k2).upper().strip()
+    if u1 == u2:
+        return True
+    if ("PLN" in u1 or "TOKEN" in u1) and ("PLN" in u2 or "TOKEN" in u2):
+        return True
+    if ("GAME" in u1 or "VOUCHER" in u1) and ("GAME" in u2 or "VOUCHER" in u2):
+        return True
+    if ("EWALLET" in u1 or "E-WALLET" in u1 or "WALLET" in u1) and ("EWALLET" in u2 or "E-WALLET" in u2 or "WALLET" in u2):
+        return True
+    if "TELCO" in u1 and "TELCO" in u2:
+        return True
+    if "PPOB" in u1 and "PPOB" in u2:
+        return True
+    if "TRANSFER" in u1 and "TRANSFER" in u2:
+        return True
+    return False
+
+def _get_category_value(cat_dict: dict, target_cat: str) -> int:
+    if not cat_dict or not target_cat:
+        return 0
+    if target_cat in cat_dict:
+        return cat_dict[target_cat]
+    for k, v in cat_dict.items():
+        if _matches_category_name(k, target_cat):
+            return v
+    return 0
+
 def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator: str = "ALL", tipe: str = "ALL",
                            target_brands: List[str] = None, target_yms: List[str] = None, data_all: Dict[str, Any] = None) -> Dict[str, Any]:
     res["product_hierarchy"] = get_product_hierarchy()
@@ -987,14 +1018,10 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
         if target_cat:
             def _matches_cat(m):
                 top_k = (m.get("kategori") or OPERATOR_TO_CATEGORY_MAP.get(m.get("operator", "").upper()) or "").upper()
-                if top_k == target_cat: return True
-                if target_cat in ["GAME", "VOUCHER GAME"] and top_k in ["GAME", "VOUCHER GAME"]: return True
-                if target_cat in ["PLN", "TOKEN PLN"] and top_k in ["PLN", "TOKEN PLN"]: return True
+                if _matches_category_name(top_k, target_cat): return True
                 for op in m.get("operators", {}).keys():
                     op_cat = OPERATOR_TO_CATEGORY_MAP.get(op.upper(), "").upper()
-                    if op_cat == target_cat: return True
-                    if target_cat in ["GAME", "VOUCHER GAME"] and op_cat in ["GAME", "VOUCHER GAME"]: return True
-                    if target_cat in ["PLN", "TOKEN PLN"] and op_cat in ["PLN", "TOKEN PLN"]: return True
+                    if _matches_category_name(op_cat, target_cat): return True
                 return False
             m_list = [m for m in m_list if _matches_cat(m)]
 
@@ -1047,7 +1074,14 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                 perf_dict = ym_data.get(perf_key, {})
                 matched = None
                 for k, v in perf_dict.items():
-                    if k.upper() == target_val or (perf_key == "categories_perf" and target_val in k.upper()) or (perf_key == "tipes_perf" and (target_val in k.upper() or k.upper() in target_val)):
+                    is_match = False
+                    if perf_key == "categories_perf":
+                        is_match = _matches_category_name(k, target_val)
+                    elif perf_key == "tipes_perf":
+                        is_match = (k.upper() == target_val or target_val in k.upper() or k.upper() in target_val)
+                    else:
+                        is_match = (k.upper() == target_val)
+                    if is_match:
                         matched = v
                         break
                 if matched:
@@ -1059,10 +1093,12 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                     filt_sukses += s_count
                     filt_weighted_dur += (avg_dur * s_count)
 
-    if not has_perf_data and target_cat and target_cat in categories_total:
-        filt_trx = categories_total[target_cat]
-        filt_sukses = filt_trx
-        has_perf_data = True
+    if not has_perf_data and target_cat:
+        cat_val = _get_category_value(categories_total, target_cat)
+        if cat_val > 0:
+            filt_trx = cat_val
+            filt_sukses = cat_val
+            has_perf_data = True
 
     if has_perf_data and filt_trx > 0:
         filt_suk_pct = round(filt_sukses / filt_trx * 100, 1)
@@ -1101,7 +1137,14 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                 ym_data = data_all.get(b, {}).get(target_ym, {})
                 perf_dict = ym_data.get(perf_key, {})
                 for k, v in perf_dict.items():
-                    if k.upper() == target_val or (perf_key == "categories_perf" and target_val in k.upper()) or (perf_key == "tipes_perf" and (target_val in k.upper() or k.upper() in target_val)):
+                    is_match = False
+                    if perf_key == "categories_perf":
+                        is_match = _matches_category_name(k, target_val)
+                    elif perf_key == "tipes_perf":
+                        is_match = (k.upper() == target_val or target_val in k.upper() or k.upper() in target_val)
+                    else:
+                        is_match = (k.upper() == target_val)
+                    if is_match:
                         d_map = v.get("daily", {})
                         d_info = d_map.get(d_num) or d_map.get(int(d_num) if d_num.isdigit() else d_num)
                         if d_info:
@@ -1119,7 +1162,7 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                 t["dur_sec"] = d_sec
                 t["dur_str"] = _format_duration(d_sec)
             elif target_cat:
-                c_val = t.get("categories", {}).get(target_cat, 0)
+                c_val = _get_category_value(t.get("categories", {}), target_cat)
                 t["trx"] = c_val
                 t["daily_trx"] = c_val
 
@@ -1134,7 +1177,14 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                 ym_data = data_all.get(b, {}).get(ym, {})
                 perf_dict = ym_data.get(perf_key, {})
                 for k, v in perf_dict.items():
-                    if k.upper() == target_val or (perf_key == "categories_perf" and target_val in k.upper()) or (perf_key == "tipes_perf" and (target_val in k.upper() or k.upper() in target_val)):
+                    is_match = False
+                    if perf_key == "categories_perf":
+                        is_match = _matches_category_name(k, target_val)
+                    elif perf_key == "tipes_perf":
+                        is_match = (k.upper() == target_val or target_val in k.upper() or k.upper() in target_val)
+                    else:
+                        is_match = (k.upper() == target_val)
+                    if is_match:
                         m_found = True
                         m_trx += v.get("trx", 0)
                         m_suk += v.get("trx_sukses", 0)
@@ -1151,7 +1201,7 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                 t["dur_sec"] = d_sec
                 t["dur_str"] = _format_duration(d_sec)
             elif target_cat:
-                c_val = t.get("categories", {}).get(target_cat, 0)
+                c_val = _get_category_value(t.get("categories", {}), target_cat)
                 t["trx"] = c_val
                 num_days = t.get("days_count", 30)
                 t["daily_trx"] = round(c_val / num_days) if num_days > 0 else c_val
@@ -1169,7 +1219,14 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                     ym_data = data_all.get(b, {}).get(ym, {})
                     perf_dict = ym_data.get(perf_key, {})
                     for k, v in perf_dict.items():
-                        if k.upper() == target_val or (perf_key == "categories_perf" and target_val in k.upper()) or (perf_key == "tipes_perf" and (target_val in k.upper() or k.upper() in target_val)):
+                        is_match = False
+                        if perf_key == "categories_perf":
+                            is_match = _matches_category_name(k, target_val)
+                        elif perf_key == "tipes_perf":
+                            is_match = (k.upper() == target_val or target_val in k.upper() or k.upper() in target_val)
+                        else:
+                            is_match = (k.upper() == target_val)
+                        if is_match:
                             y_found = True
                             y_trx += v.get("trx", 0)
                             y_suk += v.get("trx_sukses", 0)
@@ -1186,8 +1243,11 @@ def _apply_product_filters(res: Dict[str, Any], kategori: str = "ALL", operator:
                 t["dur_sec"] = d_sec
                 t["dur_str"] = _format_duration(d_sec)
             elif target_cat:
-                c_val = t.get("categories", {}).get(target_cat, 0)
+                c_val = _get_category_value(t.get("categories", {}), target_cat)
                 t["trx"] = c_val
+                t["trx_sukses"] = c_val
+                days_c = t.get("days_count", 365)
+                t["daily_trx"] = round(c_val / days_c) if days_c > 0 else c_val
 
     return res
 

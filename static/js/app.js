@@ -129,6 +129,12 @@ const ROUTES = {
     pageUrl: "./pages/transaksi/index.html",
     scriptUrl: "./pages/transaksi/transaksi.js",
     initFn: "loadTransaksi"
+  },
+  "#survey": {
+    title: "Survei AI & Reaktivasi",
+    pageUrl: "./pages/survey/index.html",
+    scriptUrl: "./pages/survey/survey.js",
+    initFn: "loadSurveyPage"
   }
 };
 
@@ -198,7 +204,7 @@ async function navigate() {
     return;
   }
   if (hash === "#analisa-lain") {
-    window.location.replace("#analisa?tab=lain");
+    window.location.replace("#analisa?tab=distribusi");
     return;
   }
   if (hash === "#reseller") {

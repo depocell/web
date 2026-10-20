@@ -34,6 +34,7 @@ import engines.admin_engine as admin_engine
 import engines.master_data_engine as master_data_engine
 import engines.master_product_engine as master_product_engine
 import engines.harga_engine as harga_engine
+import engines.survey_engine as survey_engine
 
 PAGES_DIR = os.path.join(BASE_DIR, "pages")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -504,6 +505,127 @@ async def api_agen_tren(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+async def api_survey_candidates(request):
+    """Mengambil daftar seluruh agen churn yang siap disurvey lengkap dengan kontak WA."""
+    brand = request.query_params.get("brand", "ASTAGA").upper()
+    month = request.query_params.get("month")
+    year = request.query_params.get("year", "2026")
+    try:
+        data = await asyncio.to_thread(survey_engine.get_survey_candidates, brand=brand, month_code=month, year=year)
+        return JSONResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_survey_preview(request):
+    """Generate preview teks sapaan personalisasi AI untuk agen churn."""
+    try:
+        body = await request.json()
+        brand = body.get("brand", "ASTAGA").upper()
+        candidate = body.get("candidate", {})
+        msg = survey_engine.generate_survey_message(candidate, brand=brand)
+        return JSONResponse({"ok": True, "message": msg})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_survey_send(request):
+    """Mengeksekusi pengiriman pesan survey (mendukung mode uji coba ke nomor tes)."""
+    try:
+        body = await request.json()
+        brand = body.get("brand", "ASTAGA").upper()
+        periode = body.get("periode", "2026-10")
+        agen_id = body.get("agen_id")
+        agen_name = body.get("agen_name", "")
+        cabang = body.get("cabang", "-")
+        sco_name = body.get("sco_name", "-")
+        no_wa = body.get("no_wa", "")
+        prev_trx = int(body.get("prev_trx", 0))
+        message_text = body.get("message", "")
+        is_test = bool(body.get("is_test", False))
+        test_target_phone = body.get("test_phone")
+
+        res = await asyncio.to_thread(
+            survey_engine.record_survey_send,
+            brand=brand,
+            periode=periode,
+            agen_id=agen_id,
+            agen_name=agen_name,
+            cabang=cabang,
+            sco_name=sco_name,
+            no_wa=no_wa,
+            prev_trx=prev_trx,
+            message_text=message_text,
+            is_test=is_test,
+            test_target_phone=test_target_phone
+        )
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_survey_reply(request):
+    """Mencatat balasan agen dan menjalankan klasifikasi intent/sentimen AI."""
+    try:
+        body = await request.json()
+        log_id = int(body.get("log_id"))
+        reply_text = body.get("reply_text", "")
+        res = await asyncio.to_thread(survey_engine.record_survey_reply, log_id=log_id, reply_text=reply_text)
+        return JSONResponse(res)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_survey_incoming_wa(request):
+    """Menerima webhook pesan masuk dari WhatsApp Gateway."""
+    try:
+        body = await request.json()
+        phone = body.get("phone", "")
+        text = body.get("text", "")
+        res = await asyncio.to_thread(survey_engine.process_incoming_wa_webhook, phone=phone, text=text)
+        return JSONResponse(res)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_survey_logs(request):
+    """Mengambil riwayat log survey yang pernah dikirim dan dibalas."""
+    brand = request.query_params.get("brand", "ASTAGA").upper()
+    periode = request.query_params.get("periode")
+    try:
+        logs = await asyncio.to_thread(survey_engine.get_survey_history, brand=brand, periode=periode)
+        return JSONResponse({"ok": True, "logs": logs})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_survey_gateway_status(request):
+    """Mengecek status live koneksi WhatsApp Gateway di localhost:3000."""
+    try:
+        import urllib.request
+        with urllib.request.urlopen("http://127.0.0.1:3000/status", timeout=1.5) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            return JSONResponse(data)
+    except Exception:
+        return JSONResponse({"ok": True, "connected": False, "phone": None})
+
+
+async def api_survey_reset_session(request):
+    """Menghapus sesi WhatsApp lama agar siap scan nomor baru."""
+    import shutil
+    session_dir = os.path.join(BASE_DIR, "wa_gateway", "session")
+    try:
+        if os.path.exists(session_dir):
+            shutil.rmtree(session_dir, ignore_errors=True)
+        return JSONResponse({"ok": True, "message": "Sesi WhatsApp berhasil direset. Silakan restart gateway untuk scan QR baru."})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 async def api_fisik(request):
     """Data laporan penjualan produk fisik & sales DSO dari rekapan SISCOM (.xls / .xlsx / .ttx)."""
     period = request.query_params.get("period")
@@ -928,6 +1050,14 @@ routes = [
     Route("/api/reseller",      api_reseller),
     Route("/api/agen/tren",     api_agen_tren),
     Route("/api/agen",          api_agen),
+    Route("/api/survey/candidates", api_survey_candidates),
+    Route("/api/survey/preview",    api_survey_preview,    methods=["POST"]),
+    Route("/api/survey/send",       api_survey_send,       methods=["POST"]),
+    Route("/api/survey/reply",      api_survey_reply,      methods=["POST"]),
+    Route("/api/survey/incoming-wa", api_survey_incoming_wa, methods=["POST"]),
+    Route("/api/survey/logs",       api_survey_logs),
+    Route("/api/survey/gateway-status", api_survey_gateway_status),
+    Route("/api/survey/reset-session",  api_survey_reset_session, methods=["POST"]),
     Route("/api/fisik",         api_fisik),
     Route("/api/harga/pivot",   api_harga_pivot),
     Route("/api/system/info",   api_system_info),

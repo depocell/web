@@ -236,6 +236,7 @@ function setProductFilter(type, value) {
     updateProductFilterDropdowns();
   }
 
+  updateYearPillsVisibility(currentAnalisaTab);
   fetchAndRenderAnalisa();
 }
 
@@ -253,6 +254,7 @@ function resetProductFilters() {
   }
 
   updateProductFilterDropdowns();
+  updateYearPillsVisibility(currentAnalisaTab);
   fetchAndRenderAnalisa();
 }
 
@@ -279,21 +281,41 @@ function updateYearPillsVisibility(tabName) {
       activeFilters.year = "2026";
     }
   } else {
-    // Tab Distribusi & Lain: Kembalikan semua tombol tahun (ALL, 2026, 2025, 2024, 2023)
-    allYearBtns.forEach(btn => {
-      btn.style.display = "";
-      if (btn.getAttribute("data-year") === activeFilters.year) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
+    // Tab Distribusi:
+    // Jika operator atau tipe produk spesifik dipilih (yang hanya ada di 2026),
+    // kunci tahun ke 2026 agar hasil akurat.
+    const hasSpecificProd = (activeFilters.operator !== "ALL" || activeFilters.tipe !== "ALL");
+    if (hasSpecificProd) {
+      allYearBtns.forEach(btn => {
+        const yr = btn.getAttribute("data-year");
+        if (yr === "2026") {
+          btn.style.display = "";
+          btn.classList.add("active");
+        } else {
+          btn.style.display = "none";
+          btn.classList.remove("active");
+        }
+      });
+      if (activeFilters.year !== "2026") {
+        activeFilters.year = "2026";
       }
-    });
+    } else {
+      // Bebas pilih semua tahun (ALL, 2026, 2025, 2024, 2023)
+      allYearBtns.forEach(btn => {
+        btn.style.display = "";
+        if (btn.getAttribute("data-year") === activeFilters.year) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+    }
   }
 }
 
 // ── TAB SWITCHER HANDLER ──
 function switchAnalisaTab(tabName) {
-  if (tabName === "profit") tabName = "distribusi";
+  if (tabName === "profit" || tabName === "lain") tabName = "distribusi";
   currentAnalisaTab = tabName;
 
   // Sinkronisasi status sub-tab ke URL tanpa reload
@@ -304,20 +326,20 @@ function switchAnalisaTab(tabName) {
   // Sesuaikan tombol filter tahun sesuai kapabilitas data tab
   updateYearPillsVisibility(tabName);
 
-  // Kontrol visibilitas baris filter Master Produk (aktif di tab service dan supplier)
+  // Baris filter Master Produk (Kategori, Operator, Tipe) aktif & seragam di seluruh tab
   const prodFilterRow = document.getElementById("filter-master-produk-container");
   if (prodFilterRow) {
-    prodFilterRow.style.display = (tabName === "service" || tabName === "supplier") ? "flex" : "none";
+    prodFilterRow.style.display = "flex";
   }
 
-  // Kontrol visibilitas Tipe / Paket (hanya relevan di tab service)
+  // Tipe / Paket aktif di seluruh tab
   const tipeFilterWrap = document.getElementById("filter-prod-tipe-wrap");
   if (tipeFilterWrap) {
-    tipeFilterWrap.style.display = (tabName === "service") ? "flex" : "none";
+    tipeFilterWrap.style.display = "flex";
   }
 
   // Update tab buttons
-  ["distribusi", "service", "supplier", "lain"].forEach(t => {
+  ["distribusi", "service", "supplier"].forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const sec = document.getElementById(`section-analisa-${t}`);
     if (btn) {
@@ -1391,6 +1413,29 @@ function filterGoldDataLocal(dataAll, brand, year, month, kategori = "ALL", oper
   }, kategori, operator, tipe, targetBrands, filteredYms, dataAll);
 }
 
+function _matchesCategoryName(k1, k2) {
+  if (!k1 || !k2) return false;
+  const u1 = String(k1).toUpperCase().trim();
+  const u2 = String(k2).toUpperCase().trim();
+  if (u1 === u2) return true;
+  if ((u1.includes("PLN") || u1.includes("TOKEN")) && (u2.includes("PLN") || u2.includes("TOKEN"))) return true;
+  if ((u1.includes("GAME") || u1.includes("VOUCHER")) && (u2.includes("GAME") || u2.includes("VOUCHER"))) return true;
+  if ((u1.includes("EWALLET") || u1.includes("E-WALLET") || u1.includes("WALLET")) && (u2.includes("EWALLET") || u2.includes("E-WALLET") || u2.includes("WALLET"))) return true;
+  if (u1.includes("TELCO") && u2.includes("TELCO")) return true;
+  if (u1.includes("PPOB") && u2.includes("PPOB")) return true;
+  if (u1.includes("TRANSFER") && u2.includes("TRANSFER")) return true;
+  return false;
+}
+
+function _getCategoryValue(catDict, targetCat) {
+  if (!catDict || !targetCat) return 0;
+  if (catDict[targetCat] != null) return catDict[targetCat];
+  for (const [k, v] of Object.entries(catDict)) {
+    if (_matchesCategoryName(k, targetCat)) return v;
+  }
+  return 0;
+}
+
 // ── ENGINE FILTER PRODUK CLIENT-SIDE ──
 function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tipe = "ALL", targetBrands = [], targetYms = [], dataAll = {}) {
   if (kategori === "ALL" && operator === "ALL" && tipe === "ALL") return res;
@@ -1428,7 +1473,6 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
     summary.granularity_label = (summary.granularity_label || "") + " • " + lblParts.join(" • ");
   }
 
-
   let filtTrx = 0;
   let filtSukses = 0;
   let filtWeightedDur = 0.0;
@@ -1441,7 +1485,15 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
         const perfDict = ymData[perfKey] || {};
         let matched = null;
         for (const [k, v] of Object.entries(perfDict)) {
-          if (k.toUpperCase() === targetVal || (perfKey === "categories_perf" && k.toUpperCase().includes(targetVal)) || (perfKey === "tipes_perf" && (k.toUpperCase().includes(targetVal) || targetVal.includes(k.toUpperCase())))) {
+          let isMatch = false;
+          if (perfKey === "categories_perf") {
+            isMatch = _matchesCategoryName(k, targetVal);
+          } else if (perfKey === "tipes_perf") {
+            isMatch = (k.toUpperCase() === targetVal || targetVal.includes(k.toUpperCase()) || k.toUpperCase().includes(targetVal));
+          } else {
+            isMatch = (k.toUpperCase() === targetVal);
+          }
+          if (isMatch) {
             matched = v;
             break;
           }
@@ -1459,10 +1511,13 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
     });
   }
 
-  if (!hasPerfData && targetCat && categoriesTotal[targetCat]) {
-    filtTrx = categoriesTotal[targetCat];
-    filtSukses = filtTrx;
-    hasPerfData = true;
+  if (!hasPerfData && targetCat) {
+    const catVal = _getCategoryValue(categoriesTotal, targetCat);
+    if (catVal > 0) {
+      filtTrx = catVal;
+      filtSukses = catVal;
+      hasPerfData = true;
+    }
   }
 
   if (hasPerfData && filtTrx > 0) {
@@ -1501,7 +1556,15 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
         const ymData = (dataAll[b] && dataAll[b][targetYm]) || {};
         const perfDict = ymData[perfKey] || {};
         for (const [k, v] of Object.entries(perfDict)) {
-          if (k.toUpperCase() === targetVal || (perfKey === "categories_perf" && k.toUpperCase().includes(targetVal)) || (perfKey === "tipes_perf" && (k.toUpperCase().includes(targetVal) || targetVal.includes(k.toUpperCase())))) {
+          let isMatch = false;
+          if (perfKey === "categories_perf") {
+            isMatch = _matchesCategoryName(k, targetVal);
+          } else if (perfKey === "tipes_perf") {
+            isMatch = (k.toUpperCase() === targetVal || targetVal.includes(k.toUpperCase()) || k.toUpperCase().includes(targetVal));
+          } else {
+            isMatch = (k.toUpperCase() === targetVal);
+          }
+          if (isMatch) {
             const dMap = v.daily || {};
             const dInfo = dMap[dNum] || dMap[parseInt(dNum, 10)];
             if (dInfo) {
@@ -1523,7 +1586,7 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
         t.dur_sec = dSec;
         t.dur_str = formatDurationSec(dSec);
       } else if (targetCat) {
-        const cVal = (t.categories && t.categories[targetCat]) || 0;
+        const cVal = _getCategoryValue(t.categories, targetCat);
         t.trx = cVal;
         t.daily_trx = cVal;
       }
@@ -1540,7 +1603,15 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
         const ymData = (dataAll[b] && dataAll[b][ym]) || {};
         const perfDict = ymData[perfKey] || {};
         for (const [k, v] of Object.entries(perfDict)) {
-          if (k.toUpperCase() === targetVal || (perfKey === "categories_perf" && k.toUpperCase().includes(targetVal)) || (perfKey === "tipes_perf" && (k.toUpperCase().includes(targetVal) || targetVal.includes(k.toUpperCase())))) {
+          let isMatch = false;
+          if (perfKey === "categories_perf") {
+            isMatch = _matchesCategoryName(k, targetVal);
+          } else if (perfKey === "tipes_perf") {
+            isMatch = (k.toUpperCase() === targetVal || targetVal.includes(k.toUpperCase()) || k.toUpperCase().includes(targetVal));
+          } else {
+            isMatch = (k.toUpperCase() === targetVal);
+          }
+          if (isMatch) {
             mFound = true;
             mTrx += v.trx || 0;
             mSuk += v.trx_sukses || 0;
@@ -1560,7 +1631,7 @@ function _applyProductFiltersClient(res, kategori = "ALL", operator = "ALL", tip
         t.dur_sec = dSec;
         t.dur_str = formatDurationSec(dSec);
       } else if (targetCat) {
-        const cVal = (t.categories && t.categories[targetCat]) || 0;
+        const cVal = _getCategoryValue(t.categories, targetCat);
         t.trx = cVal;
         const numDays = t.days_count || 30;
         t.daily_trx = Math.round(cVal / numDays);
@@ -1578,8 +1649,6 @@ function renderCurrentTabCharts(data) {
     renderServiceTab(data);
   } else if (currentAnalisaTab === "supplier") {
     renderSupplierTab(data);
-  } else if (currentAnalisaTab === "lain") {
-    renderLainTab(data);
   }
 }
 
@@ -1591,10 +1660,6 @@ function loadAnalisa() {
     switchAnalisaTab("service");
   } else if (hash.includes("tab=supplier") || hash === "#analisa-supplier") {
     switchAnalisaTab("supplier");
-  } else if (hash.includes("tab=profit") || hash === "#analisa-profit") {
-    switchAnalisaTab("profit");
-  } else if (hash.includes("tab=lain") || hash === "#analisa-lain") {
-    switchAnalisaTab("lain");
   } else {
     switchAnalisaTab("distribusi");
   }
@@ -1613,11 +1678,11 @@ function loadAnalisaSupplier() {
 }
 
 function loadAnalisaProfit() {
-  switchAnalisaTab("profit");
+  switchAnalisaTab("distribusi");
 }
 
 function loadAnalisaLain() {
-  switchAnalisaTab("lain");
+  switchAnalisaTab("distribusi");
 }
 
 // =============================================================================
@@ -2420,249 +2485,6 @@ function renderSupplierTab(data) {
 
   // Render Quadrant Top 3 & Tabel Scorecard
   renderServModuleEvaluation(data);
-}
-
-// =============================================================================
-// 4. TAB: ANALISA LAIN LAIN (PEAK HOURS, STATUS, DLL)
-// =============================================================================
-function renderLainTab(data) {
-  const hourly = data.hourly_distribution || [];
-  const statusBreakdown = data.status_breakdown || {};
-  const weekday = data.weekday_distribution || [];
-  const summary = data.summary || {};
-
-  const totalTrx = Number(summary.total_trx || 0);
-  const totalSukses = Number(summary.total_sukses || 0);
-
-  // 1. Update Mini KPI Cards
-  const elPeak = document.getElementById("lain-stat-peak");
-  const elSubPeak = document.getElementById("lain-sub-peak");
-  const elSukses = document.getElementById("lain-stat-sukses-rate");
-  const elSubSukses = document.getElementById("lain-sub-sukses");
-  const elGagal = document.getElementById("lain-stat-gagal-rate");
-  const elSubGagal = document.getElementById("lain-sub-gagal");
-  const elHari = document.getElementById("lain-stat-hari");
-  const elSubHari = document.getElementById("lain-sub-hari");
-
-  if (totalTrx === 0) {
-    if (elPeak) elPeak.textContent = "Nol Data";
-    if (elSubPeak) elSubPeak.textContent = "Tidak ada transaksi pada periode ini";
-
-    if (elSukses) elSukses.textContent = "0.0%";
-    if (elSubSukses) elSubSukses.textContent = "0 Transaksi Sukses";
-
-    if (elGagal) elGagal.textContent = "0.0%";
-    if (elSubGagal) elSubGagal.textContent = "0 Transaksi Gagal";
-
-    if (elHari) elHari.textContent = "Nol Data";
-    if (elSubHari) elSubHari.textContent = "Tidak ada transaksi pada periode ini";
-  } else {
-    // A. Peak Hours
-    if (elPeak) {
-      if (hourly.length > 0) {
-        const sortedHours = [...hourly].sort((a, b) => (b.trx || 0) - (a.trx || 0));
-        const topHour = sortedHours[0];
-        if (topHour && (topHour.trx || 0) > 0) {
-          const startH = parseInt(topHour.hour.split(":")[0], 10);
-          const endH = (startH + 2) % 24;
-          elPeak.textContent = `${String(startH).padStart(2, "0")}:00 - ${String(endH).padStart(2, "0")}:00`;
-        } else {
-          elPeak.textContent = "-";
-        }
-      } else {
-        elPeak.textContent = "-";
-      }
-    }
-    if (elSubPeak) elSubPeak.textContent = "Jam Puncak Transaksi Terpadat";
-
-    // B. Sukses Rate
-    const sukPct = statusBreakdown["Sukses"] != null ? Number(statusBreakdown["Sukses"]) : (summary.avg_sukses_pct || 0);
-    if (elSukses) elSukses.textContent = `${sukPct.toFixed(1)}%`;
-    if (elSubSukses) elSubSukses.textContent = `${totalSukses.toLocaleString("id-ID")} Transaksi Sukses`;
-
-    // C. Gagal / Reject Rate
-    const gagalPct = Math.max(0.0, +(100.0 - sukPct).toFixed(1));
-    const totalGagal = Math.max(0, totalTrx - totalSukses);
-    if (elGagal) elGagal.textContent = `${gagalPct.toFixed(1)}%`;
-    if (elSubGagal) elSubGagal.textContent = `${totalGagal.toLocaleString("id-ID")} Transaksi Gagal`;
-
-    // D. Hari Terpadat
-    if (elHari) {
-      if (weekday.length > 0) {
-        const sortedDays = [...weekday].sort((a, b) => (b.trx || 0) - (a.trx || 0));
-        if (sortedDays[0] && (sortedDays[0].trx || 0) > 0) {
-          if (sortedDays.length > 1 && (sortedDays[1].trx || 0) > 0) {
-            elHari.textContent = `${sortedDays[0].day} & ${sortedDays[1].day}`;
-          } else {
-            elHari.textContent = `${sortedDays[0].day}`;
-          }
-        } else {
-          elHari.textContent = "-";
-        }
-      } else {
-        elHari.textContent = "-";
-      }
-    }
-    if (elSubHari) elSubHari.textContent = "Lonjakan Transaksi Mingguan";
-  }
-
-  // Chart L1: Pola Jam Sibuk (24 Jam)
-  renderLainHourlyChart(hourly);
-
-  // Chart L2: Breakdown Status
-  renderLainStatusChart(statusBreakdown);
-
-  // Chart L3: Pola Hari Mingguan
-  renderLainWeekdayChart(weekday);
-}
-
-function renderLainHourlyChart(hourly) {
-  const ctx = document.getElementById("chart-lain-hourly");
-  if (!ctx) return;
-  destroyChart("lainHourly");
-
-  const labels = hourly.map(h => h.hour);
-  const values = hourly.map(h => h.trx);
-
-  chartInstances["lainHourly"] = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Volume per Jam",
-          data: values,
-          borderColor: "#0284c7",
-          backgroundColor: "rgba(2, 132, 199, 0.15)",
-          borderWidth: 2.5,
-          pointRadius: 3,
-          fill: true,
-          tension: 0.35
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => ` Jam ${context.label}: ${context.parsed.y.toLocaleString("id-ID")} trx`
-          }
-        }
-      },
-      scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: v => Number(v).toLocaleString("id-ID") } }
-      }
-    }
-  });
-}
-
-function renderLainStatusChart(statusBreakdown) {
-  const ctx = document.getElementById("chart-lain-status");
-  if (!ctx) return;
-  destroyChart("lainStatus");
-
-  const labels = Object.keys(statusBreakdown);
-  const values = Object.values(statusBreakdown);
-  const allZero = values.length === 0 || values.every(v => Number(v) === 0);
-
-  if (allZero) {
-    chartInstances["lainStatus"] = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Nol Data"],
-        datasets: [
-          {
-            data: [1],
-            backgroundColor: ["#e2e8f0"],
-            borderWidth: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "right", labels: { boxWidth: 12, font: { family: "inherit", size: 11.5 } } },
-          tooltip: {
-            callbacks: {
-              label: () => " Tidak ada transaksi pada periode ini"
-            }
-          }
-        }
-      }
-    });
-    return;
-  }
-
-  chartInstances["lainStatus"] = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          data: values,
-          backgroundColor: ["#10b981", "#f59e0b", "#ef4444", "#64748b"],
-          borderWidth: 2
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "right", labels: { boxWidth: 12, font: { family: "inherit", size: 11.5 } } },
-        tooltip: {
-          callbacks: {
-            label: context => ` ${context.label}: ${context.parsed}%`
-          }
-        }
-      }
-    }
-  });
-}
-
-function renderLainWeekdayChart(weekday) {
-  const ctx = document.getElementById("chart-lain-weekday");
-  if (!ctx) return;
-  destroyChart("lainWeekday");
-
-  const labels = weekday.map(w => w.day);
-  const values = weekday.map(w => w.trx);
-
-  chartInstances["lainWeekday"] = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Volume Transaksi",
-          data: values,
-          backgroundColor: "#8b5cf6",
-          borderRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => ` ${context.parsed.y.toLocaleString("id-ID")} trx`
-          }
-        }
-      },
-      scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: v => Number(v).toLocaleString("id-ID") } }
-      }
-    }
-  });
 }
 
 // =============================================================================

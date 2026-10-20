@@ -33,3 +33,9 @@ desktop.ini
 # Raw data
 RAW DATA/
 C:\RAW DATA/
+
+# Node & Gateway
+node_modules/
+wa_gateway/node_modules/
+wa_gateway/session/
+MASTER/PENGIRIM/

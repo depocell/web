@@ -824,6 +824,21 @@ function applyIndukFilters() {
 
   agenUnifiedState.induk.filteredRows = source;
   agenUnifiedState.induk.page = 1;
+
+  // Toggle & update label Tombol Batch Survey AI
+  const batchBtn = document.getElementById('btn-batch-survey');
+  const batchText = document.getElementById('btn-batch-survey-text');
+  if (batchBtn) {
+    if (status === 'churn') {
+      batchBtn.style.display = 'inline-flex';
+      if (batchText) {
+        batchText.textContent = `Lakukan Survey AI (${source.length})`;
+      }
+    } else {
+      batchBtn.style.display = 'none';
+    }
+  }
+
   renderIndukTable();
 }
 window.applyIndukFilters = applyIndukFilters;
@@ -1185,6 +1200,21 @@ function applyResellerFilters() {
 
   agenUnifiedState.reseller.filteredRows = source;
   agenUnifiedState.reseller.page = 1;
+
+  // Toggle & update label Tombol Batch Survey AI Reseller
+  const batchBtn = document.getElementById('btn-batch-reseller-survey');
+  const batchText = document.getElementById('btn-batch-reseller-survey-text');
+  if (batchBtn) {
+    if (status === 'churn') {
+      batchBtn.style.display = 'inline-flex';
+      if (batchText) {
+        batchText.textContent = `Lakukan Survey AI (${source.length})`;
+      }
+    } else {
+      batchBtn.style.display = 'none';
+    }
+  }
+
   renderResellerTable();
 }
 window.applyResellerFilters = applyResellerFilters;
@@ -1318,9 +1348,21 @@ function renderResellerTable() {
           ${statusBadge}
         </td>
         <td class="text-center" onclick="event.stopPropagation();">
-          <button type="button" onclick="openResellerModal('${escapeHtml(r.kode)}')" style="background: none; border: 1px solid var(--surface-border); border-radius: 6px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; color: var(--primary); cursor: pointer;">
-            Detail
-          </button>
+          <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+            ${(isChurn || r.activity_status === 'Pasif / Churn' || agenUnifiedState.reseller.activeStatus === 'churn') ? `
+              <button type="button" onclick="openSurveyModal('${escapeHtml(r.kode)}', '${escapeHtml(r.name || r.kode)}', '${escapeHtml(r.cabang || '-')}', '${escapeHtml(r.sco || '-')}', ${r.prev_trx || 0})"
+                style="background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; border-radius: 6px; padding: 4px 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                title="Kirim Survey Interaktif AI via WhatsApp ke Reseller ini">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Survey
+              </button>
+            ` : ''}
+            <button type="button" onclick="openResellerModal('${escapeHtml(r.kode)}')" style="background: none; border: 1px solid var(--surface-border); border-radius: 6px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; color: var(--primary); cursor: pointer;">
+              Detail
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -2286,3 +2328,373 @@ async function exportTrenExcel() {
   XLSX.writeFile(wb, fileName);
 }
 window.exportTrenExcel = exportTrenExcel;
+
+
+// =========================================================================
+// MODUL SURVEY INTERAKTIF AI (CHURN AGENTS)
+// =========================================================================
+let currentSurveyCandidate = null;
+let batchSurveyCandidates = [];
+
+async function openSurveyModal(agenId, agenName, cabang, sco, prevTrx) {
+  currentSurveyCandidate = {
+    agen_id: agenId,
+    agen_name: agenName,
+    cabang: cabang,
+    sco_name: sco,
+    prev_trx: prevTrx,
+    no_wa: ''
+  };
+
+  const modal = document.getElementById('survey-single-modal');
+  if (!modal) return;
+
+  // Set initial texts
+  document.getElementById('survey-modal-toko').textContent = agenName;
+  document.getElementById('survey-modal-id').textContent = agenId;
+  document.getElementById('survey-modal-cabang').textContent = cabang;
+  document.getElementById('survey-modal-sco').textContent = `SCO: ${sco}`;
+  document.getElementById('survey-modal-prev-trx').textContent = `${(prevTrx || 0).toLocaleString('id-ID')} Trx`;
+  
+  const phoneElem = document.getElementById('survey-modal-phone');
+  const sourceElem = document.getElementById('survey-modal-source');
+  phoneElem.textContent = 'Memuat kontak...';
+  sourceElem.textContent = '';
+
+  const msgArea = document.getElementById('survey-message-text');
+  msgArea.value = 'Memuat pesan sapaan AI...';
+
+  const resBox = document.getElementById('survey-result-box');
+  resBox.style.display = 'none';
+
+  modal.style.display = 'flex';
+
+  try {
+    const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+    const month = agenUnifiedState.currentPeriod || '2026-10';
+    
+    // Fetch candidates from API
+    const resp = await fetch(`/api/survey/candidates?brand=${encodeURIComponent(brand)}&month=${encodeURIComponent(month)}`);
+    const json = await resp.json();
+    if (json.ok && Array.isArray(json.candidates)) {
+      const match = json.candidates.find(c => c.agen_id === agenId);
+      if (match) {
+        currentSurveyCandidate = { ...currentSurveyCandidate, ...match };
+        phoneElem.textContent = match.no_wa || 'Belum ada kontak';
+        sourceElem.textContent = match.source || 'Terverifikasi';
+        
+        // Fetch generated preview message
+        const prevResp = await fetch('/api/survey/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brand: brand, candidate: match })
+        });
+        const prevJson = await prevResp.json();
+        if (prevJson.ok && prevJson.message) {
+          msgArea.value = prevJson.message;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching survey candidate info:', err);
+    phoneElem.textContent = 'Gagal memuat kontak';
+  }
+}
+window.openSurveyModal = openSurveyModal;
+
+function closeSurveyModal() {
+  const modal = document.getElementById('survey-single-modal');
+  if (modal) modal.style.display = 'none';
+  currentSurveyCandidate = null;
+}
+window.closeSurveyModal = closeSurveyModal;
+
+function toggleSurveyTestInput() {
+  const isTest = document.getElementById('survey-is-test').checked;
+  const box = document.getElementById('survey-test-phone-box');
+  if (box) {
+    box.style.display = isTest ? 'flex' : 'none';
+  }
+}
+window.toggleSurveyTestInput = toggleSurveyTestInput;
+
+async function submitSurveyAction() {
+  if (!currentSurveyCandidate) return;
+
+  const btn = document.getElementById('btn-submit-survey');
+  const resBox = document.getElementById('survey-result-box');
+  const isTest = document.getElementById('survey-is-test').checked;
+  const testPhone = document.getElementById('survey-test-phone').value.trim();
+  const customMsg = document.getElementById('survey-message-text').value.trim();
+
+  if (isTest && (!testPhone || testPhone.length < 9)) {
+    alert('Mohon masukkan nomor HP/WA uji coba Anda yang valid (contoh: 081234567890)');
+    document.getElementById('survey-test-phone').focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+  btn.innerHTML = 'Mengirim...';
+
+  try {
+    const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+    const month = agenUnifiedState.currentPeriod || '2026-10';
+
+    const payload = {
+      brand: brand,
+      periode: month,
+      agen_id: currentSurveyCandidate.agen_id,
+      agen_name: currentSurveyCandidate.agen_name,
+      cabang: currentSurveyCandidate.cabang,
+      sco_name: currentSurveyCandidate.sco_name,
+      no_wa: currentSurveyCandidate.no_wa,
+      prev_trx: currentSurveyCandidate.prev_trx,
+      message: customMsg,
+      is_test: isTest,
+      test_phone: testPhone
+    };
+
+    const resp = await fetch('/api/survey/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const res = await resp.json();
+
+    resBox.style.display = 'block';
+    if (res.ok) {
+      resBox.style.background = '#f0fdf4';
+      resBox.style.border = '1px solid #bbf7d0';
+      resBox.style.color = '#166534';
+      
+      const targetTxt = isTest ? `Nomor Uji Coba (${res.target_phone})` : `Nomor Toko (${res.target_phone})`;
+      resBox.innerHTML = `
+        <strong>Survey Berhasil Diproses!</strong><br>
+        Status: <code>${res.status}</code> &bull; Dikirim ke: ${targetTxt}<br>
+        <span style="font-size: 11px; color: #15803d;">${res.gateway_status ? res.gateway_status.note || 'Terkirim' : 'Tercatat di sistem'}</span>
+      `;
+    } else {
+      resBox.style.background = '#fef2f2';
+      resBox.style.border = '1px solid #fecaca';
+      resBox.style.color = '#991b1b';
+      resBox.innerHTML = `<strong>Gagal:</strong> ${res.error || 'Terjadi kesalahan'}`;
+    }
+  } catch (err) {
+    resBox.style.display = 'block';
+    resBox.style.background = '#fef2f2';
+    resBox.style.border = '1px solid #fecaca';
+    resBox.style.color = '#991b1b';
+    resBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+      <span>Kirim Pesan Survey</span>
+    `;
+  }
+}
+window.submitSurveyAction = submitSurveyAction;
+
+// =========================================================================
+// BATCH SURVEY FUNCTIONS
+// =========================================================================
+async function openBatchSurveyModal() {
+  const modal = document.getElementById('survey-batch-modal');
+  if (!modal) return;
+
+  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+  const month = agenUnifiedState.currentPeriod || '2026-10';
+
+  const tbody = document.getElementById('batch-candidate-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">Memuat daftar seluruh agen churn...</td></tr>';
+  
+  modal.style.display = 'flex';
+
+  try {
+    const resp = await fetch(`/api/survey/candidates?brand=${encodeURIComponent(brand)}&month=${encodeURIComponent(month)}`);
+    const json = await resp.json();
+    if (json.ok && Array.isArray(json.candidates)) {
+      batchSurveyCandidates = json.candidates;
+
+      document.getElementById('batch-total-churn').textContent = json.summary.total_churn || 0;
+      document.getElementById('batch-ready-count').textContent = json.summary.ready_to_survey || 0;
+      document.getElementById('batch-selected-count').textContent = json.candidates.length;
+
+      renderBatchCandidatesTable();
+    }
+  } catch (err) {
+    console.error('Error fetching batch candidates:', err);
+    tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #ef4444;">Gagal memuat data kandidat survey.</td></tr>';
+  }
+}
+window.openBatchSurveyModal = openBatchSurveyModal;
+
+function closeBatchSurveyModal() {
+  const modal = document.getElementById('survey-batch-modal');
+  if (modal) modal.style.display = 'none';
+  batchSurveyCandidates = [];
+}
+window.closeBatchSurveyModal = closeBatchSurveyModal;
+
+function renderBatchCandidatesTable() {
+  const tbody = document.getElementById('batch-candidate-tbody');
+  if (!tbody) return;
+
+  let html = '';
+  batchSurveyCandidates.forEach((c, idx) => {
+    const phone = c.no_wa ? `<code>${c.no_wa}</code>` : '<span style="color: #ef4444;">Tidak ada</span>';
+    const statusBadge = c.status === 'SENT' ? '<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Terkirim</span>' : '<span style="background: var(--table-header); color: var(--text-muted); padding: 2px 6px; border-radius: 4px;">Belum</span>';
+
+    const displayName = c.reseller_name || c.agen_name || c.agen_id;
+    const displayInduk = (c.induk_name && c.induk_name !== '-' && c.induk_name !== displayName) ? `<div style="font-size: 10.5px; color: var(--text-muted);">Induk: ${escapeHtml(c.induk_name)}</div>` : '';
+
+    html += `
+      <tr style="border-bottom: 1px solid var(--surface-border);">
+        <td style="padding: 8px 12px; text-align: center;">
+          <input type="checkbox" class="batch-cand-check" data-idx="${idx}" checked onchange="updateBatchSelectedCount()">
+        </td>
+        <td style="padding: 8px 12px;">
+          <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(displayName)}</div>
+          <div style="font-size: 11px; font-family: monospace; color: var(--primary);">${escapeHtml(c.reseller_id || c.agen_id)}</div>
+          ${displayInduk}
+        </td>
+        <td style="padding: 8px 12px;">
+          <div style="font-weight: 600;">${escapeHtml(c.cabang || '-')}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(c.sco_name || '-')}</div>
+        </td>
+        <td style="padding: 8px 12px; text-align: center; font-weight: 700; color: #0284c7;">
+          ${(c.prev_trx || 0).toLocaleString('id-ID')}
+        </td>
+        <td style="padding: 8px 12px;">
+          ${phone}
+        </td>
+        <td style="padding: 8px 12px; text-align: center;">
+          ${statusBadge}
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
+  updateBatchSelectedCount();
+}
+
+function updateBatchSelectedCount() {
+  const checks = document.querySelectorAll('.batch-cand-check:checked');
+  const countElem = document.getElementById('batch-selected-count');
+  if (countElem) {
+    countElem.textContent = checks.length;
+  }
+}
+window.updateBatchSelectedCount = updateBatchSelectedCount;
+
+function toggleSelectAllBatch(checked) {
+  document.querySelectorAll('.batch-cand-check').forEach(cb => {
+    cb.checked = checked;
+  });
+  const checkAll = document.getElementById('batch-check-all');
+  if (checkAll) checkAll.checked = checked;
+  updateBatchSelectedCount();
+}
+window.toggleSelectAllBatch = toggleSelectAllBatch;
+
+function toggleBatchTestInput() {
+  // Mode test toggle
+}
+window.toggleBatchTestInput = toggleBatchTestInput;
+
+async function submitBatchSurveyAction() {
+  const selectedIndices = [];
+  document.querySelectorAll('.batch-cand-check:checked').forEach(cb => {
+    selectedIndices.push(parseInt(cb.getAttribute('data-idx')));
+  });
+
+  if (selectedIndices.length === 0) {
+    alert('Pilih minimal 1 agen untuk disurvey.');
+    return;
+  }
+
+  const isTest = document.getElementById('batch-is-test').checked;
+  const btn = document.getElementById('btn-submit-batch-survey');
+  const resBox = document.getElementById('batch-result-box');
+
+  if (!confirm(`Konfirmasi: Jalankan survey AI ke ${selectedIndices.length} agen terpilih? (${isTest ? 'Mode Uji Coba / Simulasi Database' : 'Kirim WhatsApp Nyata'})`)) {
+    return;
+  }
+
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+  btn.innerHTML = 'Memproses batch...';
+
+  resBox.style.display = 'block';
+  resBox.style.background = '#eff6ff';
+  resBox.style.border = '1px solid #bfdbfe';
+  resBox.style.color = '#1e40af';
+  resBox.innerHTML = `Sedang memproses 0 dari ${selectedIndices.length} survey...`;
+
+  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+  const month = agenUnifiedState.currentPeriod || '2026-10';
+
+  let successCount = 0;
+  for (let i = 0; i < selectedIndices.length; i++) {
+    const cand = batchSurveyCandidates[selectedIndices[i]];
+    try {
+      // 1. Generate preview message
+      const prevResp = await fetch('/api/survey/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand: brand, candidate: cand })
+      });
+      const prevJson = await prevResp.json();
+      const msg = prevJson.message || `Halo Kak di ${cand.agen_name}, salam dari tim ${brand}...`;
+
+      // 2. Send survey
+      await fetch('/api/survey/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand: brand,
+          periode: month,
+          agen_id: cand.agen_id,
+          agen_name: cand.agen_name,
+          cabang: cand.cabang,
+          sco_name: cand.sco_name,
+          no_wa: cand.no_wa,
+          prev_trx: cand.prev_trx,
+          message: msg,
+          is_test: isTest
+        })
+      });
+      successCount++;
+      resBox.innerHTML = `Sedang memproses ${successCount} dari ${selectedIndices.length} survey...`;
+    } catch (e) {
+      console.error('Batch error for', cand.agen_id, e);
+    }
+  }
+
+  resBox.style.background = '#f0fdf4';
+  resBox.style.border = '1px solid #bbf7d0';
+  resBox.style.color = '#166534';
+  resBox.innerHTML = `<strong>Selesai!</strong> Berhasil memproses ${successCount} dari ${selectedIndices.length} agen terpilih (${isTest ? 'Mode Uji Coba Tercatat' : 'Terkirim'}).`;
+
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"></line>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+    </svg>
+    <span>Mulai Survey Batch Terpilih</span>
+  `;
+
+  // Reload candidates to refresh status
+  setTimeout(() => {
+    openBatchSurveyModal();
+  }, 1000);
+}
+window.submitBatchSurveyAction = submitBatchSurveyAction;
