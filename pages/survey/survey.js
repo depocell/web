@@ -207,18 +207,27 @@ function populateCabangFilter(candidates) {
 }
 
 function applySurveyFilters() {
+  const tSel = document.getElementById('survey-filter-trx');
   const cSel = document.getElementById('survey-filter-cabang');
   const sInput = document.getElementById('survey-search-input');
 
+  const selectedTrx = tSel ? tSel.value : 'GT5';
   const selectedCabang = cSel ? cSel.value : 'ALL';
   const query = sInput ? sInput.value.trim().toLowerCase() : '';
 
   let list = surveyState.candidates.slice();
 
+  // 1. Filter Volume Transaksi
+  if (selectedTrx === 'GT5') {
+    list = list.filter(c => (c.prev_trx || 0) > 5);
+  }
+
+  // 2. Filter Cabang
   if (selectedCabang !== 'ALL') {
     list = list.filter(c => (c.cabang || '').toUpperCase() === selectedCabang.toUpperCase());
   }
 
+  // 3. Search Box
   if (query) {
     list = list.filter(c => {
       const id = (c.reseller_id || '').toLowerCase();
@@ -232,6 +241,9 @@ function applySurveyFilters() {
 
   surveyState.filteredCandidates = list;
   renderCandidatesTable();
+
+  const cnt = document.getElementById('survey-count-target');
+  if (cnt) cnt.textContent = list.length;
 
   const batchText = document.getElementById('btn-survey-batch-text');
   if (batchText) {
@@ -685,39 +697,73 @@ function openBatchSurveyModal() {
   const modal = document.getElementById('survey-batch-modal');
   if (!modal) return;
 
+  const tSel = document.getElementById('survey-filter-trx');
+  const currentTrx = tSel ? tSel.value : 'GT5';
+
   const cSel = document.getElementById('survey-filter-cabang');
   const currentCabang = cSel ? cSel.value : 'ALL';
 
-  // Populate filter cabang inside modal
-  const batchCabangSel = document.getElementById('batch-filter-cabang');
-  if (batchCabangSel) {
-    const cabangs = Array.from(new Set(surveyState.candidates.map(c => c.cabang).filter(Boolean))).sort();
-    let optHtml = `<option value="ALL">Semua Cabang (${surveyState.candidates.length})</option>`;
-    cabangs.forEach(cb => {
-      const count = surveyState.candidates.filter(c => (c.cabang || '').toUpperCase() === cb.toUpperCase()).length;
-      optHtml += `<option value="${escapeHtml(cb)}">${escapeHtml(cb)} (${count})</option>`;
-    });
-    batchCabangSel.innerHTML = optHtml;
-    batchCabangSel.value = currentCabang;
-  }
+  const batchTrxSel = document.getElementById('batch-filter-trx');
+  if (batchTrxSel) batchTrxSel.value = currentTrx;
 
-  changeBatchCabang(currentCabang, false);
+  populateBatchCabangOptions(currentTrx, currentCabang);
+  updateBatchList(currentTrx, currentCabang);
+
   modal.style.display = 'flex';
 }
 window.openBatchSurveyModal = openBatchSurveyModal;
 
-function changeBatchCabang(selectedCabang, updateOuter = true) {
-  if (updateOuter) {
-    const cSel = document.getElementById('survey-filter-cabang');
-    if (cSel) {
-      cSel.value = selectedCabang;
-      applySurveyFilters();
-    }
+function populateBatchCabangOptions(trxFilter, selectedCabang) {
+  const batchCabangSel = document.getElementById('batch-filter-cabang');
+  if (!batchCabangSel) return;
+
+  let pool = surveyState.candidates.slice();
+  if (trxFilter === 'GT5') {
+    pool = pool.filter(c => (c.prev_trx || 0) > 5);
   }
 
+  const cabangs = Array.from(new Set(pool.map(c => c.cabang).filter(Boolean))).sort();
+  let optHtml = `<option value="ALL">Semua Cabang (${pool.length})</option>`;
+  cabangs.forEach(cb => {
+    const count = pool.filter(c => (c.cabang || '').toUpperCase() === cb.toUpperCase()).length;
+    optHtml += `<option value="${escapeHtml(cb)}">${escapeHtml(cb)} (${count})</option>`;
+  });
+  batchCabangSel.innerHTML = optHtml;
+  batchCabangSel.value = cabangs.includes(selectedCabang) || selectedCabang === 'ALL' ? selectedCabang : 'ALL';
+}
+
+function changeBatchTrx(selectedTrx) {
+  const tSel = document.getElementById('survey-filter-trx');
+  if (tSel) {
+    tSel.value = selectedTrx;
+    applySurveyFilters();
+  }
+  const cSel = document.getElementById('batch-filter-cabang');
+  const currentCabang = cSel ? cSel.value : 'ALL';
+  populateBatchCabangOptions(selectedTrx, currentCabang);
+  updateBatchList(selectedTrx, currentCabang);
+}
+window.changeBatchTrx = changeBatchTrx;
+
+function changeBatchCabang(selectedCabang) {
+  const cSel = document.getElementById('survey-filter-cabang');
+  if (cSel) {
+    cSel.value = selectedCabang;
+    applySurveyFilters();
+  }
+  const tSel = document.getElementById('batch-filter-trx');
+  const currentTrx = tSel ? tSel.value : 'GT5';
+  updateBatchList(currentTrx, selectedCabang);
+}
+window.changeBatchCabang = changeBatchCabang;
+
+function updateBatchList(trxFilter, cabangFilter) {
   let list = surveyState.candidates.slice();
-  if (selectedCabang !== 'ALL') {
-    list = list.filter(c => (c.cabang || '').toUpperCase() === selectedCabang.toUpperCase());
+  if (trxFilter === 'GT5') {
+    list = list.filter(c => (c.prev_trx || 0) > 5);
+  }
+  if (cabangFilter !== 'ALL') {
+    list = list.filter(c => (c.cabang || '').toUpperCase() === cabangFilter.toUpperCase());
   }
 
   surveyState.batchCandidates = list;
@@ -733,7 +779,6 @@ function changeBatchCabang(selectedCabang, updateOuter = true) {
 
   renderBatchTable();
 }
-window.changeBatchCabang = changeBatchCabang;
 
 function closeBatchSurveyModal() {
   const modal = document.getElementById('survey-batch-modal');
