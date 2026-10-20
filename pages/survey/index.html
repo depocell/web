@@ -133,10 +133,11 @@
     <div class="card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
       <!-- Log Controls -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <button type="button" class="reseller-tab active" onclick="filterLogsByStatus('ALL', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px;">Semua</button>
           <button type="button" class="reseller-tab" onclick="filterLogsByStatus('REPLIED', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px;">Sudah Balas</button>
           <button type="button" class="reseller-tab" onclick="filterLogsByStatus('SENT', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px;">Menunggu Balasan</button>
+          <button type="button" class="reseller-tab" onclick="filterLogsByStatus('NOT_ON_WA', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; color: #dc2626;">Tidak Ada WA</button>
         </div>
         <button type="button" onclick="loadSurveyLogs()" class="modern-btn" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

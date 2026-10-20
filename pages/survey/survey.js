@@ -259,6 +259,8 @@ function renderCandidatesTable() {
       statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Sudah Balas</span>';
     } else if (c.status === 'SENT' || c.status === 'TEST_SENT') {
       statusBadge = '<span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">Terkirim</span>';
+    } else if (c.status === 'NOT_ON_WA') {
+      statusBadge = '<span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 700;">Tidak Ada WA</span>';
     }
 
     const indukDisplay = c.agen_name && c.agen_name !== '-' ? escapeHtml(c.agen_name) : '<span style="color: var(--text-muted);">-</span>';
@@ -341,8 +343,10 @@ function filterLogsByStatus(statusFilter, btnElem) {
     surveyState.filteredLogs = surveyState.logs.slice();
   } else if (statusFilter === 'REPLIED') {
     surveyState.filteredLogs = surveyState.logs.filter(l => l.status === 'REPLIED');
+  } else if (statusFilter === 'NOT_ON_WA') {
+    surveyState.filteredLogs = surveyState.logs.filter(l => l.status === 'NOT_ON_WA');
   } else {
-    surveyState.filteredLogs = surveyState.logs.filter(l => l.status !== 'REPLIED');
+    surveyState.filteredLogs = surveyState.logs.filter(l => l.status === 'SENT' || l.status === 'TEST_SENT');
   }
 
   renderLogsTable();
@@ -366,6 +370,8 @@ function renderLogsTable() {
       statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">SUDAH BALAS</span>';
     } else if (l.status === 'SENT' || l.status === 'TEST_SENT') {
       statusBadge = '<span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">TERKIRIM</span>';
+    } else if (l.status === 'NOT_ON_WA') {
+      statusBadge = '<span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 700;">TIDAK ADA WA</span>';
     }
 
     let catBadge = '<span style="color: var(--text-muted);">-</span>';
@@ -377,12 +383,17 @@ function renderLogsTable() {
       catBadge = '<span class="badge" style="background: #f3e8ff; color: #7e22ce; font-weight: 700;">KALAH HARGA</span>';
     } else if (l.ai_category === 'TOKO_TUTUP') {
       catBadge = '<span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700;">TOKO TUTUP</span>';
+    } else if (l.ai_category === 'NO_WHATSAPP') {
+      catBadge = '<span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 700;">NON-WA</span>';
     } else if (l.ai_category) {
       catBadge = `<span class="badge" style="background: var(--table-header); color: var(--text-main); font-weight: 600;">${escapeHtml(l.ai_category)}</span>`;
     }
 
-    const visitBadge = l.need_sco_visit ? '<span class="badge" style="background: #eff6ff; color: #1d4ed8; font-weight: 700;">BUTUH VISIT</span>' : '<span style="color: var(--text-muted);">-</span>';
-    const replyText = l.reply_received ? `<div style="font-style: italic; color: var(--text-main);">"${escapeHtml(l.reply_received)}"</div>` : '<span style="color: var(--text-muted); font-size: 11px;">(Menunggu balasan)</span>';
+    const visitBadge = (l.need_sco_visit || l.status === 'NOT_ON_WA') ? '<span class="badge" style="background: #eff6ff; color: #1d4ed8; font-weight: 700;">BUTUH VISIT</span>' : '<span style="color: var(--text-muted);">-</span>';
+    let replyText = l.reply_received ? `<div style="font-style: italic; color: var(--text-main);">"${escapeHtml(l.reply_received)}"</div>` : '<span style="color: var(--text-muted); font-size: 11px;">(Menunggu balasan)</span>';
+    if (l.status === 'NOT_ON_WA') {
+      replyText = '<span style="color: #dc2626; font-size: 11px; font-weight: 600;">Nomor tidak terdaftar di WhatsApp. Hubungi via GSM / Visit SCO.</span>';
+    }
 
     const sentTime = l.sent_at ? l.sent_at.substring(0, 16).replace('T', ' ') : '-';
 
@@ -737,7 +748,14 @@ function renderBatchTable() {
   let html = '';
   surveyState.batchCandidates.forEach((c, idx) => {
     const phone = c.no_wa ? `<code>${c.no_wa}</code>` : '<span style="color: #ef4444;">Tidak ada</span>';
-    const statusBadge = c.status === 'SENT' ? '<span class="badge" style="background: #e0f2fe; color: #0369a1;">Terkirim</span>' : '<span class="badge" style="background: var(--table-header); color: var(--text-muted);">Belum</span>';
+    let statusBadge = '<span class="badge" style="background: var(--table-header); color: var(--text-muted);">Belum</span>';
+    if (c.status === 'REPLIED') {
+      statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Sudah Balas</span>';
+    } else if (c.status === 'SENT' || c.status === 'TEST_SENT') {
+      statusBadge = '<span class="badge" style="background: #e0f2fe; color: #0369a1;">Terkirim</span>';
+    } else if (c.status === 'NOT_ON_WA') {
+      statusBadge = '<span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 700;">Tidak Ada WA</span>';
+    }
 
     const displayInduk = c.agen_name && c.agen_name !== '-' ? `<div style="font-size: 10.5px; color: var(--text-muted);">Induk: ${escapeHtml(c.agen_name)}</div>` : '';
 

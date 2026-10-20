@@ -221,6 +221,20 @@ def record_survey_send(
     conn.close()
 
     dispatch_result = dispatch_to_wa_gateway(clean_target, message_text)
+    if dispatch_result.get("notOnWhatsApp"):
+        status = "NOT_ON_WA"
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE survey_churn_logs 
+            SET status = 'NOT_ON_WA', ai_category = 'NO_WHATSAPP', updated_at = ? 
+            WHERE id = ?
+            """,
+            (datetime.now().isoformat(), log_id),
+        )
+        conn.commit()
+        conn.close()
 
     return {
         "ok": True,
@@ -229,6 +243,7 @@ def record_survey_send(
         "target_phone": target_phone,
         "is_test": is_test,
         "status": status,
+        "not_on_wa": bool(dispatch_result.get("notOnWhatsApp")),
         "gateway_status": dispatch_result,
         "message": message_text,
     }
@@ -251,16 +266,20 @@ def dispatch_to_wa_gateway(phone: str, message: str) -> Dict[str, Any]:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=3) as resp:
-            if resp.status in (200, 201):
-                return {"delivered": True, "mode": "GATEWAY_ACTIVE"}
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            resp_body = resp.read().decode("utf-8")
+            data = json.loads(resp_body) if resp_body else {}
+            if data.get("notOnWhatsApp"):
+                return {"delivered": False, "notOnWhatsApp": True, "error": "Nomor tidak terdaftar di WhatsApp"}
+            if resp.status in (200, 201) and data.get("ok"):
+                return {"delivered": True, "mode": "GATEWAY_ACTIVE", "messageId": data.get("messageId")}
     except Exception as e:
-        logger.debug(f"WA Gateway offline / trial mode: {e}")
+        logger.debug(f"WA Gateway error / trial mode: {e}")
 
     return {
         "delivered": False,
         "mode": "SIMULATION_STANDBY",
-        "note": "Pesan berhasil dicatat di database. Gateway WA siap dihubungkan.",
+        "note": "Pesan dicatat di database. Reseller dalam antrean.",
     }
 
 

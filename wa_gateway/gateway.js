@@ -146,6 +146,33 @@ app.get('/status', (req, res) => {
   });
 });
 
+app.post('/check-phone', async (req, res) => {
+  try {
+    if (!isConnected || !sock) {
+      return res.status(503).json({ ok: false, error: 'WhatsApp Gateway belum terhubung.' });
+    }
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ ok: false, error: 'Parameter phone wajib diisi.' });
+
+    let clean = String(phone).replace(/[^0-9]/g, '');
+    if (clean.startsWith('08')) clean = '628' + clean.slice(2);
+    else if (clean.startsWith('8')) clean = '628' + clean.slice(1);
+
+    const jid = `${clean}@s.whatsapp.net`;
+    const waResults = await sock.onWhatsApp(jid);
+    const waTarget = Array.isArray(waResults) && waResults.length > 0 ? waResults[0] : null;
+
+    res.json({
+      ok: true,
+      phone: clean,
+      exists: !!(waTarget && waTarget.exists),
+      jid: waTarget?.jid || null
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/send-message', async (req, res) => {
   try {
     if (!isConnected || !sock) {
@@ -169,11 +196,34 @@ app.post('/send-message', async (req, res) => {
     }
 
     const jid = `${clean}@s.whatsapp.net`;
+
+    // 1. Validasi keberadaan akun WhatsApp (Pre-check 0.1s via onWhatsApp)
+    let waTarget = null;
+    try {
+      const waResults = await sock.onWhatsApp(jid);
+      waTarget = Array.isArray(waResults) && waResults.length > 0 ? waResults[0] : null;
+    } catch (e) {
+      console.warn(`[Warning onWhatsApp]: Gagal validasi nomor ${clean}: ${e.message}`);
+    }
+
+    if (!waTarget || !waTarget.exists) {
+      console.log(`[Validasi WA]: Nomor +${clean} TIDAK terdaftar di WhatsApp.`);
+      return res.json({
+        ok: false,
+        delivered: false,
+        notOnWhatsApp: true,
+        phone: clean,
+        error: 'Nomor tidak terdaftar di WhatsApp'
+      });
+    }
+
+    const actualJid = waTarget.jid || jid;
     lastSurveyedPhone = clean;
     try {
-      await sock.sendPresenceUpdate('available', jid);
+      await sock.sendPresenceUpdate('available', actualJid);
     } catch (_) {}
-    const sentMsg = await sock.sendMessage(jid, { text: message });
+
+    const sentMsg = await sock.sendMessage(actualJid, { text: message });
     if (sentMsg?.key?.id && sentMsg?.message) {
       messageStore.set(sentMsg.key.id, sentMsg.message);
     }
