@@ -455,27 +455,39 @@ def execute_pivot(
 
     # Summary Stats
     total_trx = len(df)
-    total_jual = float(df["jual"].sum())
-    total_base_price = float(df["base_price"].sum())
-    total_margin = float(df["margin"].sum())
     sukses_cnt = int(df["is_sukses_num"].sum())
     overall_sukses_rate = round((sukses_cnt / total_trx * 100), 2) if total_trx > 0 else 0.0
-    overall_net_arpu = me.calculate_net_arpu(total_base_price, sukses_cnt)
-    overall_margin_pct = me.calculate_margin_pct(total_margin, total_base_price)
 
-    summary = {
-        "active_days": active_days,
-        "total_trx": total_trx,
-        "daily_trx": me.calculate_daily_rate(total_trx, active_days),
-        "total_jual": round(total_jual, 0),
-        "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
-        "total_base_price": round(total_base_price, 0),
-        "total_margin": round(total_margin, 0),
-        "daily_margin": round(me.calculate_daily_rate(total_margin, active_days), 0),
-        "sukses_rate": overall_sukses_rate,
-        "net_arpu": overall_net_arpu,
-        "margin_pct": overall_margin_pct
-    }
+    is_financial = str(mode).strip().lower() in ("financial", "management", "admin", "full")
+
+    if is_financial:
+        total_jual = float(df["jual"].sum())
+        total_base_price = float(df["base_price"].sum())
+        total_margin = float(df["margin"].sum())
+        overall_net_arpu = me.calculate_net_arpu(total_base_price, sukses_cnt)
+        overall_margin_pct = me.calculate_margin_pct(total_margin, total_base_price)
+
+        summary = {
+            "active_days": active_days,
+            "total_trx": total_trx,
+            "daily_trx": me.calculate_daily_rate(total_trx, active_days),
+            "total_jual": round(total_jual, 0),
+            "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
+            "total_base_price": round(total_base_price, 0),
+            "total_margin": round(total_margin, 0),
+            "daily_margin": round(me.calculate_daily_rate(total_margin, active_days), 0),
+            "sukses_rate": overall_sukses_rate,
+            "net_arpu": overall_net_arpu,
+            "margin_pct": overall_margin_pct
+        }
+    else:
+        summary = {
+            "active_days": active_days,
+            "total_trx": total_trx,
+            "daily_trx": me.calculate_daily_rate(total_trx, active_days),
+            "qty_sum": round(float(df["qty"].sum()), 0) if "qty" in df.columns else 0,
+            "sukses_rate": overall_sukses_rate
+        }
 
     # Metric configuration
     is_daily = metric in ("daily_trx", "daily_jual", "daily_margin")
@@ -606,79 +618,117 @@ def execute_pivot(
 
     else:
         # 1D Breakdown Table
-        grp = df.groupby(row_dim).agg(
-            trx_count=("trx_id", "count"),
-            qty_sum=("qty", "sum"),
-            jual_sum=("jual", "sum"),
-            base_price_sum=("base_price", "sum"),
-            beli_sum=("beli", "sum"),
-            margin_sum=("margin", "sum"),
-            sukses_count=("is_sukses_num", "sum")
-        )
+        agg_kwargs = {
+            "trx_count": ("trx_id", "count"),
+            "qty_sum": ("qty", "sum"),
+            "sukses_count": ("is_sukses_num", "sum")
+        }
+        if is_financial:
+            agg_kwargs.update({
+                "jual_sum": ("jual", "sum"),
+                "base_price_sum": ("base_price", "sum"),
+                "beli_sum": ("beli", "sum"),
+                "margin_sum": ("margin", "sum"),
+            })
+
+        grp = df.groupby(row_dim).agg(**agg_kwargs)
         grp["sukses_pct"] = np.where(grp["trx_count"] > 0, (grp["sukses_count"] / grp["trx_count"] * 100.0), 0.0)
-        grp["base_price_avg"] = np.where(grp["trx_count"] > 0, grp["base_price_sum"] / grp["trx_count"], 0.0)
-        grp["net_arpu"] = np.where(grp["sukses_count"] > 0, grp["base_price_sum"] / grp["sukses_count"], 0.0)
-        grp["margin_pct"] = np.where(grp["base_price_sum"] > 0, (grp["margin_sum"] / grp["base_price_sum"] * 100.0), 0.0)
+
+        if is_financial:
+            grp["base_price_avg"] = np.where(grp["trx_count"] > 0, grp["base_price_sum"] / grp["trx_count"], 0.0)
+            grp["net_arpu"] = np.where(grp["sukses_count"] > 0, grp["base_price_sum"] / grp["sukses_count"], 0.0)
+            grp["margin_pct"] = np.where(grp["base_price_sum"] > 0, (grp["margin_sum"] / grp["base_price_sum"] * 100.0), 0.0)
 
         if row_dim == "bulan":
             divisor_s = grp.index.map(lambda ym: float(days_per_month.get(str(ym), active_days)))
             grp["daily_trx"] = grp["trx_count"] / divisor_s
-            grp["daily_jual"] = grp["jual_sum"] / divisor_s
-            grp["daily_margin"] = grp["margin_sum"] / divisor_s
+            if is_financial:
+                grp["daily_jual"] = grp["jual_sum"] / divisor_s
+                grp["daily_margin"] = grp["margin_sum"] / divisor_s
         elif row_dim == "tanggal":
             grp["daily_trx"] = grp["trx_count"].astype(float)
-            grp["daily_jual"] = grp["jual_sum"].astype(float)
-            grp["daily_margin"] = grp["margin_sum"].astype(float)
+            if is_financial:
+                grp["daily_jual"] = grp["jual_sum"].astype(float)
+                grp["daily_margin"] = grp["margin_sum"].astype(float)
         else:
             grp["daily_trx"] = grp["trx_count"] / float(active_days)
-            grp["daily_jual"] = grp["jual_sum"] / float(active_days)
-            grp["daily_margin"] = grp["margin_sum"] / float(active_days)
+            if is_financial:
+                grp["daily_jual"] = grp["jual_sum"] / float(active_days)
+                grp["daily_margin"] = grp["margin_sum"] / float(active_days)
 
         sort_col = metric if metric in grp.columns else "trx_count"
         grp = grp.sort_values(by=sort_col, ascending=False).head(top_limit)
 
         rows_data = []
-        for idx_val, r_s in grp.iterrows():
-            rows_data.append({
-                "_row_label": str(idx_val),
-                "trx_count": int(r_s["trx_count"]),
-                "daily_trx": round(float(r_s["daily_trx"]), 1),
-                "qty_sum": round(float(r_s["qty_sum"]), 0),
-                "base_price_avg": round(float(r_s["base_price_avg"]), 0),
-                "net_arpu": round(float(r_s["net_arpu"]), 0),
-                "base_price_sum": round(float(r_s["base_price_sum"]), 0),
-                "margin_sum": round(float(r_s["margin_sum"]), 0),
-                "daily_margin": round(float(r_s["daily_margin"]), 0),
-                "margin_pct": round(float(r_s["margin_pct"]), 2),
-                "jual_sum": round(float(r_s["jual_sum"]), 0),
-                "daily_jual": round(float(r_s["daily_jual"]), 0),
-                "beli_sum": round(float(r_s["beli_sum"]), 0),
-                "sukses_pct": round(float(r_s["sukses_pct"]), 2)
-            })
+        if is_financial:
+            for idx_val, r_s in grp.iterrows():
+                rows_data.append({
+                    "_row_label": str(idx_val),
+                    "trx_count": int(r_s["trx_count"]),
+                    "daily_trx": round(float(r_s["daily_trx"]), 1),
+                    "qty_sum": round(float(r_s["qty_sum"]), 0),
+                    "base_price_avg": round(float(r_s["base_price_avg"]), 0),
+                    "net_arpu": round(float(r_s["net_arpu"]), 0),
+                    "base_price_sum": round(float(r_s["base_price_sum"]), 0),
+                    "margin_sum": round(float(r_s["margin_sum"]), 0),
+                    "daily_margin": round(float(r_s["daily_margin"]), 0),
+                    "margin_pct": round(float(r_s["margin_pct"]), 2),
+                    "jual_sum": round(float(r_s["jual_sum"]), 0),
+                    "daily_jual": round(float(r_s["daily_jual"]), 0),
+                    "beli_sum": round(float(r_s["beli_sum"]), 0),
+                    "sukses_pct": round(float(r_s["sukses_pct"]), 2)
+                })
 
-        total_dict = {
-            "_row_label": "TOTAL",
-            "trx_count": total_trx,
-            "daily_trx": me.calculate_daily_rate(total_trx, active_days),
-            "qty_sum": round(float(df["qty"].sum()), 0),
-            "base_price_avg": round(total_base_price / total_trx, 0) if total_trx > 0 else 0.0,
-            "net_arpu": overall_net_arpu,
-            "base_price_sum": round(total_base_price, 0),
-            "margin_sum": round(total_margin, 0),
-            "daily_margin": round(me.calculate_daily_rate(total_margin, active_days), 0),
-            "margin_pct": overall_margin_pct,
-            "jual_sum": round(total_jual, 0),
-            "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
-            "beli_sum": round(float(df["beli"].sum()), 0),
-            "sukses_pct": overall_sukses_rate
-        }
+            total_dict = {
+                "_row_label": "TOTAL",
+                "trx_count": total_trx,
+                "daily_trx": me.calculate_daily_rate(total_trx, active_days),
+                "qty_sum": round(float(df["qty"].sum()), 0) if "qty" in df.columns else 0,
+                "base_price_avg": round(total_base_price / total_trx, 0) if total_trx > 0 else 0.0,
+                "net_arpu": overall_net_arpu,
+                "base_price_sum": round(total_base_price, 0),
+                "margin_sum": round(total_margin, 0),
+                "daily_margin": round(me.calculate_daily_rate(total_margin, active_days), 0),
+                "margin_pct": overall_margin_pct,
+                "jual_sum": round(total_jual, 0),
+                "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
+                "beli_sum": round(float(df["beli"].sum()), 0),
+                "sukses_pct": overall_sukses_rate
+            }
 
-        return {
-            "is_2d": False,
-            "row_dim": row_dim,
-            "columns": ["trx_count", "daily_trx", "base_price_avg", "net_arpu", "base_price_sum", "margin_sum", "daily_margin", "margin_pct", "jual_sum", "daily_jual", "beli_sum", "qty_sum", "sukses_pct"],
-            "rows": rows_data,
-            "total_row": total_dict,
-            "summary": summary,
-            "elapsed_ms": round((time.time() - t0) * 1000, 1)
-        }
+            return {
+                "is_2d": False,
+                "row_dim": row_dim,
+                "columns": ["trx_count", "daily_trx", "base_price_avg", "net_arpu", "base_price_sum", "margin_sum", "daily_margin", "margin_pct", "jual_sum", "daily_jual", "beli_sum", "qty_sum", "sukses_pct"],
+                "rows": rows_data,
+                "total_row": total_dict,
+                "summary": summary,
+                "elapsed_ms": round((time.time() - t0) * 1000, 1)
+            }
+        else:
+            for idx_val, r_s in grp.iterrows():
+                rows_data.append({
+                    "_row_label": str(idx_val),
+                    "trx_count": int(r_s["trx_count"]),
+                    "daily_trx": round(float(r_s["daily_trx"]), 1),
+                    "qty_sum": round(float(r_s["qty_sum"]), 0),
+                    "sukses_pct": round(float(r_s["sukses_pct"]), 2)
+                })
+
+            total_dict = {
+                "_row_label": "TOTAL",
+                "trx_count": total_trx,
+                "daily_trx": me.calculate_daily_rate(total_trx, active_days),
+                "qty_sum": round(float(df["qty"].sum()), 0) if "qty" in df.columns else 0,
+                "sukses_pct": overall_sukses_rate
+            }
+
+            return {
+                "is_2d": False,
+                "row_dim": row_dim,
+                "columns": ["trx_count", "daily_trx", "qty_sum", "sukses_pct"],
+                "rows": rows_data,
+                "total_row": total_dict,
+                "summary": summary,
+                "elapsed_ms": round((time.time() - t0) * 1000, 1)
+            }
