@@ -232,6 +232,11 @@ function applySurveyFilters() {
 
   surveyState.filteredCandidates = list;
   renderCandidatesTable();
+
+  const batchText = document.getElementById('btn-survey-batch-text');
+  if (batchText) {
+    batchText.textContent = `Survei AI Batch (${list.length})`;
+  }
 }
 window.applySurveyFilters = applySurveyFilters;
 
@@ -669,16 +674,55 @@ function openBatchSurveyModal() {
   const modal = document.getElementById('survey-batch-modal');
   if (!modal) return;
 
-  surveyState.batchCandidates = surveyState.filteredCandidates.length > 0 ? surveyState.filteredCandidates : surveyState.candidates;
+  const cSel = document.getElementById('survey-filter-cabang');
+  const currentCabang = cSel ? cSel.value : 'ALL';
 
-  document.getElementById('batch-total-churn').textContent = surveyState.batchCandidates.length;
-  document.getElementById('batch-ready-count').textContent = surveyState.batchCandidates.filter(c => c.no_wa).length;
-  document.getElementById('batch-selected-count').textContent = surveyState.batchCandidates.length;
+  // Populate filter cabang inside modal
+  const batchCabangSel = document.getElementById('batch-filter-cabang');
+  if (batchCabangSel) {
+    const cabangs = Array.from(new Set(surveyState.candidates.map(c => c.cabang).filter(Boolean))).sort();
+    let optHtml = `<option value="ALL">Semua Cabang (${surveyState.candidates.length})</option>`;
+    cabangs.forEach(cb => {
+      const count = surveyState.candidates.filter(c => (c.cabang || '').toUpperCase() === cb.toUpperCase()).length;
+      optHtml += `<option value="${escapeHtml(cb)}">${escapeHtml(cb)} (${count})</option>`;
+    });
+    batchCabangSel.innerHTML = optHtml;
+    batchCabangSel.value = currentCabang;
+  }
 
-  renderBatchTable();
+  changeBatchCabang(currentCabang, false);
   modal.style.display = 'flex';
 }
 window.openBatchSurveyModal = openBatchSurveyModal;
+
+function changeBatchCabang(selectedCabang, updateOuter = true) {
+  if (updateOuter) {
+    const cSel = document.getElementById('survey-filter-cabang');
+    if (cSel) {
+      cSel.value = selectedCabang;
+      applySurveyFilters();
+    }
+  }
+
+  let list = surveyState.candidates.slice();
+  if (selectedCabang !== 'ALL') {
+    list = list.filter(c => (c.cabang || '').toUpperCase() === selectedCabang.toUpperCase());
+  }
+
+  surveyState.batchCandidates = list;
+
+  const totalElem = document.getElementById('batch-total-churn');
+  if (totalElem) totalElem.textContent = list.length;
+
+  const readyElem = document.getElementById('batch-ready-count');
+  if (readyElem) readyElem.textContent = list.filter(c => c.no_wa).length;
+
+  const selectElem = document.getElementById('batch-selected-count');
+  if (selectElem) selectElem.textContent = list.length;
+
+  renderBatchTable();
+}
+window.changeBatchCabang = changeBatchCabang;
 
 function closeBatchSurveyModal() {
   const modal = document.getElementById('survey-batch-modal');
