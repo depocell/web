@@ -61,6 +61,7 @@
         <button type="button" id="survey-brand-okipay" onclick="setSurveyBrand('OKIPAY')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border: none; border-radius: 4px; background: none; color: var(--text-muted); cursor: pointer;">OKIPAY</button>
       </div>
       <span class="badge" style="background: var(--table-header); color: var(--text-main); font-weight: 600; font-size: 11.5px;">Periode 2026-10</span>
+      <span id="survey-window-badge" class="badge" style="background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 11.5px; border: 1px solid #bfdbfe;">Rentang: Juli - September 2026</span>
     </div>
   </div>
 
@@ -119,7 +120,7 @@
               <th style="padding: 10px 14px;">RESELLER OUTLET</th>
               <th style="padding: 10px 14px;">AGEN INDUK</th>
               <th style="padding: 10px 14px;">CABANG &amp; SCO</th>
-              <th style="padding: 10px 14px; text-align: center;">TRX LALU</th>
+              <th style="padding: 10px 14px; text-align: center;">TRX 3 BULAN</th>
               <th style="padding: 10px 14px;">NO WHATSAPP</th>
               <th style="padding: 10px 14px; text-align: center;">STATUS</th>
               <th style="padding: 10px 14px; text-align: center; width: 90px;">AKSI</th>
@@ -277,8 +278,9 @@
           <div id="survey-modal-sco" style="font-size: 11px; color: var(--text-muted);">-</div>
         </div>
         <div>
-          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TRX BULAN LALU</div>
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TRX 3 BULAN</div>
           <div id="survey-modal-prev-trx" style="font-size: 14px; font-weight: 800; color: #0284c7;">0</div>
+          <div id="survey-modal-last-active" style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">Terakhir: -</div>
           <div style="font-size: 10.5px; color: #ef4444; font-weight: 600;">Bulan ini: 0 (Churn)</div>
         </div>
         <div>
@@ -414,7 +416,7 @@
               <th style="padding: 8px 12px; width: 40px; text-align: center;"><input type="checkbox" id="batch-check-all" onchange="toggleSelectAllBatch(this.checked)" checked></th>
               <th style="padding: 8px 12px;">RESELLER &amp; INDUK</th>
               <th style="padding: 8px 12px;">CABANG &amp; SCO</th>
-              <th style="padding: 8px 12px; text-align: center;">TRX LALU</th>
+              <th style="padding: 8px 12px; text-align: center;">TRX 3 BULAN</th>
               <th style="padding: 8px 12px;">NO WHATSAPP</th>
               <th style="padding: 8px 12px; text-align: center;">STATUS</th>
             </tr>

@@ -166,6 +166,11 @@ async function loadSurveyCandidates() {
       const cnt = document.getElementById('survey-count-target');
       if (cnt) cnt.textContent = json.summary.total_churn || json.candidates.length;
 
+      const wBadge = document.getElementById('survey-window-badge');
+      if (wBadge && json.window_label) {
+        wBadge.textContent = `Rentang: ${json.window_label}`;
+      }
+
       const batchText = document.getElementById('btn-survey-batch-text');
       if (batchText) batchText.textContent = `Survei AI Batch (${json.candidates.length})`;
 
@@ -358,6 +363,14 @@ function renderCandidatesTable() {
 
     const indukDisplay = c.agen_name && c.agen_name !== '-' ? escapeHtml(c.agen_name) : '<span style="color: var(--text-muted);">-</span>';
 
+    let lastMonthDisplay = '';
+    if (c.last_active_month) {
+      const mParts = c.last_active_month.split('-');
+      const mNames = { '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt' };
+      const mStr = mNames[mParts[1]] || mParts[1];
+      lastMonthDisplay = `<div style="font-size: 10px; font-weight: 600; color: var(--text-muted); margin-top: 2px;">Aktif: ${mStr} (${(c.last_month_trx || 0).toLocaleString('id-ID')})</div>`;
+    }
+
     html += `
       <tr style="border-bottom: 1px solid var(--surface-border);">
         <td style="padding: 10px 14px; text-align: center; color: var(--text-muted); font-size: 11px;">${idx + 1}</td>
@@ -372,8 +385,9 @@ function renderCandidatesTable() {
           <div style="font-weight: 600; font-size: 12.5px;">${escapeHtml(c.cabang || '-')}</div>
           <div style="font-size: 11px; color: var(--text-muted);">SCO: ${escapeHtml(c.sco_name || '-')}</div>
         </td>
-        <td style="padding: 10px 14px; text-align: center; font-weight: 800; color: #0284c7; font-size: 13.5px;">
-          ${(c.prev_trx || 0).toLocaleString('id-ID')}
+        <td style="padding: 10px 14px; text-align: center;">
+          <div style="font-weight: 800; color: #0284c7; font-size: 13.5px;">${(c.prev_trx || 0).toLocaleString('id-ID')}</div>
+          ${lastMonthDisplay}
         </td>
         <td style="padding: 10px 14px;">
           ${phone}
@@ -717,6 +731,18 @@ async function openSurveyModal(resellerId, resellerName, cabang, sco, prevTrx) {
     surveyState.currentCandidate = { ...surveyState.currentCandidate, ...cand };
     phoneElem.textContent = cand.no_wa || 'Belum ada nomor WA';
 
+    const lastActiveElem = document.getElementById('survey-modal-last-active');
+    if (lastActiveElem) {
+      if (cand.last_active_month) {
+        const mParts = cand.last_active_month.split('-');
+        const mNames = { '07': 'Juli', '08': 'Agustus', '09': 'September', '10': 'Oktober' };
+        const mStr = mNames[mParts[1]] || cand.last_active_month;
+        lastActiveElem.textContent = `Terakhir: ${mStr} (${(cand.last_month_trx || 0).toLocaleString('id-ID')} trx)`;
+      } else {
+        lastActiveElem.textContent = 'Terakhir: -';
+      }
+    }
+
     // Fetch generated preview message
     const prevResp = await fetch('/api/survey/preview', {
       method: 'POST',
@@ -962,6 +988,14 @@ function renderBatchTable() {
     const isChecked = (c.no_wa && hasWa !== false) ? 'checked' : '';
     const rowStyle = (hasWa === false) ? 'opacity: 0.65;' : '';
 
+    let lastMonthDisplay = '';
+    if (c.last_active_month) {
+      const mParts = c.last_active_month.split('-');
+      const mNames = { '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt' };
+      const mStr = mNames[mParts[1]] || mParts[1];
+      lastMonthDisplay = `<div style="font-size: 9.5px; color: var(--text-muted);">Aktif: ${mStr}</div>`;
+    }
+
     html += `
       <tr style="border-bottom: 1px solid var(--surface-border); ${rowStyle}">
         <td style="padding: 8px 12px; text-align: center;">
@@ -976,8 +1010,9 @@ function renderBatchTable() {
           <div>${escapeHtml(c.cabang || '-')}</div>
           <div style="font-size: 10.5px; color: var(--text-muted);">${escapeHtml(c.sco_name || '-')}</div>
         </td>
-        <td style="padding: 8px 12px; text-align: center; font-weight: 700; color: #0284c7;">
-          ${(c.prev_trx || 0).toLocaleString('id-ID')}
+        <td style="padding: 8px 12px; text-align: center;">
+          <div style="font-weight: 700; color: #0284c7;">${(c.prev_trx || 0).toLocaleString('id-ID')}</div>
+          ${lastMonthDisplay}
         </td>
         <td style="padding: 8px 12px;">${phone}</td>
         <td style="padding: 8px 12px; text-align: center;">${statusBadge}</td>

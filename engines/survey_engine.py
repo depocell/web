@@ -24,6 +24,9 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 import engines.reseller_engine as reseller_engine
+import engines.transaction_engine as te
+import engines.metrics_engine as me
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "MASTER", "master_data.db")
@@ -53,23 +56,66 @@ def clean_phone_number(raw_val: Any) -> Optional[str]:
     return s if s.startswith("628") and len(s) >= 10 else None
 
 
-def get_survey_candidates(brand: str = "ASTAGA", month_code: Optional[str] = None, year: str = "2026") -> Dict[str, Any]:
+def get_survey_candidates(
+    brand: str = "ASTAGA",
+    month_code: Optional[str] = None,
+    year: str = "2026",
+    window_months: int = 3,
+) -> Dict[str, Any]:
     """
     Mengambil seluruh RESELLER pasif/churn yang siap disurvey lengkap dengan kontak WA.
-    Data diambil langsung dari reseller_engine (159 reseller churn) dan di-join dengan tabel reseller_contacts.
+    Rentang deteksi default: 3 bulan ke belakang (window_months=3).
+    Misal bulan berjalan = 2026-10, memeriksa reseller yang aktif di 2026-07, 2026-08, atau 2026-09
+    namun di 2026-10 transaksinya 0.
     """
-    if not month_code:
-        now = datetime.now()
-        month_code = f"{year}-{now.month:02d}"
+    brand = (brand or "ASTAGA").strip().upper()
+    year = str(year or "2026")
 
-    # 1. Ambil data dashboard reseller untuk mendapatkan churn_rows
-    dash = reseller_engine.calculate_reseller_dashboard(brand=brand, month_code=month_code, year=year)
-    churn_rows = dash.get("churn_rows", [])
+    # 1. Load data transaksi
+    df = te.load(brand, year)
+    if brand == "ASTAGA":
+        df = me.filter_astaga_internal(df)
 
+    if "is_sukses" not in df.columns:
+        df["is_sukses"] = df["status"].astype(str).str.lower().str.contains("sukses", na=False)
+    if "ym" not in df.columns:
+        df["ym"] = df["tgl_entry"].dt.strftime("%Y-%m")
+
+    df_sukses = df[df["is_sukses"]]
+    available_months = sorted([str(m) for m in df_sukses["ym"].dropna().unique().tolist() if str(m).startswith(year)])
+    if not available_months:
+        return {"ok": False, "error": "Tidak ada data transaksi"}
+
+    if not month_code or month_code not in available_months:
+        month_code = available_months[-1]
+
+    idx = available_months.index(month_code)
+    prev_window_months = available_months[max(0, idx - window_months):idx]
+
+    # Reseller aktif di bulan berjalan
+    df_curr = df_sukses[df_sukses["ym"] == month_code]
+    curr_resellers = set(df_curr["ar_id"].dropna().unique())
+
+    # Reseller aktif di jendela 3 bulan sebelumnya
+    df_prev = df_sukses[df_sukses["ym"].isin(prev_window_months)]
+    if not df_prev.empty:
+        agg_prev = df_prev.groupby(["ar_id", "ym"]).size().unstack(fill_value=0)
+        agg_prev["total_trx"] = agg_prev.sum(axis=1)
+        prev_resellers = set(agg_prev.index)
+    else:
+        agg_prev = pd.DataFrame()
+        prev_resellers = set()
+
+    churn_ids = prev_resellers - curr_resellers
+
+    # Master meta reseller
+    meta = reseller_engine.load_master_meta(brand)
+    reseller_meta = meta[0] if isinstance(meta, tuple) else meta
+
+    # Koneksi SQLite untuk ambil kontak WA dan log survey
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Ambil log survey periode ini agar tahu status terakhir per reseller (kode)
     cur.execute(
         """
         SELECT agen_id AS reseller_id, id AS log_id, status, no_wa, sent_at, reply_received, 
@@ -86,29 +132,52 @@ def get_survey_candidates(brand: str = "ASTAGA", month_code: Optional[str] = Non
         if rid not in logs_by_reseller:
             logs_by_reseller[rid] = dict(row)
 
+    # Pre-fetch seluruh kontak reseller dalam satu query
+    cur.execute("SELECT kode_reseller, no_wa, no_sms, primary_channel, source, candidate_phones FROM reseller_contacts")
+    contacts_by_reseller = {}
+    for row in cur.fetchall():
+        contacts_by_reseller[row["kode_reseller"]] = dict(row)
+
+    conn.close()
+
     candidates = []
-    for r in churn_rows:
-        cid = r["kode"]
-        cname = r.get("name", cid)
-        agen_id = r.get("agen_id", "-")
-        agen_name = r.get("agen_name", "-")
-        cabang = r.get("cabang", "-")
-        sco = r.get("sco", "-")
-        prev_trx = int(r.get("prev_trx", 0))
+    for rid in churn_ids:
+        # Hitung breakdown dan bulan terakhir aktif
+        if not agg_prev.empty and rid in agg_prev.index:
+            row_agg = agg_prev.loc[rid]
+            tot_trx = int(row_agg.get("total_trx", 0))
+            last_m = prev_window_months[-1] if prev_window_months else "-"
+            last_m_trx = 0
+            for m in reversed(prev_window_months):
+                val = int(row_agg.get(m, 0)) if m in agg_prev.columns else 0
+                if val > 0:
+                    last_m = m
+                    last_m_trx = val
+                    break
+            monthly_breakdown = {m: int(row_agg.get(m, 0)) if m in agg_prev.columns else 0 for m in prev_window_months}
+        else:
+            tot_trx = 0
+            last_m = "-"
+            last_m_trx = 0
+            monthly_breakdown = {}
 
-        # Cari kontak di reseller_contacts
-        cur.execute("SELECT no_wa, no_sms, primary_channel, source, candidate_phones FROM reseller_contacts WHERE kode_reseller = ?", (cid,))
-        c_row = cur.fetchone()
+        r_info = reseller_meta.get(rid, {})
+        cname = r_info.get("name", rid)
+        aname = r_info.get("agen_name", "-")
+        cabang = r_info.get("cabang", "-")
+        sco = r_info.get("sco", "-")
 
+        # Kontak
+        c_row = contacts_by_reseller.get(rid)
         phone = None
         channel = "WHATSAPP"
         source = "NONE"
         candidate_phones = []
         if c_row:
-            phone = c_row["no_wa"] or c_row["no_sms"]
-            channel = c_row["primary_channel"] or "WHATSAPP"
-            source = c_row["source"] or "-"
-            if c_row["candidate_phones"]:
+            phone = c_row.get("no_wa") or c_row.get("no_sms")
+            channel = c_row.get("primary_channel") or "WHATSAPP"
+            source = c_row.get("source") or "-"
+            if c_row.get("candidate_phones"):
                 try:
                     candidate_phones = json.loads(c_row["candidate_phones"])
                 except Exception:
@@ -117,19 +186,23 @@ def get_survey_candidates(brand: str = "ASTAGA", month_code: Optional[str] = Non
                 candidate_phones = [phone]
 
         # Log status sebelumnya
-        log_info = logs_by_reseller.get(cid, {})
+        log_info = logs_by_reseller.get(rid, {})
         status = log_info.get("status", "BELUM_DISURVEY")
 
         candidate_item = {
-            "reseller_id": cid,
-            "agen_id": cid,  # alias kompatibilitas
+            "reseller_id": rid,
+            "agen_id": rid,  # alias kompatibilitas
             "reseller_name": cname,
-            "agen_name": agen_name,
-            "induk_name": agen_name,
+            "agen_name": aname,
+            "induk_name": aname,
             "cabang": cabang,
             "sco_name": sco,
-            "prev_trx": prev_trx,
+            "prev_trx": tot_trx,
             "curr_trx": 0,
+            "last_active_month": last_m,
+            "last_month_trx": last_m_trx,
+            "monthly_breakdown": monthly_breakdown,
+            "window_months": prev_window_months,
             "no_wa": phone,
             "candidate_phones": candidate_phones,
             "candidate_count": len(candidate_phones),
@@ -146,17 +219,33 @@ def get_survey_candidates(brand: str = "ASTAGA", month_code: Optional[str] = Non
         }
         candidates.append(candidate_item)
 
-    conn.close()
+    # Urutkan berdasarkan transaksi terbanyak (descending)
+    candidates.sort(key=lambda x: x["prev_trx"], reverse=True)
 
     total_candidates = len(candidates)
     ready_count = sum(1 for c in candidates if c["no_wa"])
     sent_count = sum(1 for c in candidates if c["status"] in ("SENT", "DELIVERED", "REPLIED"))
     replied_count = sum(1 for c in candidates if c["status"] == "REPLIED")
 
+    # Format rentang bulan untuk UI/informasi
+    MONTH_NAMES = {
+        "01": "Januari", "02": "Februari", "03": "Maret", "04": "April",
+        "05": "Mei", "06": "Juni", "07": "Juli", "08": "Agustus",
+        "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+    }
+    if prev_window_months:
+        start_m = MONTH_NAMES.get(prev_window_months[0][-2:], prev_window_months[0])
+        end_m = MONTH_NAMES.get(prev_window_months[-1][-2:], prev_window_months[-1])
+        window_label = f"{start_m} - {end_m} {year}"
+    else:
+        window_label = "-"
+
     return {
         "ok": True,
         "brand": brand,
         "periode": month_code,
+        "window_months": prev_window_months,
+        "window_label": window_label,
         "summary": {
             "total_churn": total_candidates,
             "ready_to_survey": ready_count,
@@ -171,16 +260,34 @@ def get_survey_candidates(brand: str = "ASTAGA", month_code: Optional[str] = Non
 def generate_survey_message(candidate: Dict[str, Any], brand: str = "ASTAGA") -> str:
     """
     Menghasilkan teks sapaan personalisasi ramah dan empatik untuk RESELLER.
-    Menyebutkan nama toko/reseller, transaksi sukses bulan lalu, dan pertanyaan kendala.
+    Menyebutkan nama toko/reseller, transaksi sukses periode lalu, dan pertanyaan kendala.
     """
     nama = candidate.get("reseller_name") or candidate.get("agen_name") or "Kak"
     nama_clean = re.sub(r"\([A-Za-z0-9_]+\)$", "", str(nama)).strip()
     prev_trx = candidate.get("prev_trx", 0)
+    last_active = candidate.get("last_active_month", "")
 
-    if prev_trx > 50:
-        trx_phrase = f"bulan lalu akun Kakak sangat aktif bertransaksi ({prev_trx:,} transaksi)"
+    MONTH_NAMES = {
+        "01": "Januari", "02": "Februari", "03": "Maret", "04": "April",
+        "05": "Mei", "06": "Juni", "07": "Juli", "08": "Agustus",
+        "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+    }
+    last_m_name = ""
+    if last_active and len(last_active) >= 7:
+        m_num = last_active[-2:]
+        last_m_name = MONTH_NAMES.get(m_num, "")
+
+    if last_active.endswith("-09"):  # Bulan lalu persis (September)
+        if prev_trx > 50:
+            trx_phrase = f"bulan lalu (September) akun Kakak sangat aktif bertransaksi ({prev_trx:,} transaksi)"
+        elif prev_trx > 0:
+            trx_phrase = f"bulan lalu (September) akun Kakak tercatat aktif bertransaksi ({prev_trx:,} transaksi)"
+        else:
+            trx_phrase = "sebelumnya akun Kakak terdaftar aktif bersama kami"
+    elif last_m_name:  # Juli atau Agustus
+        trx_phrase = f"sebelumnya di bulan {last_m_name} akun Kakak aktif bertransaksi (total {prev_trx:,} transaksi dalam 3 bulan terakhir)"
     elif prev_trx > 0:
-        trx_phrase = f"bulan lalu akun Kakak tercatat aktif bertransaksi ({prev_trx:,} transaksi)"
+        trx_phrase = f"sebelumnya akun Kakak tercatat aktif bertransaksi ({prev_trx:,} transaksi)"
     else:
         trx_phrase = "sebelumnya akun Kakak terdaftar aktif bersama kami"
 
