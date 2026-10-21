@@ -219,40 +219,34 @@
           </label>
         </div>
 
-        <!-- DRAG AND DROP BOX (NATIVE LABEL & INLINE EVENT HANDLERS) -->
-        <label id="direct-tsv-dropzone" for="direct-tsv-file-input"
-          ondragover="handleDirectTsvDragOver(event)"
-          ondragleave="handleDirectTsvDragLeave(event)"
-          ondrop="handleDirectTsvDrop(event)"
-          style="display: block; border: 2px dashed #93c5fd; border-radius: 10px; padding: 26px 16px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #f8fafc; user-select: none;">
-          <input type="file" id="direct-tsv-file-input" accept=".tsv,.txt"
-            style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;"
-            onchange="handleDirectTsvFileSelect(event)" />
-          <div id="direct-tsv-icon-container" style="color: var(--primary); margin-bottom: 8px;">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <!-- NATIVE FILE PICKER BOX -->
+        <div style="background: #f8fafc; border: 2px dashed #93c5fd; border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              Pilih / Drag File TSV OtomaX:
+            </div>
+            <input type="file" id="direct-tsv-file-input" accept=".tsv,.txt" onchange="handleDirectTsvFileSelect(event)"
+              style="display: block; width: 100%; padding: 10px 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-main);" />
+          </div>
+
+          <div id="direct-tsv-info-banner" style="display: none; padding: 10px 14px; border-radius: 8px; background: #eff6ff; border: 1px solid #bfdbfe; font-size: 12.5px; color: #1e40af;">
+            <div id="direct-tsv-filename-display" style="font-weight: 700;"></div>
+            <div id="direct-tsv-filesize-display" style="font-size: 11.5px; margin-top: 2px;"></div>
+          </div>
+
+          <button type="button" id="btn-direct-tsv-upsert" onclick="executeDirectTsvUpsert()"
+            style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 11px 18px; font-size: 13.5px; font-weight: 700; border-radius: 8px; background: var(--primary); color: #fff; border: none; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(37,99,235,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="17 8 12 3 7 8"></polyline>
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
-          </div>
-          <div id="direct-tsv-filename-display" style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">
-            Klik di sini untuk pilih file, atau seret (drag &amp; drop) file TSV ke sini
-          </div>
-          <div id="direct-tsv-filesize-display" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
-            Mendukung file TSV OtomaX (otomatis langsung diproses &amp; di-upsert ke Parquet)
-          </div>
-        </label>
-
-        <!-- ACTION BUTTON & STATUS -->
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-          <button type="button" id="btn-direct-tsv-upsert" onclick="executeDirectTsvUpsert()" disabled
-            style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 12.5px; font-weight: 600; border-radius: 8px; background: var(--primary); color: #fff; border: none; cursor: pointer; opacity: 0.6; transition: all 0.2s ease;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <span id="btn-direct-tsv-upsert-text">Proses Upsert ke Parquet</span>
+            <span id="btn-direct-tsv-upsert-text">Upload &amp; Upsert ke Parquet Sekarang</span>
           </button>
-          <span id="direct-tsv-status-text" style="font-size: 12px; color: var(--text-muted);"></span>
         </div>
 
         <!-- RESULT BANNER -->
