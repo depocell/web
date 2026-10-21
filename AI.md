@@ -29,10 +29,10 @@ TELEGRAM_BOT_TOKEN="8911669364:...[DISIMPAN_DI_ENV]"
 ```
 
 ### Spesifikasi Model Gemini:
-* **Model Utama**: `gemini-3.5-flash` (Respon sub-detik ~0.3 - 0.5s, gratis kuota ribuan request harian).
+* **Model Utama**: `gemini-flash-lite-latest` (Respon sub-detik ~0.3 - 0.5s, ultra-cepat, gratis kuota ribuan request harian).
 * **Multi-Model Auto-Fallback**:
   Jika terjadi lonjakan trafik atau error HTTP 503 dari Google, sistem secara otomatis beralih ke model cadangan:
-  $$\text{gemini-3.5-flash} \longrightarrow \text{gemini-3-flash-preview} \longrightarrow \text{gemini-2.5-flash-lite} \longrightarrow \text{gemini-3.8-flash}$$
+  $$\text{gemini-flash-lite-latest} \longrightarrow \text{gemini-3-flash-preview} \longrightarrow \text{gemini-flash-latest} \longrightarrow \text{gemini-3.5-flash} \longrightarrow \text{gemini-3.8-flash}$$
 
 ---
 

@@ -79,21 +79,107 @@ def send_chat_action(chat_id: int, action: str = "typing"):
         pass
 
 
-# 3. Gemini AI Helper Function
+# 3. Gemini AI Helper Function & Live Server Context Snapshot
 SYSTEM_INSTRUCTION = """
 Kamu adalah DepAs AI Copilot, asisten eksekutif pribadi untuk manajemen dan pimpinan server pulsa Depo Cell (My Astaga! & OKIPAY).
 Karaktermu: Sangat cerdas, santun, lugas, solutif, dan berwawasan tajam seputar bisnis pulsa, PPOB, strategi omset, teknologi server OtomaX, dan analisa data.
 Gunakan bahasa Indonesia yang profesional namun luwes dan bersahabat. Selalu gunakan format poin-poin yang mudah dibaca di layar HP jika memberikan penjelasan panjang.
 """
 
+def get_live_context_snapshot() -> str:
+    """Mengambil snapshot ringkas data transaksi & server terkini untuk disuntikkan ke konteks AI."""
+    lines = []
+    data_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
+    if os.path.exists(data_path):
+        try:
+            with open(data_path, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+
+            for brand in ["ASTAGA", "OKIPAY"]:
+                bdata = raw_data.get(brand, {})
+                periods = sorted([m for m in bdata.keys() if m.startswith("2026")], reverse=True)
+                if periods:
+                    curr_p = periods[0]
+                    curr = bdata[curr_p]
+                    daily_list = curr.get("daily", [])
+                    last_date = daily_list[-1].get("date") if daily_list else curr_p
+                    days = curr.get("days_count", 0)
+                    daily_trx = curr.get("daily_trx", 0)
+                    cust = curr.get("daily_customers", 0)
+                    sukses = curr.get("sukses_pct", 0)
+                    speed = curr.get("avg_dur_str", "00:00")
+                    lines.append(f"[{brand}] Periode {curr_p} | Data Cut-off s/d {last_date} ({days} hari kalender MTD)")
+                    lines.append(f"  • Run-rate Harian: {daily_trx:,} trx/hari (Total Sukses MTD: {curr.get('trx_sukses', 0):,} trx)")
+                    lines.append(f"  • Member Aktif: {cust:,} reseller/hari | % Sukses: {sukses}% | Speed: {speed}")
+                    branches = curr.get("branches", {})
+                    if branches:
+                        br_str = ", ".join([f"{k}: {v:,} trx" for k, v in sorted(branches.items(), key=lambda x: x[1], reverse=True)])
+                        lines.append(f"  • Performa Cabang (Total MTD): {br_str}")
+        except Exception as e:
+            logger.error(f"Error reading live context snapshot: {e}")
+
+    db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+    if os.path.exists(db_path):
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            c.execute("SELECT count(*) FROM resellers")
+            total_rs = c.fetchone()[0]
+            c.execute("SELECT count(*) FROM reseller_contacts")
+            total_contacts = c.fetchone()[0]
+            conn.close()
+            lines.append(f"[DATABASE RESELLER] Total mitra aktif (>= 2023): {total_rs:,} akun | Kontak terverifikasi: {total_contacts:,}")
+        except Exception:
+            pass
+
+    # 3. Data Top Drop Agen (Growth Paling Rendah)
+    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
+    if os.path.exists(tb_path):
+        try:
+            with open(tb_path, "r", encoding="utf-8") as f:
+                tb_data = json.load(f)
+            for b, binfo in tb_data.items():
+                top_drop = binfo.get("top_drop", [])
+                if top_drop:
+                    lines.append(f"\n[DAFTAR 10 AGEN DENGAN DROP HARIAN TERBESAR / GROWTH PALING RENDAH ({b} MTD OKTOBER 2026)]:")
+                    for i, a in enumerate(top_drop[:10]):
+                        lines.append(
+                            f"  {i+1}. [{a['agen_id']}] {a['name']} ({a['cabang']}) | "
+                            f"Run-rate: {a['daily_prev']:.1f} -> {a['daily_curr']:.1f} trx/hari "
+                            f"(Drop: {a['drop_daily']:.1f}/hari | {a['drop_pct']}%) | "
+                            f"MTD: {a['mtd_trx']:,} trx (Bulan Lalu: {a['prev_trx']:,} trx)"
+                        )
+        except Exception as e:
+            logger.error(f"Error reading top_bottom_agen.json: {e}")
+
+    return "\n".join(lines)
+
+
 def ask_gemini(prompt: str) -> str:
     if not GEMINI_API_KEY:
         return "Mohon maaf Juragan, GEMINI_API_KEY belum dikonfigurasi di server."
 
-    models = ["gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash-lite", "gemini-3.8-flash"]
+    live_context = get_live_context_snapshot()
+    system_instruction_full = f"""{SYSTEM_INSTRUCTION}
+
+KONTEKS DATA RESMI SERVER DEPAS SAAT INI (REAL-TIME SNAPSHOT):
+{live_context}
+
+PETUNJUK PENTING:
+Gunakan data resmi di atas untuk menjawab pertanyaan pimpinan/juragan secara lugas, presisi, dan percaya diri (terutama jika ditanya soal tanggal cut-off, jumlah transaksi, performa cabang, SLA server, jumlah reseller, atau daftar agen dengan drop/growth terendah). Jangan pernah berkata bahwa Anda tidak memiliki akses ke data real, karena data resmi server sudah terlampir di atas!
+"""
+
+    models = [
+        "gemini-flash-lite-latest",
+        "gemini-3-flash-preview",
+        "gemini-flash-latest",
+        "gemini-3.5-flash",
+        "gemini-3.8-flash"
+    ]
     payload = {
         "system_instruction": {
-            "parts": [{"text": SYSTEM_INSTRUCTION}]
+            "parts": [{"text": system_instruction_full}]
         },
         "contents": [
             {"parts": [{"text": prompt}]}
@@ -107,7 +193,7 @@ def ask_gemini(prompt: str) -> str:
     for model in models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_API_KEY}"
         try:
-            resp = requests.post(url, json=payload, timeout=12)
+            resp = requests.post(url, json=payload, timeout=25)
             if resp.status_code == 200:
                 data = resp.json()
                 candidates = data.get("candidates", [])
@@ -115,6 +201,8 @@ def ask_gemini(prompt: str) -> str:
                     return candidates[0]["content"]["parts"][0]["text"].strip()
             else:
                 logger.warning(f"Model {model} returned {resp.status_code}: {resp.text[:100]}")
+                if resp.status_code in [429, 503]:
+                    time.sleep(0.5)
         except Exception as e:
             logger.warning(f"Error calling {model}: {e}")
 
