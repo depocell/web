@@ -205,12 +205,64 @@ def get_live_context_snapshot(prompt: str = "") -> str:
         except Exception:
             pass
 
-    # 3. Data Top Drop & Top Growth Agen langsung dari pages/sco/data_sco.json
+    # 3. Data Performa Sales SCO, Kategori, dan Tren Agen dari pages/sco/data_sco.json
     sco_path = os.path.join(BASE_DIR, "pages", "sco", "data_sco.json")
     if os.path.exists(sco_path):
         try:
             with open(sco_path, "r", encoding="utf-8") as f:
                 sco_data = json.load(f)
+
+            # --- A. PERFORMA TIM SALES CABANG (SCO) & RANKING GROWTH ---
+            p_latest = sco_data.get("periods", {}).get(sco_data.get("latest_period", "1026"), {})
+            idx_list = p_latest.get("index", [])
+            cutoff_sco = p_latest.get("cutoff_date") or sco_data.get("cutoff_date", "20-10-2026")
+
+            sales_rows = [x for x in idx_list if x.get("CABANG") and x.get("SCO") not in ["NON SCO", "ONLINE"]]
+            if sales_rows:
+                sorted_sales = sorted(sales_rows, key=lambda x: x.get("%", 0), reverse=True)
+                lines.append(f"\n[PERFORMA TIM SALES CABANG (SCO) - CUTOFF: {cutoff_sco} (OKTOBER 2026 MTD VS SEPTEMBER)]:")
+                lines.append("Peringkat Growth Harian 5 Sales SCO (Tertinggi ke Terendah):")
+                for rank, s in enumerate(sorted_sales, 1):
+                    s_name = s.get("SCO", "-")
+                    s_cb = s.get("CABANG", "-")
+                    s_prev = s.get("prev", 0)
+                    s_curr = s.get("curr", 0)
+                    s_diff = s.get("Growth", 0)
+                    s_diff_str = f"+{s_diff:.1f}" if s_diff > 0 else f"{s_diff:.1f}"
+                    s_pct = s.get("%", 0) * 100
+                    s_pct_str = f"+{s_pct:.1f}%" if s_pct > 0 else f"{s_pct:.1f}%"
+                    notes = ""
+                    if rank == 1 and s_diff > 0:
+                        notes = " -> [GROWTH TERTINGGI / SATU-SATUNYA POSITIF]"
+                    elif rank == len(sorted_sales):
+                        notes = " -> [GROWTH TERENDAH / PENURUNAN TERDALAM]"
+                    lines.append(f"  {rank}. {s_name} ({s_cb}) | Sep: {s_prev:,.1f}/hari -> Oct: {s_curr:,.1f}/hari (Diff: {s_diff_str}/hari | {s_pct_str}){notes}")
+
+            # Kategori Saluran (SCO / NON SCO / ONLINE / Grand Total)
+            cat_rows = [x for x in idx_list if x.get("SCO") in ["TOTAL SCO", "TOTAL NON SCO", "ONLINE", "Grand Total"]]
+            if cat_rows:
+                lines.append("\nRingkasan Saluran Penjualan:")
+                for c in cat_rows:
+                    c_name = c.get("SCO", "-")
+                    c_prev = c.get("prev", 0)
+                    c_curr = c.get("curr", 0)
+                    c_diff = c.get("Growth", 0)
+                    c_diff_str = f"+{c_diff:.1f}" if c_diff > 0 else f"{c_diff:.1f}"
+                    c_pct = c.get("%", 0) * 100
+                    c_pct_str = f"+{c_pct:.1f}%" if c_pct > 0 else f"{c_pct:.1f}%"
+                    lines.append(f"  • {c_name}: {c_curr:,.1f}/hari (Sep: {c_prev:,.1f} | {c_diff_str} / {c_pct_str})")
+
+            # Data Historis KPI SCO Resmi (Final September)
+            kpi_list = sco_data.get("kpi_sco", [])
+            if kpi_list:
+                latest_kpi_m = sorted(list(set(x.get("bulan", "") for x in kpi_list)))[-1]
+                m_records = [x for x in kpi_list if x.get("bulan") == latest_kpi_m]
+                if m_records:
+                    lines.append(f"\n[DATA HISTORIS KPI RESMI & INSENTIF SALES (FINAL {latest_kpi_m})]:")
+                    for k in sorted(m_records, key=lambda x: x.get("score", 0), reverse=True):
+                        lines.append(f"  • {k.get('nama')}: Skor KPI {k.get('score', 0):.1f}% | Insentif Rp {k.get('insentif', 0):,.0f} (Ach Visit: {k.get('pct_visit', 0)}%, Coll: {k.get('pct_coll', 0)}%, Trx: {k.get('pct_trx', 0)}%)")
+
+            # --- B. TOP DROP & TOP GROWTH AGEN ---
             tren_all = sco_data.get("tren_agen", [])
             tren = [x for x in tren_all if x.get("avg_prev", 0) >= 5 or x.get("avg_curr", 0) >= 5]
 
