@@ -145,26 +145,23 @@ def is_stale():
     Cek apakah data_sco.json perlu di-regenerate.
     Return True jika:
       - data_sco.json belum ada, ATAU
-      - trx_astaga_2026.parquet lebih baru dari data_sco.json, ATAU
-      - master_data.db lebih baru dari data_sco.json, ATAU
-      - KPI_SCO.xlsx lebih baru dari data_sco.json.
+      - trx_astaga_2026.parquet lebih baru dari data_sco.json (ada data transaksi baru), ATAU
+      - KPI_SCO.xlsx lebih baru dari data_sco.json (ada target/personil SCO baru).
+    Catatan: master_data.db tidak dicek berdasarkan mtime file karena database SQLite ini
+    juga digunakan oleh modul survei churn WA yang sering melakukan update log/status kontak,
+    sehingga tidak memicu auto-update palsu pada SCO.
     """
     if not os.path.exists(JSON_OUTPUT) or not os.path.exists(RESELLER_JSON_OUTPUT):
         return True
 
     json_mtime = min(os.path.getmtime(JSON_OUTPUT), os.path.getmtime(RESELLER_JSON_OUTPUT))
 
-    # Cek parquet cache
+    # Cek parquet cache transaksi baru
     p_trx = os.path.join(CACHE_DIR, "trx_astaga_2026.parquet")
     if os.path.exists(p_trx) and os.path.getmtime(p_trx) > json_mtime:
         return True
 
-    # Cek master data DB
-    p_master = os.path.join(MASTER_DIR, "master_data.db")
-    if os.path.exists(p_master) and os.path.getmtime(p_master) > json_mtime:
-        return True
-
-    # Cek KPI excel
+    # Cek KPI excel (target & daftar personil SCO)
     if os.path.exists(KPI_EXCEL_PATH) and os.path.getmtime(KPI_EXCEL_PATH) > json_mtime:
         return True
 

@@ -204,10 +204,39 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     lines.append(f"[{brand}] Periode {curr_p} | Data Cut-off s/d {last_date} ({days} hari kalender MTD)")
                     lines.append(f"  • Run-rate Harian: {daily_trx:,} trx/hari (Total Sukses MTD: {curr.get('trx_sukses', 0):,} trx)")
                     lines.append(f"  • Member Aktif: {cust:,} reseller/hari | % Sukses: {sukses}% | Speed: {speed}")
-                    branches = curr.get("branches", {})
-                    if branches:
-                        br_str = ", ".join([f"{k}: {v:,} trx" for k, v in sorted(branches.items(), key=lambda x: x[1], reverse=True)])
-                        lines.append(f"  • Performa Cabang (Total MTD): {br_str}")
+                    # Breakdown Performa Cabang Resmi (Sesuai Visual Infografis /summary & /cabang)
+                    branches_c = curr.get("branches", {})
+                    if len(periods) > 1:
+                        prev_p = periods[1]
+                        branches_p = bdata[prev_p].get("branches", {})
+                        days_p = bdata[prev_p].get("days_count", 30)
+                    else:
+                        branches_p = {}
+                        days_p = 30
+
+                    if branches_c:
+                        lines.append(f"  • Detail Performa Cabang {brand} (Run-rate Bulan Ini vs Bulan Lalu):")
+                        all_b = sorted(list(set(list(branches_c.keys()) + list(branches_p.keys()))))
+                        for b in all_b:
+                            if b in ["UNMAPPED", "UNKNOWN", "None"]:
+                                continue
+                            tot_c = branches_c.get(b, 0)
+                            tot_p = branches_p.get(b, 0)
+                            rate_c = round(tot_c / days, 1) if days else 0
+                            rate_p = round(tot_p / days_p, 1) if days_p else 0
+                            diff_b = round(rate_c - rate_p, 1)
+                            diff_b_str = f"+{diff_b:.1f}" if diff_b > 0 else f"{diff_b:.1f}"
+                            pct_b = round((rate_c - rate_p) / rate_p * 100, 1) if rate_p else 0
+                            pct_b_str = f"+{pct_b:.1f}%" if pct_b > 0 else f"{pct_b:.1f}%"
+                            lines.append(f"    - Cabang {b}: {rate_c:,.1f}/hari (Sep: {rate_p:,.1f}/hari | Diff: {diff_b_str}/hari | {pct_b_str}) [Total MTD: {tot_c:,} trx]")
+
+                    # Breakdown Kategori Produk
+                    cats_c = curr.get("categories", {})
+                    if cats_c:
+                        lines.append(f"  • Detail Kategori Produk {brand}:")
+                        for cat_name, cat_tot in sorted(cats_c.items(), key=lambda x: x[1], reverse=True):
+                            cat_rate = round(cat_tot / days, 1) if days else 0
+                            lines.append(f"    - {cat_name}: {cat_rate:,.1f}/hari (Total MTD: {cat_tot:,} trx)")
         except Exception as e:
             logger.error(f"Error reading live context snapshot: {e}")
 
