@@ -631,9 +631,16 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
         return {"ok": False, "error": f"File TSV {tsv_file_path} tidak ditemukan"}
 
     try:
-        df = pd.read_csv(tsv_file_path, sep="\t")
+        df = pd.read_csv(tsv_file_path, sep="\t", encoding="utf-8")
+    except UnicodeDecodeError:
+        try:
+            df = pd.read_csv(tsv_file_path, sep="\t", encoding="latin-1")
+        except Exception as e:
+            return {"ok": False, "error": f"Gagal membaca format TSV (encoding latin-1): {e}"}
     except Exception as e:
         return {"ok": False, "error": f"Gagal membaca format TSV: {e}"}
+
+    df.columns = df.columns.astype(str).str.strip()
 
     total_raw = len(df)
     if total_raw == 0:

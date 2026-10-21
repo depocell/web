@@ -2907,22 +2907,72 @@ window.confirmDeleteUser = confirmDeleteUser;
 
 let directTsvSelectedFile = null;
 
+function handleDirectTsvDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dz = document.getElementById("direct-tsv-dropzone");
+  if (dz) {
+    dz.style.background = "#eff6ff";
+    dz.style.borderColor = "var(--primary)";
+    dz.style.transform = "scale(1.005)";
+  }
+}
+
+function handleDirectTsvDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dz = document.getElementById("direct-tsv-dropzone");
+  if (dz) {
+    dz.style.background = "#f8fafc";
+    dz.style.borderColor = "#93c5fd";
+    dz.style.transform = "scale(1)";
+  }
+}
+
+function handleDirectTsvDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dz = document.getElementById("direct-tsv-dropzone");
+  if (dz) {
+    dz.style.background = "#f8fafc";
+    dz.style.borderColor = "#93c5fd";
+    dz.style.transform = "scale(1)";
+  }
+  const dt = e.dataTransfer;
+  if (dt && dt.files && dt.files.length > 0) {
+    setDirectTsvFile(dt.files[0], true);
+  }
+}
+
 function handleDirectTsvFileSelect(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
-  setDirectTsvFile(file);
+  setDirectTsvFile(file, true);
 }
 
-function setDirectTsvFile(file) {
+function setDirectTsvFile(file, autoExecute = true) {
   directTsvSelectedFile = file;
+
+  // Auto detect brand dari nama file
+  const upper = file.name.toUpperCase();
+  if (upper.includes("OKIPAY")) {
+    const r = document.querySelector('input[name="direct-tsv-brand"][value="OKIPAY"]');
+    if (r) r.checked = true;
+  } else if (upper.includes("ASTAGA")) {
+    const r = document.querySelector('input[name="direct-tsv-brand"][value="ASTAGA"]');
+    if (r) r.checked = true;
+  }
+
   const nameDisplay = document.getElementById("direct-tsv-filename-display");
   const sizeDisplay = document.getElementById("direct-tsv-filesize-display");
   const btn = document.getElementById("btn-direct-tsv-upsert");
   const resultBox = document.getElementById("direct-tsv-result-box");
 
-  if (nameDisplay) nameDisplay.textContent = file.name;
+  const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+  if (nameDisplay) {
+    nameDisplay.innerHTML = `<span style="color:var(--primary); font-weight:700;">${file.name}</span>`;
+  }
   if (sizeDisplay) {
-    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
     sizeDisplay.textContent = `Ukuran file: ${sizeMb} MB (${file.size.toLocaleString("id-ID")} bytes)`;
   }
   if (btn) {
@@ -2932,6 +2982,11 @@ function setDirectTsvFile(file) {
   }
   if (resultBox) {
     resultBox.style.display = "none";
+  }
+
+  // Jika autoExecute aktif, langsung jalankan upsert otomatis
+  if (autoExecute) {
+    executeDirectTsvUpsert();
   }
 }
 
@@ -2944,6 +2999,10 @@ async function executeDirectTsvUpsert() {
   const brandRadio = document.querySelector('input[name="direct-tsv-brand"]:checked');
   const brand = brandRadio ? brandRadio.value : "ASTAGA";
 
+  const dropzone = document.getElementById("direct-tsv-dropzone");
+  const iconContainer = document.getElementById("direct-tsv-icon-container");
+  const nameDisplay = document.getElementById("direct-tsv-filename-display");
+  const sizeDisplay = document.getElementById("direct-tsv-filesize-display");
   const btn = document.getElementById("btn-direct-tsv-upsert");
   const btnText = document.getElementById("btn-direct-tsv-upsert-text");
   const statusEl = document.getElementById("direct-tsv-status-text");
@@ -2951,8 +3010,34 @@ async function executeDirectTsvUpsert() {
 
   if (btn) btn.disabled = true;
   if (btnText) btnText.textContent = "Mengunggah & Memproses...";
-  if (statusEl) statusEl.textContent = "Mengunggah file ke server...";
+  if (statusEl) statusEl.textContent = "Mengunggah file ke cloud...";
   if (resultBox) resultBox.style.display = "none";
+
+  if (dropzone) {
+    dropzone.style.background = "#eff6ff";
+    dropzone.style.borderColor = "var(--primary)";
+    dropzone.style.cursor = "wait";
+  }
+  if (iconContainer) {
+    iconContainer.innerHTML = `
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin">
+        <line x1="12" y1="2" x2="12" y2="6"></line>
+        <line x1="12" y1="18" x2="12" y2="22"></line>
+        <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+        <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+        <line x1="2" y1="12" x2="6" y2="12"></line>
+        <line x1="18" y1="12" x2="22" y2="12"></line>
+        <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+        <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+      </svg>
+    `;
+  }
+  if (nameDisplay) {
+    nameDisplay.textContent = `Sedang memproses ${directTsvSelectedFile.name}...`;
+  }
+  if (sizeDisplay) {
+    sizeDisplay.textContent = "Membersihkan data sampah & deduplikasi Parquet di cloud...";
+  }
 
   const formData = new FormData();
   formData.append("brand", brand);
@@ -2968,7 +3053,24 @@ async function executeDirectTsvUpsert() {
     const duration = ((performance.now() - startTime) / 1000).toFixed(2);
 
     if (!json.ok) {
-      if (statusEl) statusEl.textContent = "";
+      if (statusEl) statusEl.textContent = "Gagal";
+      if (dropzone) {
+        dropzone.style.background = "#fef2f2";
+        dropzone.style.borderColor = "#f87171";
+        dropzone.style.cursor = "pointer";
+      }
+      if (iconContainer) {
+        iconContainer.innerHTML = `
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
+      }
+      if (nameDisplay) nameDisplay.textContent = "Gagal memproses file";
+      if (sizeDisplay) sizeDisplay.textContent = json.error || "Terjadi kesalahan saat memproses data.";
+
       if (resultBox) {
         resultBox.style.display = "block";
         resultBox.style.background = "#fef2f2";
@@ -2980,30 +3082,61 @@ async function executeDirectTsvUpsert() {
     }
 
     if (statusEl) statusEl.textContent = `Selesai (${duration}s)`;
+    if (dropzone) {
+      dropzone.style.background = "#f0fdf4";
+      dropzone.style.borderColor = "#86efac";
+      dropzone.style.cursor = "pointer";
+    }
+    if (iconContainer) {
+      iconContainer.innerHTML = `
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
+    }
+    if (nameDisplay) {
+      nameDisplay.innerHTML = `<span style="color:#166534; font-weight:700;">Upsert Selesai: ${directTsvSelectedFile.name}</span>`;
+    }
+    if (sizeDisplay) {
+      sizeDisplay.textContent = `Berhasil di-upsert ke Parquet ${brand} dalam ${json.duration_sec || duration} detik`;
+    }
+
     if (resultBox) {
       resultBox.style.display = "block";
       resultBox.style.background = "#f0fdf4";
       resultBox.style.border = "1px solid #bbf7d0";
       resultBox.style.color = "#166534";
       resultBox.innerHTML = `
-        <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <div style="font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
           Upsert Parquet Berhasil (${brand})
         </div>
-        <div>Total baris bersih TSV: <strong>${(json.rows_clean || 0).toLocaleString("id-ID")}</strong></div>
-        <div>Baris baru di-append: <strong>${(json.appended || 0).toLocaleString("id-ID")}</strong> | Di-update: <strong>${(json.updated || 0).toLocaleString("id-ID")}</strong></div>
-        <div>Total transaksi Parquet sekarang: <strong>${(json.total_rows || 0).toLocaleString("id-ID")}</strong></div>
-        <div style="font-size: 11px; color: #15803d; margin-top: 4px;">Durasi eksekusi engine: ${json.duration_sec || duration} detik. Cache memori telah di-refresh.</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px; margin: 8px 0;">
+          <div>Baris mentah TSV: <strong>${(json.total_raw || 0).toLocaleString("id-ID")}</strong></div>
+          <div>Baris bersih diproses: <strong>${(json.rows_clean || json.clean_count || 0).toLocaleString("id-ID")}</strong></div>
+          <div>Baris baru di-append: <strong>${(json.appended || json.inserted || 0).toLocaleString("id-ID")}</strong></div>
+          <div>Baris lama di-update: <strong>${(json.updated || 0).toLocaleString("id-ID")}</strong></div>
+        </div>
+        <div style="margin-top: 6px; font-size: 12.5px;">Total transaksi di Parquet sekarang: <strong>${(json.total_rows || 0).toLocaleString("id-ID")} baris</strong></div>
+        <div style="font-size: 11px; color: #15803d; margin-top: 4px;">Durasi engine: ${json.duration_sec || json.elapsed_sec || duration} detik. Cache memori telah di-refresh.</div>
       `;
     }
 
+    // Refresh radar data
     if (typeof loadAdminStatus === "function") {
       loadAdminStatus(true);
     }
   } catch (err) {
-    if (statusEl) statusEl.textContent = "";
+    if (statusEl) statusEl.textContent = "Error";
+    if (dropzone) {
+      dropzone.style.background = "#fef2f2";
+      dropzone.style.borderColor = "#f87171";
+      dropzone.style.cursor = "pointer";
+    }
+    if (nameDisplay) nameDisplay.textContent = "Koneksi Error";
+    if (sizeDisplay) sizeDisplay.textContent = err.message;
     if (resultBox) {
       resultBox.style.display = "block";
       resultBox.style.background = "#fef2f2";
@@ -3013,7 +3146,7 @@ async function executeDirectTsvUpsert() {
     }
   } finally {
     if (btn) btn.disabled = false;
-    if (btnText) btnText.textContent = "Proses Upsert ke Parquet";
+    if (btnText) btnText.textContent = "Proses Ulang Upsert";
   }
 }
 
@@ -3030,45 +3163,10 @@ function copyStreamUrl(elementId) {
   });
 }
 
-function setupDirectTsvDropzone() {
-  const dropzone = document.getElementById("direct-tsv-dropzone");
-  if (!dropzone) return;
-
-  ["dragenter", "dragover"].forEach(evtName => {
-    dropzone.addEventListener(evtName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.style.background = "rgba(37,99,235,0.06)";
-      dropzone.style.borderColor = "var(--primary)";
-    }, false);
-  });
-
-  ["dragleave", "drop"].forEach(evtName => {
-    dropzone.addEventListener(evtName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.style.background = "rgba(0,0,0,0.01)";
-      dropzone.style.borderColor = "var(--surface-border)";
-    }, false);
-  });
-
-  dropzone.addEventListener("drop", (e) => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files && files.length > 0) {
-      setDirectTsvFile(files[0]);
-    }
-  }, false);
-}
-
+// Daftarkan ke window agar selalu dapat dipanggil dari HTML
+window.handleDirectTsvDragOver = handleDirectTsvDragOver;
+window.handleDirectTsvDragLeave = handleDirectTsvDragLeave;
+window.handleDirectTsvDrop = handleDirectTsvDrop;
 window.handleDirectTsvFileSelect = handleDirectTsvFileSelect;
 window.executeDirectTsvUpsert = executeDirectTsvUpsert;
 window.copyStreamUrl = copyStreamUrl;
-window.setupDirectTsvDropzone = setupDirectTsvDropzone;
-
-// Panggil setup dropzone langsung jika sudah dimuat
-if (document.readyState === "complete" || document.readyState === "interactive") {
-  setTimeout(setupDirectTsvDropzone, 100);
-} else {
-  document.addEventListener("DOMContentLoaded", setupDirectTsvDropzone);
-}

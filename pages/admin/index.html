@@ -219,23 +219,29 @@
           </label>
         </div>
 
-        <!-- DRAG AND DROP BOX -->
-        <div id="direct-tsv-dropzone" onclick="document.getElementById('direct-tsv-file-input').click()"
-          style="border: 2px dashed var(--surface-border); border-radius: 10px; padding: 22px 16px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: rgba(0,0,0,0.01);">
-          <input type="file" id="direct-tsv-file-input" accept=".tsv,.txt" style="display: none;" onchange="handleDirectTsvFileSelect(event)" />
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="12" y1="18" x2="12" y2="12"></line>
-            <line x1="9" y1="15" x2="15" y2="15"></line>
-          </svg>
-          <div id="direct-tsv-filename-display" style="font-size: 13px; font-weight: 600; color: var(--text-main);">
-            Klik atau drag &amp; drop file TSV OtomaX ke sini
+        <!-- DRAG AND DROP BOX (NATIVE LABEL & INLINE EVENT HANDLERS) -->
+        <label id="direct-tsv-dropzone" for="direct-tsv-file-input"
+          ondragover="handleDirectTsvDragOver(event)"
+          ondragleave="handleDirectTsvDragLeave(event)"
+          ondrop="handleDirectTsvDrop(event)"
+          style="display: block; border: 2px dashed #93c5fd; border-radius: 10px; padding: 26px 16px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #f8fafc; user-select: none;">
+          <input type="file" id="direct-tsv-file-input" accept=".tsv,.txt"
+            style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;"
+            onchange="handleDirectTsvFileSelect(event)" />
+          <div id="direct-tsv-icon-container" style="color: var(--primary); margin-bottom: 8px;">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
           </div>
-          <div id="direct-tsv-filesize-display" style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">
-            Mendukung file .tsv hasil ekspor transaksi OtomaX
+          <div id="direct-tsv-filename-display" style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">
+            Klik di sini untuk pilih file, atau seret (drag &amp; drop) file TSV ke sini
           </div>
-        </div>
+          <div id="direct-tsv-filesize-display" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+            Mendukung file TSV OtomaX (otomatis langsung diproses &amp; di-upsert ke Parquet)
+          </div>
+        </label>
 
         <!-- ACTION BUTTON & STATUS -->
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
