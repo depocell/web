@@ -23,15 +23,7 @@
         <span id="gateway-status-text" style="font-weight: 600; color: var(--text-muted);">Memeriksa Gateway...</span>
       </div>
 
-      <!-- Button Jalankan Gateway Info -->
-      <button type="button" onclick="showGatewayInfoModal()" class="modern-btn"
-        style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="4 17 10 11 4 5"></polyline>
-          <line x1="12" y1="19" x2="20" y2="19"></line>
-        </svg>
-        <span>run_wa_gateway.bat</span>
-      </button>
+
 
       <!-- Button Reset / Ganti Nomor WA Bot -->
       <button type="button" onclick="resetWaSessionAction()" class="modern-btn"
@@ -465,30 +457,4 @@
   </div>
 </div>
 
-<!-- ========================================================================= -->
-<!-- MODAL INFO GATEWAY BAT                                                    -->
-<!-- ========================================================================= -->
-<div id="gateway-info-modal"
-  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 120; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
-  <div class="card" style="width: 90%; max-width: 540px; padding: 24px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-      <h3 style="margin: 0; font-size: 16px; font-weight: 800;">Panduan Menjalankan WhatsApp Gateway</h3>
-      <button type="button" onclick="closeGatewayInfoModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted);">&times;</button>
-    </div>
-    <div style="font-size: 13px; line-height: 1.6; color: var(--text-main); display: flex; flex-direction: column; gap: 10px;">
-      <p style="margin: 0;">Layanan WhatsApp Gateway berjalan sebagai service background lokal di komputer ini atau di VPS.</p>
-      <div style="background: var(--table-header); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px;">
-        1. Buka folder C:\WEB REPORT<br>
-        2. Double-click file: <strong>run_wa_gateway.bat</strong><br>
-        3. Scan QR Code dari WhatsApp nomor Bot CS kantor<br>
-        4. Port service aktif di http://127.0.0.1:3000
-      </div>
-      <p style="margin: 0; font-size: 12px; color: var(--text-muted);">
-        Setelah terhubung, sesi akan tersimpan permanen dan bot otomatis standby menerima &amp; mengirim pesan WhatsApp.
-      </p>
-    </div>
-    <div style="margin-top: 18px; display: flex; justify-content: flex-end;">
-      <button type="button" onclick="closeGatewayInfoModal()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600;">Mengerti</button>
-    </div>
-  </div>
-</div>
+

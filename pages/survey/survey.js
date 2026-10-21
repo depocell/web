@@ -76,17 +76,7 @@ async function checkGatewayStatus() {
 }
 window.checkGatewayStatus = checkGatewayStatus;
 
-function showGatewayInfoModal() {
-  const modal = document.getElementById('gateway-info-modal');
-  if (modal) modal.style.display = 'flex';
-}
-window.showGatewayInfoModal = showGatewayInfoModal;
 
-function closeGatewayInfoModal() {
-  const modal = document.getElementById('gateway-info-modal');
-  if (modal) modal.style.display = 'none';
-}
-window.closeGatewayInfoModal = closeGatewayInfoModal;
 
 async function resetWaSessionAction() {
   if (!confirm('Apakah Anda yakin ingin mereset sesi WhatsApp bot?\nSesi lama akan dihapus agar Anda bisa scan QR dengan nomor baru.')) {
