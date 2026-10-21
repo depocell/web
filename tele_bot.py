@@ -55,18 +55,24 @@ def format_to_telegram_html(text: str) -> str:
     if not text:
         return ""
     t = text.replace('\r\n', '\n')
-    # Escape HTML special characters
+    # Lindungi tag HTML yang sah jika sudah ada (b, i, code, s, u, pre, a)
+    placeholders = {}
+    def repl(m):
+        key = f"__TAG_{len(placeholders)}__"
+        placeholders[key] = m.group(0)
+        return key
+    t = re.sub(r'</?(?:b|i|code|s|u|pre|a(?:\s+href="[^"]*")?)>', repl, t)
+    # Escape karakter HTML sisa (&, <, >)
     t = t.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    # Triple asterisks ***text*** -> <b><i>text</i></b>
+    # Ubah format markdown bintang ke tag HTML
     t = re.sub(r'\*{3}(.+?)\*{3}', r'<b><i>\1</i></b>', t)
-    # Double asterisks **text** -> <b>\1</b>
     t = re.sub(r'\*{2}(.+?)\*{2}', r'<b>\1</b>', t)
-    # Single asterisk *text* -> <b>\1</b>
     t = re.sub(r'(?<!\*)\*([A-Za-z0-9_ \(\)\.\,\-\:\/\@\#]+?)\*(?!\*)', r'<b>\1</b>', t)
-    # Inline code `code` -> <code>code</code>
     t = re.sub(r'`([^`\n]+)`', r'<code>\1</code>', t)
-    # Strip any remaining stray stars
     t = t.replace('***', '').replace('**', '').replace('*', '')
+    # Kembalikan tag HTML yang dilindungi
+    for key, val in placeholders.items():
+        t = t.replace(key, val)
     return t
 
 
@@ -96,6 +102,22 @@ def send_telegram_message(chat_id: int, text: str, parse_mode: str = "HTML") -> 
         return False
 
 
+def send_telegram_photo(chat_id: int, photo_path: str, caption: str = "") -> bool:
+    url = f"{TELEGRAM_API_URL}/sendPhoto"
+    if not os.path.exists(photo_path):
+        logger.error(f"File photo tidak ditemukan: {photo_path}")
+        return False
+    try:
+        with open(photo_path, "rb") as f:
+            files = {"photo": f}
+            data = {"chat_id": chat_id, "caption": caption}
+            r = requests.post(url, data=data, files=files, timeout=30)
+        return r.status_code == 200
+    except Exception as e:
+        logger.error(f"Gagal kirim foto ke {chat_id}: {e}")
+        return False
+
+
 def send_chat_action(chat_id: int, action: str = "typing"):
     url = f"{TELEGRAM_API_URL}/sendChatAction"
     try:
@@ -106,15 +128,23 @@ def send_chat_action(chat_id: int, action: str = "typing"):
 
 # 3. Gemini AI Helper Function & Live Server Context Snapshot
 SYSTEM_INSTRUCTION = """
-Kamu adalah DepAs AI Copilot, asisten eksekutif pribadi untuk manajemen dan pimpinan server pulsa Depo Cell (My Astaga! & OKIPAY).
-Karaktermu: Sangat cerdas, santun, lugas, solutif, dan berwawasan tajam seputar bisnis pulsa, PPOB, strategi omset, teknologi server OtomaX, dan analisa data.
-Gunakan bahasa Indonesia yang profesional namun luwes dan bersahabat. Selalu gunakan format poin-poin yang mudah dibaca di layar HP jika memberikan penjelasan panjang.
+Kamu adalah DepAs AI Reader, asisten pembaca data resmi transaksi server pulsa Depo Cell (My Astaga! & OKIPAY).
 
-PANGGILAN & ATURAN:
-- Sapa pimpinan SELALU dengan sebutan 'Bossque' (DILARANG KERAS menggunakan kata 'Juragan').
-- DILARANG menggunakan tanda bintang ganda (**) atau tripel (***). Gunakan teks bersih langsung atau format poin dengan strip (-).
-- JANGAN PERNAH membuat tabel markdown (| col |) karena tabel tidak muat dan rusak di layar HP Telegram; gunakan daftar baris berurutan.
-- Jawab dengan lugas, ringkas, dan fokus pada inti data yang ditanyakan.
+ATURAN WAJIB & NON-NEGOTIABLE:
+1. PANGGILAN: Sapa pimpinan HANYA dengan sebutan: "Bossque" (DILARANG KERAS menggunakan kata "Juragan").
+2. HANYA MEMBACA DATA (READ-ONLY DATA):
+   - Tugasmu HANYA membaca, menampilkan angka, dan menyajikan fakta data yang diminta.
+   - DILARANG KERAS memberikan saran, solusi, inisiatif, rekomendasi perbaikan, atau strategi bisnis.
+   - DILARANG KERAS menawarkan bantuan tambahan atau mengajukan pertanyaan di akhir jawaban (seperti: "Apakah kita perlu siapkan program...", "Ada instruksi khusus?", "Ada tindakan lanjutan?"). CUKUP BERHENTI setelah data selesai ditampilkan!
+3. FORMAT JAWABAN:
+   - Bersih, ringkas, dan to-the-point langsung ke inti data angka.
+   - DILARANG menggunakan tanda bintang ganda (**) atau tripel (***). Gunakan teks biasa yang rapi.
+   - Gunakan bullet point tanda strip (-) untuk daftar data.
+   - DILARANG membuat tabel markdown (| col |) karena tidak muat di layar HP Telegram.
+4. KEJUJURAN DATA & ZERO HALUSINASI (STRICT GROUNDING):
+   - Jika data atau informasi yang ditanyakan Bossque TIDAK TERCANTUM secara spesifik di dalam snapshot data resmi di bawah, JAWAB JUJUR DAN SINGKAT:
+     "Mohon maaf Bossque, data tersebut tidak tersedia di snapshot saya."
+   - DILARANG KERAS mengarang angka, berasumsi, atau menebak-nebak data yang tidak tercantum!
 """
 
 def get_live_context_snapshot(prompt: str = "") -> str:
@@ -264,7 +294,8 @@ KONTEKS DATA RESMI SERVER DEPAS SAAT INI (REAL-TIME SNAPSHOT):
 {live_context}
 
 PETUNJUK PENTING:
-Gunakan data resmi di atas untuk menjawab pertanyaan pimpinan/juragan secara lugas, presisi, dan percaya diri (terutama jika ditanya soal tanggal cut-off, jumlah transaksi, performa cabang, SLA server, jumlah reseller, atau daftar agen dengan drop/growth terendah). Jangan pernah berkata bahwa Anda tidak memiliki akses ke data real, karena data resmi server sudah terlampir di atas!
+Gunakan data resmi di atas untuk menyajikan angka dan fakta secara lugas dan presisi kepada Bossque. HANYA tampilkan data yang diminta. DILARANG KERAS menawarkan solusi, strategi, atau mengajukan pertanyaan penutup di akhir pesan!
+JIKA pertanyaan menanyakan data yang TIDAK ADA di snapshot di atas, WAJIB jawab: "Mohon maaf Bossque, data tersebut tidak tersedia di snapshot saya." DILARANG KERAS mengarang!
 """
 
     models = [
@@ -307,119 +338,280 @@ Gunakan data resmi di atas untuk menjawab pertanyaan pimpinan/juragan secara lug
 
 
 # 4. Command Handlers
+
+# =====================================================================
+# MENU COMMAND HANDLERS (RESMI, INSTAN, DATA 100% VALID)
+# =====================================================================
+
+def register_telegram_commands():
+    """Mendaftarkan menu tombol resmi Telegram [ Menu = ] ke API."""
+    url = f"{TELEGRAM_API_URL}/setMyCommands"
+    commands = [
+        {"command": "summary", "description": "Laporan Visual & Run-rate My Astaga"},
+        {"command": "okipay", "description": "Laporan Visual & Run-rate OKIPAY"},
+        {"command": "sco", "description": "Laporan Visual Rekap Sales Cabang (SCO)"},
+        {"command": "cabang", "description": "Performa Cabang BSD, ICON, PP, PRG, ONLINE"},
+        {"command": "supplier", "description": "Audit Modul Supplier Paling Banyak Gagal"},
+        {"command": "drop", "description": "10 Agen dengan Penurunan Transaksi Terbesar"},
+        {"command": "mitra", "description": "Total Reseller Aktif & Kontak Terverifikasi"},
+        {"command": "server", "description": "Status Kesehatan VPS (RAM, CPU, Disk)"},
+        {"command": "help", "description": "Panduan dan Bantuan Penggunaan"}
+    ]
+    try:
+        requests.post(url, json={"commands": commands}, timeout=10)
+    except Exception as e:
+        logger.warning(f"Gagal register menu commands: {e}")
+
+
 def handle_command_start(chat_id: int, user_first_name: str):
     welcome_text = (
-        f"Halo Bossque *{user_first_name}*! 👋\n\n"
-        f"Saya *DepAs AI Copilot* (@depas\\_ai\\_bot), asisten eksekutif pribadi Anda di server Depo Cell.\n\n"
-        f"📌 *Perintah Cepat:*\n"
-        f"• 📊 `/summary` - Laporan performa harian & run-rate cabang\n"
-        f"• 🖥️ `/server` - Cek kesehatan server VPS (CPU, RAM, Uptime)\n"
-        f"• ❓ `/help` - Bantuan penggunaan bot\n\n"
-        f"💡 *Tanya Apa Saja:*\n"
-        f"Ketik pertanyaan apa saja (analisa omset, ide promo, strategi jualan pulsa, rumus, atau obrolan santai), "
-        f"saya siap menjawab 24 jam dengan kecerdasan Google Gemini AI!"
+        f"Halo Bossque <b>{user_first_name}</b>! 👋\n\n"
+        f"Saya <b>DepAs AI Reader</b> (@depas_ai_bot), asisten data transaksi resmi server Depo Cell (My Astaga! & OKIPAY).\n\n"
+        f"📌 <b>Menu Cepat (Klik Menu di kiri bawah keyboard):</b>\n"
+        f"• /summary - Laporan Visual & Run-rate My Astaga\n"
+        f"• /okipay - Laporan Visual & Run-rate OKIPAY\n• /sco - Laporan Visual Rekap Sales Cabang (SCO)\n"
+        f"• /cabang - Performa Cabang (BSD, ICON, PP, PRG, ONLINE)\n"
+        f"• /supplier - Audit Modul Supplier Paling Banyak Gagal\n"
+        f"• /drop - 10 Agen Penurunan Transaksi Terbesar\n"
+        f"• /mitra - Total Reseller Aktif & Kontak Database\n"
+        f"• /server - Kesehatan Mesin VPS (RAM, CPU, SSD)\n\n"
+        f"💡 Bossque juga bisa langsung tanya bebas apa saja seputar data transaksi server!"
     )
     send_telegram_message(chat_id, welcome_text)
 
 
-def handle_command_server(chat_id: int):
-    send_chat_action(chat_id, "typing")
-    try:
-        # Cek uptime & load
-        uptime = subprocess.check_output("uptime -p", shell=True).decode().strip()
-        
-        # Cek RAM
-        free_out = subprocess.check_output("free -h", shell=True).decode().splitlines()
-        ram_line = free_out[1].split() if len(free_out) > 1 else []
-        ram_info = f"Total: {ram_line[1]}, Used: {ram_line[2]}, Free: {ram_line[3]}" if len(ram_line) >= 4 else "N/A"
+def handle_command_summary(chat_id: int, text: str = ""):
+    send_chat_action(chat_id, "upload_photo")
+    img_path = os.path.join(BASE_DIR, "Daily_Report_ASTAGA_2026-10.png")
+    data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
 
-        # Cek Disk
-        df_out = subprocess.check_output("df -h /", shell=True).decode().splitlines()
-        disk_line = df_out[1].split() if len(df_out) > 1 else []
-        disk_info = f"Size: {disk_line[1]}, Used: {disk_line[2]} ({disk_line[4]}), Avail: {disk_line[3]}" if len(disk_line) >= 5 else "N/A"
+    caption = "📊 Laporan Visual Harian My Astaga! (MTD Oktober 2026)"
+    if os.path.exists(img_path):
+        send_telegram_photo(chat_id, img_path, caption=caption)
 
-        # Cek Layanan
-        services = ["webreport", "wa-gateway"]
-        srv_status = []
-        for s in services:
-            try:
-                st = subprocess.check_output(f"systemctl is-active {s}", shell=True).decode().strip()
-                icon = "🟢" if st == "active" else "🔴"
-                srv_status.append(f"{icon} `{s}`: {st}")
-            except Exception:
-                srv_status.append(f"⚪ `{s}`: unknown")
-
-        report = (
-            f"🖥️ *STATUS KESEHATAN SERVER VPS*\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⏱️ *Uptime*: {uptime}\n"
-            f"🧠 *RAM*: `{ram_info}`\n"
-            f"💾 *Disk SSD*: `{disk_info}`\n\n"
-            f"⚙️ *Status Layanan:*\n" + "\n".join(srv_status) + "\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"✅ *Kondisi Server: PRIMA & NORMAL*"
-        )
-        send_telegram_message(chat_id, report)
-    except Exception as e:
-        send_telegram_message(chat_id, f"Gagal memeriksa status server: {e}")
+    # Tambahkan rekap teks cepat
+    if os.path.exists(data_json_path):
+        try:
+            with open(data_json_path, "r", encoding="utf-8") as f:
+                d = json.load(f).get("ASTAGA", {}).get("2026-10", {})
+            daily_trx = d.get("daily_trx", 0)
+            total_sukses = d.get("trx_sukses", 0)
+            days = d.get("days_count", 20)
+            speed = d.get("avg_dur_str", "00:00")
+            sukses_pct = d.get("sukses_pct", 0)
+            member = d.get("daily_customers", 0)
+            msg = (
+                f"⚡ <b>RINGKASAN METRIK MY ASTAGA (OKTOBER 2026 MTD):</b>\n"
+                f"- Cut-off: s/d 20 Oktober 2026 ({days} hari kalender)\n"
+                f"- Run-rate Harian: {daily_trx:,} trx/hari\n"
+                f"- Total Sukses MTD: {total_sukses:,} trx\n"
+                f"- Member Aktif: {member:,} reseller/hari\n"
+                f"- Success Rate: {sukses_pct}% | Avg Speed: {speed}"
+            )
+            send_telegram_message(chat_id, msg)
+        except Exception:
+            pass
 
 
-def handle_command_summary(chat_id: int):
+def handle_command_okipay(chat_id: int):
+    send_chat_action(chat_id, "upload_photo")
+    img_path = os.path.join(BASE_DIR, "Daily_Report_OKIPAY_2026-10.png")
+    data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
+
+    caption = "📊 Laporan Visual Harian OKIPAY (MTD Oktober 2026)"
+    if os.path.exists(img_path):
+        send_telegram_photo(chat_id, img_path, caption=caption)
+
+    if os.path.exists(data_json_path):
+        try:
+            with open(data_json_path, "r", encoding="utf-8") as f:
+                d = json.load(f).get("OKIPAY", {}).get("2026-10", {})
+            daily_trx = d.get("daily_trx", 0)
+            total_sukses = d.get("trx_sukses", 0)
+            days = d.get("days_count", 19)
+            speed = d.get("avg_dur_str", "00:00")
+            sukses_pct = d.get("sukses_pct", 0)
+            member = d.get("daily_customers", 0)
+            msg = (
+                f"⚡ <b>RINGKASAN METRIK OKIPAY (OKTOBER 2026 MTD):</b>\n"
+                f"- Cut-off: s/d 19 Oktober 2026 ({days} hari kalender)\n"
+                f"- Run-rate Harian: {daily_trx:,} trx/hari\n"
+                f"- Total Sukses MTD: {total_sukses:,} trx\n"
+                f"- Member Aktif: {member:,} reseller/hari\n"
+                f"- Success Rate: {sukses_pct}% | Avg Speed: {speed}"
+            )
+            send_telegram_message(chat_id, msg)
+        except Exception:
+            pass
+
+
+def handle_command_sco(chat_id: int):
+    send_chat_action(chat_id, "upload_photo")
+    import glob
+    pattern = os.path.join(BASE_DIR, "Laporan_SCO_*.png")
+    sco_files = sorted(glob.glob(pattern), reverse=True)
+    img_path = sco_files[0] if sco_files else os.path.join(BASE_DIR, "Laporan_SCO_2026-10-21.png")
+
+    caption = "📊 Laporan Potret Rekap Kinerja Sales Cabang (SCO)"
+    if os.path.exists(img_path):
+        send_telegram_photo(chat_id, img_path, caption=caption)
+    else:
+        send_telegram_message(chat_id, "Foto laporan SCO belum tersedia di server.")
+
+    # Tambahkan ringkasan SCO
+    data_sco_path = os.path.join(BASE_DIR, "pages", "sco", "data_sco.json")
+    if os.path.exists(data_sco_path):
+        try:
+            with open(data_sco_path, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            cutoff = d.get("cutoff_date", "2026-10-20")
+            msg = (
+                f"📋 <b>REKAP LAPORAN SALES CABANG (SCO):</b>\n"
+                f"- Tanggal Cut-off: {cutoff}\n"
+                f"- Gambar di atas adalah potret jernih HD siap kirim WhatsApp.\n"
+                f"- Mencakup evaluasi target visit, koleksi saldo, dan pencapaian transaksi per sales."
+            )
+            send_telegram_message(chat_id, msg)
+        except Exception:
+            pass
+
+
+def handle_command_cabang(chat_id: int):
     send_chat_action(chat_id, "typing")
     data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
     if not os.path.exists(data_json_path):
-        send_telegram_message(chat_id, "File data.json analisa belum tersedia di server.")
+        send_telegram_message(chat_id, "Mohon maaf Bossque, data cabang belum tersedia.")
         return
 
     try:
         with open(data_json_path, "r", encoding="utf-8") as f:
-            data = json.load(f).get("ASTAGA", {})
-        
-        # Ambil periode terakhir
-        periods = sorted([p for p in data.keys() if p.startswith("2026")], reverse=True)
-        if not periods:
-            send_telegram_message(chat_id, "Data transaksi 2026 belum tersedia.")
+            raw = json.load(f)
+
+        lines = ["🏢 <b>PERFORMA TRANSAKSI CABANG (MTD OKTOBER 2026):</b>\n"]
+
+        for brand in ["ASTAGA", "OKIPAY"]:
+            bdata = raw.get(brand, {}).get("2026-10", {})
+            branches = bdata.get("branches", {})
+            days = bdata.get("days_count", 20)
+            if branches:
+                lines.append(f"<b>[{brand}] (Cut-off {days} Hari):</b>")
+                for br, tot in sorted(branches.items(), key=lambda x: x[1], reverse=True):
+                    daily = round(tot / days) if days > 0 else 0
+                    lines.append(f"- {br}: {daily:,} trx/hari (Total: {tot:,} trx)")
+                lines.append("")
+
+        send_telegram_message(chat_id, "\n".join(lines).strip())
+    except Exception as e:
+        send_telegram_message(chat_id, f"Gagal membaca data cabang: {e}")
+
+
+def handle_command_supplier(chat_id: int):
+    send_chat_action(chat_id, "typing")
+    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
+    if not os.path.exists(tb_path):
+        send_telegram_message(chat_id, "Mohon maaf Bossque, data modul supplier belum tersedia.")
+        return
+
+    try:
+        with open(tb_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        lines = ["⚠️ <b>AUDIT MODUL SUPPLIER PALING BANYAK GAGAL (MTD OKTOBER 2026):</b>\n"]
+        for brand in ["ASTAGA", "OKIPAY"]:
+            fails = data.get(brand, {}).get("top_failed_modules", [])
+            if fails:
+                lines.append(f"<b>Server {brand}:</b>")
+                for item in fails:
+                    lines.append(f"- {item['module']}: {item['failed']:,} transaksi gagal")
+                lines.append("")
+
+        lines.append("<i>Catatan: Modul AMC menjadi sumber kegagalan transaksi nomor satu di kedua server.</i>")
+        send_telegram_message(chat_id, "\n".join(lines))
+    except Exception as e:
+        send_telegram_message(chat_id, f"Gagal membaca data supplier: {e}")
+
+
+def handle_command_drop(chat_id: int):
+    send_chat_action(chat_id, "typing")
+    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
+    if not os.path.exists(tb_path):
+        send_telegram_message(chat_id, "Mohon maaf Bossque, data agen drop belum tersedia.")
+        return
+
+    try:
+        with open(tb_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        top_drop = data.get("ASTAGA", {}).get("top_drop", [])
+        if not top_drop:
+            send_telegram_message(chat_id, "Data agen drop belum terdata.")
             return
 
-        curr_p = periods[0]
-        prev_p = periods[1] if len(periods) > 1 else curr_p
+        lines = ["📉 <b>10 AGEN DENGAN PENURUNAN HARIAN TERBESAR (ASTAGA MTD OKTOBER):</b>\n"]
+        for i, a in enumerate(top_drop[:10], 1):
+            lines.append(
+                f"{i}. <b>[{a['agen_id']}] {a['name']}</b> ({a['cabang']})\n"
+                f"   • Run-rate: {a['daily_prev']:.1f} ➔ {a['daily_curr']:.1f} trx/hari\n"
+                f"   • Penurunan: {a['drop_daily']:.1f}/hari ({a['drop_pct']}%) | Total MTD: {a['mtd_trx']:,} trx"
+            )
 
-        c = data[curr_p]
-        p = data[prev_p]
-
-        c_daily = c.get("daily_trx", 0)
-        p_daily = p.get("daily_trx", 0)
-        diff_daily = c_daily - p_daily
-        pct_daily = round((diff_daily / p_daily) * 100, 1) if p_daily > 0 else 0
-        sign = "+" if diff_daily >= 0 else ""
-
-        branches = c.get("branches", {})
-        br_lines = []
-        for br, total_hit in sorted(branches.items(), key=lambda x: x[1], reverse=True):
-            br_daily = round(total_hit / c.get("days_count", 16))
-            br_lines.append(f"• *{br}*: `{br_daily:,} /hari` (Total {total_hit:,} trx)")
-
-        summary_text = (
-            f"📊 *DAILY SUMMARY REPORT — MY ASTAGA!*\n"
-            f"Periode: *{curr_p}* (Cut-off {c.get('days_count', 16)} Hari) vs *{prev_p}*\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⚡ *METRIK RUN-RATE HARIAN:*\n"
-            f"• *Daily Trx*: `{c_daily:,} /hari` ({sign}{diff_daily:,} | {sign}{pct_daily}%)\n"
-            f"• *Member Aktif*: `{c.get('daily_customers', 0):,} /hari`\n"
-            f"• *Success Rate*: `{c.get('sukses_pct', 0)}%` (🟢 Status Prima)\n"
-            f"• *Avg Speed*: `{c.get('avg_dur_str', '00:00')}`\n\n"
-            f"🏢 *PERFORMA KINERJA CABANG:*\n" + "\n".join(br_lines) + "\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"💡 *Catatan Analisa:*\n"
-            f"Kinerja server sangat stabil dengan SLA sukses {c.get('sukses_pct', 0)}%. "
-            f"Cabang BSD dan PP mendominasi volume transaksi utama."
-        )
-        send_telegram_message(chat_id, summary_text)
+        send_telegram_message(chat_id, "\n".join(lines))
     except Exception as e:
-        send_telegram_message(chat_id, f"Gagal membuat summary: {e}")
+        send_telegram_message(chat_id, f"Gagal membaca data drop: {e}")
+
+
+def handle_command_mitra(chat_id: int):
+    send_chat_action(chat_id, "typing")
+    db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+    if not os.path.exists(db_path):
+        send_telegram_message(chat_id, "Database master belum tersedia.")
+        return
+
+    try:
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute("SELECT count(*) FROM resellers")
+        total_rs = c.fetchone()[0]
+        c.execute("SELECT count(*) FROM reseller_contacts")
+        total_contacts = c.fetchone()[0]
+
+        # Hitung per cabang
+        c.execute("SELECT cabang, count(*) FROM resellers GROUP BY cabang ORDER BY count(*) DESC")
+        cabang_rows = c.fetchall()
+        conn.close()
+
+        lines = [
+            f"👥 <b>DATABASE MITRA RESELLER AKTIF (>= 2023):</b>\n",
+            f"- Total Mitra Terdaftar: <b>{total_rs:,}</b> akun",
+            f"- Kontak Terverifikasi WA: <b>{total_contacts:,}</b> nomor HP\n",
+            f"<b>Penyebaran Mitra per Cabang:</b>"
+        ]
+        for cb, cnt in cabang_rows:
+            lines.append(f"- {cb}: {cnt:,} reseller")
+
+        send_telegram_message(chat_id, "\n".join(lines))
+    except Exception as e:
+        send_telegram_message(chat_id, f"Gagal membaca data mitra: {e}")
 
 
 def handle_user_chat(chat_id: int, user_text: str):
+    lower_text = user_text.lower()
+    
+    # Deteksi permintaan gambar / chart / foto
+    if any(k in lower_text for k in ["gambar", "foto", "grafik", "chart", "infografis", "tabel visual"]):
+        send_chat_action(chat_id, "upload_photo")
+        if "okipay" in lower_text:
+            img_path = os.path.join(BASE_DIR, "Daily_Report_OKIPAY_2026-10.png")
+            brand = "OKIPAY"
+        else:
+            img_path = os.path.join(BASE_DIR, "Daily_Report_ASTAGA_2026-10.png")
+            brand = "MY ASTAGA!"
+        
+        if os.path.exists(img_path):
+            send_telegram_photo(chat_id, img_path, caption=f"📊 Laporan Visual Harian {brand} (Oktober 2026 MTD)")
+            return
+
     send_chat_action(chat_id, "typing")
     reply = ask_gemini(user_text)
     send_telegram_message(chat_id, reply)
@@ -481,10 +673,22 @@ def main():
                 cmd = text.split()[0].lower()
                 if cmd in ("/start", "/help"):
                     handle_command_start(chat_id, first_name)
+                elif cmd in ("/summary", "/astaga", "/laporan"):
+                    handle_command_summary(chat_id, text)
+                elif cmd in ("/okipay", "/oki"):
+                    handle_command_okipay(chat_id)
+                elif cmd in ("/sco", "/sales"):
+                    handle_command_sco(chat_id)
+                elif cmd in ("/cabang", "/branch"):
+                    handle_command_cabang(chat_id)
+                elif cmd in ("/supplier", "/modul"):
+                    handle_command_supplier(chat_id)
+                elif cmd in ("/drop", "/churn"):
+                    handle_command_drop(chat_id)
+                elif cmd in ("/mitra", "/reseller", "/agen"):
+                    handle_command_mitra(chat_id)
                 elif cmd in ("/server", "/status"):
                     handle_command_server(chat_id)
-                elif cmd in ("/summary", "/daily", "/laporan"):
-                    handle_command_summary(chat_id)
                 else:
                     handle_user_chat(chat_id, text)
 

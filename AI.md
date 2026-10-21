@@ -72,28 +72,41 @@ Sebanyak 17,5% reseller memiliki lebih dari satu nomor pengirim di OtomaX (kombi
   journalctl -u depas-telebot -f   # Pantau log real-time
   ```
 
-### B. Daftar Perintah Bot Telegram (`@depas_ai_bot`)
+### B. Daftar Perintah Menu Resmi Telegram (`@depas_ai_bot`)
 
-#### 1. Perintah `/start` atau `/help`
-Menyapa pengguna dan menampilkan instruksi penggunaan bot asisten eksekutif.
+Bot telah didaftarkan dengan menu resmi Telegram (`setMyCommands`) yang muncul pada tombol `[ Menu ≡ ]` di pojok kiri bawah keyboard:
 
-#### 2. Perintah `/server` atau `/status`
-Memeriksa kesehatan server VPS secara instan:
-* Uptime server.
-* Penggunaan memori RAM (Total, Used, Free).
-* Kapasitas penyimpanan SSD.
-* Status aktif layanan sistem (`webreport`, `wa-gateway`).
+| Perintah | Deskripsi & Fitur |
+| :--- | :--- |
+| **`/summary`** | 📸 **Laporan Visual HD My Astaga** + Run-rate harian, total sukses MTD, SLA speed, % sukses, dan member aktif. |
+| **`/okipay`** | 📸 **Laporan Visual HD OKIPAY** + Run-rate harian, total sukses MTD, SLA speed, dan % sukses. |
+| **`/sco`** | 📸 **Laporan Visual Potret HD Rekap Sales Cabang (SCO)** siap kirim/forward ke WhatsApp + evaluasi visit & target. |
+| **`/cabang`** | 🏢 **Performa 5 Cabang** (BSD, ICON, PP, PRG, ONLINE) untuk server Astaga & OKIPAY lengkap dengan hit /hari. |
+| **`/supplier`** | ⚠️ **Audit Modul Supplier Gagal** (AMC, PCU, MR, MARKAZ, METRO, dll) untuk identifikasi jalur melambat. |
+| **`/drop`** | 📉 **Daftar 10 Toko/Agen Penurunan Terbesar** (run-rate drop /hari dan % penurunan MTD vs bulan lalu). |
+| **`/mitra`** | 👥 **Database Reseller Aktif** (Total mitra terdaftar >= 2023, kontak WA terverifikasi, dan sebaran per cabang). |
+| **`/server`** | 🖥️ **Kesehatan VPS** (Uptime, pemakaian RAM, sisa disk SSD, status service `webreport` & `wa-gateway`). |
+| **`/help`** | ❓ Panduan lengkap navigasi bot dan petunjuk penggunaan. |
 
-#### 3. Perintah `/summary` atau `/daily`
-Menyajikan laporan ringkas performa harian resmi:
-* Run-rate transaksi harian (Daily Trx) dan selisih MoM.
-* Jumlah member aktif harian.
-* Tingkat sukses server (% Sukses SLA) dan kecepatan rata-rata (*speed telemetry*).
-* Rincian kinerja per cabang (BSD, PP, ICON, PRG, ONLINE).
-* Catatan analisa cepat performa server.
+### C. Chatting Bebas, Model Fallback & Aturan Kejujuran (Strict Grounding)
 
-#### 4. Chatting Bebas & Brainstorming
-Setiap teks pertanyaan yang dikirim di luar perintah khusus akan diteruskan ke Google Gemini AI (`gemini-3.5-flash`). AI bertindak sebagai Copilot manajemen Depo Cell yang memahami strategi bisnis pulsa, PPOB, skema promosi, formula perhitungan, maupun obrolan umum.
+1. **Aturan Karakter & Sapaan**:
+   * Sapaan pimpinan: **"Bossque"** (kata *"Juragan"* diblokir permanen).
+   * Mode: **Read-Only Data**. Tidak memberikan solusi/nasihat bisnis sok tahu kecuali jika diminta secara eksplisit.
+   * Gaya: Dingin, bersih, to-the-point, tanpa simbol markdown berlebihan (`***`) dan tanpa tag HTML bocor.
+
+2. **Aturan Kejujuran Mutlak (Zero Hallucination)**:
+   * Jika data yang ditanyakan Bossque tidak terdapat di dalam snapshot data resmi server, bot **WAJIB menjawab jujur**:  
+     `"Mohon maaf Bossque, data tersebut tidak tersedia di snapshot saya."`
+   * Dilarang keras mengarang atau berasumsi angka.
+
+3. **Multi-Model Fallback Resilient Chain**:
+   * Prioritas 1: `gemini-3.5-flash-lite` (Ultra-fast, zero 503 spike)
+   * Prioritas 2: `gemini-3-flash-preview`
+   * Prioritas 3: `gemini-3.5-flash`
+   * Prioritas 4: `gemini-3.7-flash`
+   * Prioritas 5: `gemini-3.8-flash`
+   * Timeout dinaikkan ke 25 detik dengan proteksi retry otomatis pada HTTP 503 / 429.
 
 ---
 
@@ -101,8 +114,12 @@ Setiap teks pertanyaan yang dikirim di luar perintah khusus akan diteruskan ke G
 
 | File | Lokasi | Deskripsi |
 | :--- | :--- | :--- |
-| `tele_bot.py` | `c:\WEB REPORT\tele_bot.py` & `/var/www/webreport/` | Script utama Telegram Bot & integrasi Gemini AI |
+| `tele_bot.py` | `c:\WEB REPORT\tele_bot.py` & `/var/www/webreport/` | Script utama Telegram Bot, routing menu, image sender & integrasi Gemini AI |
 | `.env` | Root folder (Lokal & VPS) | File rahasia berisi API key dan Bot token |
+| `pages/analisa/top_bottom_agen.json` | `pages/analisa/` (Lokal & VPS) | Cache data top drop agen dan audit modul supplier gagal |
+| `Daily_Report_ASTAGA_2026-10.png` | Root folder (Lokal & VPS) | Visual HD infografis harian My Astaga |
+| `Daily_Report_OKIPAY_2026-10.png` | Root folder (Lokal & VPS) | Visual HD infografis harian OKIPAY |
+| `Laporan_SCO_2026-10-21.png` | Root folder (Lokal & VPS) | Visual HD potret rekap sales cabang SCO siap forward WA |
 | `engines/survey_engine.py` | `engines/` | Logika survei churn, multi-number lookup & promo kontak |
 | `pages/survey/survey.js` | `pages/survey/` | Frontend kontrol survei, verifikasi WA, dan badge nomor cadangan |
 | `scripts/import_reseller_contacts.py` | `scripts/` | Script pembersihan akun zombie & impor master kontak |
