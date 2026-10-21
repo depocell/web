@@ -9,6 +9,7 @@ Fitur:
 """
 
 import os
+import re
 import sys
 import time
 import json
@@ -49,11 +50,32 @@ if not TELEGRAM_BOT_TOKEN:
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
 # 2. Telegram Helper Functions
-def send_telegram_message(chat_id: int, text: str, parse_mode: str = "Markdown") -> bool:
+def format_to_telegram_html(text: str) -> str:
+    """Mengubah format teks markdown Gemini menjadi HTML Telegram yang aman & bersih tanpa bintang (**) atau simbol liar."""
+    if not text:
+        return ""
+    t = text.replace('\r\n', '\n')
+    # Escape HTML special characters
+    t = t.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    # Triple asterisks ***text*** -> <b><i>text</i></b>
+    t = re.sub(r'\*{3}(.+?)\*{3}', r'<b><i>\1</i></b>', t)
+    # Double asterisks **text** -> <b>\1</b>
+    t = re.sub(r'\*{2}(.+?)\*{2}', r'<b>\1</b>', t)
+    # Single asterisk *text* -> <b>\1</b>
+    t = re.sub(r'(?<!\*)\*([A-Za-z0-9_ \(\)\.\,\-\:\/\@\#]+?)\*(?!\*)', r'<b>\1</b>', t)
+    # Inline code `code` -> <code>code</code>
+    t = re.sub(r'`([^`\n]+)`', r'<code>\1</code>', t)
+    # Strip any remaining stray stars
+    t = t.replace('***', '').replace('**', '').replace('*', '')
+    return t
+
+
+def send_telegram_message(chat_id: int, text: str, parse_mode: str = "HTML") -> bool:
     url = f"{TELEGRAM_API_URL}/sendMessage"
+    formatted_text = format_to_telegram_html(text) if parse_mode == "HTML" else text
     payload = {
         "chat_id": chat_id,
-        "text": text,
+        "text": formatted_text,
         "disable_web_page_preview": True
     }
     if parse_mode:
@@ -62,7 +84,10 @@ def send_telegram_message(chat_id: int, text: str, parse_mode: str = "Markdown")
     try:
         r = requests.post(url, json=payload, timeout=10)
         if r.status_code != 200:
-            # Fallback tanpa parse_mode jika ada karakter markdown yang konflik
+            logger.warning(f"Telegram API response {r.status_code}: {r.text[:120]}. Fallback to clean plain text.")
+            plain_clean = re.sub(r'<[^>]+>', '', formatted_text)
+            plain_clean = plain_clean.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+            payload["text"] = plain_clean
             payload.pop("parse_mode", None)
             r = requests.post(url, json=payload, timeout=10)
         return r.status_code == 200
@@ -84,6 +109,12 @@ SYSTEM_INSTRUCTION = """
 Kamu adalah DepAs AI Copilot, asisten eksekutif pribadi untuk manajemen dan pimpinan server pulsa Depo Cell (My Astaga! & OKIPAY).
 Karaktermu: Sangat cerdas, santun, lugas, solutif, dan berwawasan tajam seputar bisnis pulsa, PPOB, strategi omset, teknologi server OtomaX, dan analisa data.
 Gunakan bahasa Indonesia yang profesional namun luwes dan bersahabat. Selalu gunakan format poin-poin yang mudah dibaca di layar HP jika memberikan penjelasan panjang.
+
+PANGGILAN & ATURAN:
+- Sapa pimpinan SELALU dengan sebutan 'Bossque' (DILARANG KERAS menggunakan kata 'Juragan').
+- DILARANG menggunakan tanda bintang ganda (**) atau tripel (***). Gunakan teks bersih langsung atau format poin dengan strip (-).
+- JANGAN PERNAH membuat tabel markdown (| col |) karena tabel tidak muat dan rusak di layar HP Telegram; gunakan daftar baris berurutan.
+- Jawab dengan lugas, ringkas, dan fokus pada inti data yang ditanyakan.
 """
 
 def get_live_context_snapshot(prompt: str = "") -> str:
@@ -204,12 +235,27 @@ def get_live_context_snapshot(prompt: str = "") -> str:
         except Exception as e:
             logger.error(f"Error reading tren_agen from data_sco.json: {e}")
 
+    # 4. Data Modul Supplier Gagal dari top_bottom_agen.json
+    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
+    if os.path.exists(tb_path):
+        try:
+            with open(tb_path, "r", encoding="utf-8") as f:
+                tb_data = json.load(f)
+            for brand in ["ASTAGA", "OKIPAY"]:
+                binfo = tb_data.get(brand, {})
+                fails = binfo.get("top_failed_modules", [])
+                if fails:
+                    fail_str = ", ".join([f"{x['module']}: {x['failed']} gagal" for x in fails[:5]])
+                    lines.append(f"[{brand} AUDIT SUPPLIER] Modul Paling Banyak Gagal (MTD Oktober 2026): {fail_str}")
+        except Exception as e:
+            logger.error(f"Error reading top_failed_modules: {e}")
+
     return "\n".join(lines)
 
 
 def ask_gemini(prompt: str) -> str:
     if not GEMINI_API_KEY:
-        return "Mohon maaf Juragan, GEMINI_API_KEY belum dikonfigurasi di server."
+        return "Mohon maaf Bossque, GEMINI_API_KEY belum dikonfigurasi di server."
 
     live_context = get_live_context_snapshot(prompt)
     system_instruction_full = f"""{SYSTEM_INSTRUCTION}
@@ -257,13 +303,13 @@ Gunakan data resmi di atas untuk menjawab pertanyaan pimpinan/juragan secara lug
         except Exception as e:
             logger.warning(f"Error calling {model}: {e}")
 
-    return "Maaf Juragan, AI sedang mengalami lonjakan trafik sementara dari Google. Silakan ketik pertanyaan lagi ya!"
+    return "Maaf Bossque, AI sedang mengalami lonjakan trafik sementara dari Google. Silakan ketik pertanyaan lagi ya!"
 
 
 # 4. Command Handlers
 def handle_command_start(chat_id: int, user_first_name: str):
     welcome_text = (
-        f"Halo Juragan *{user_first_name}*! 👋\n\n"
+        f"Halo Bossque *{user_first_name}*! 👋\n\n"
         f"Saya *DepAs AI Copilot* (@depas\\_ai\\_bot), asisten eksekutif pribadi Anda di server Depo Cell.\n\n"
         f"📌 *Perintah Cepat:*\n"
         f"• 📊 `/summary` - Laporan performa harian & run-rate cabang\n"
@@ -423,7 +469,7 @@ def main():
                 chat = msg.get("chat", {})
                 chat_id = chat.get("id")
                 from_user = msg.get("from", {})
-                first_name = from_user.get("first_name", "Juragan")
+                first_name = from_user.get("first_name", "Bossque")
                 text = msg.get("text", "").strip()
 
                 if not text:
