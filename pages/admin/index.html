@@ -316,6 +316,50 @@
           </div>
         </div>
 
+        <!-- MASTER CUSTOMER CSV STREAM -->
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 5px;">
+              <span>3. Master Customer &amp; Reseller (Dim_Customer)</span>
+            </label>
+            <span style="font-size: 11px; color: var(--text-muted);">Relasi ke trx.ar_id</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="stream-url-customers" readonly
+              value="https://depas.my.id/api/export/customers.csv?brand=ASTAGA&amp;key=depas2026"
+              style="flex: 1; padding: 7px 10px; font-size: 11.5px; font-family: var(--font-mono); background: rgba(0,0,0,0.02); border: 1px solid var(--surface-border); border-radius: 6px; color: var(--text-main);" />
+            <button type="button" onclick="copyStreamUrl('stream-url-customers')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- MASTER PRODUCT CSV STREAM -->
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 5px;">
+              <span>4. Master Produk &amp; Kategori (Dim_Product)</span>
+            </label>
+            <span style="font-size: 11px; color: var(--text-muted);">Relasi ke trx.product_id</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="stream-url-products" readonly
+              value="https://depas.my.id/api/export/products.csv?brand=ASTAGA&amp;key=depas2026"
+              style="flex: 1; padding: 7px 10px; font-size: 11.5px; font-family: var(--font-mono); background: rgba(0,0,0,0.02); border: 1px solid var(--surface-border); border-radius: 6px; color: var(--text-main);" />
+            <button type="button" onclick="copyStreamUrl('stream-url-products')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin</span>
+            </button>
+          </div>
+        </div>
+
         <div style="background: rgba(0,0,0,0.02); border-radius: 6px; padding: 8px 12px; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
           <strong>Tip:</strong> Di Power BI / Excel, cukup tekan tombol <em>Refresh</em> kapan saja untuk menarik data transaksi terbaru yang telah di-upsert di cloud.
         </div>

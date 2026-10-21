@@ -920,6 +920,85 @@ async def api_export_transactions_csv(request):
         return PlainTextResponse(f"Error generating CSV: {str(e)}", status_code=500)
 
 
+async def api_export_customers_csv(request):
+    """Menyediakan tabel dimensi Customer (Reseller & Agen Induk) dalam format CSV Stream
+    untuk relasi di Power BI / Excel Power Query (Dimension Table: Dim_Customer).
+    Query Params:
+    - brand: ASTAGA / OKIPAY (default: ASTAGA)
+    - key: depas2026
+    """
+    try:
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+        
+        def _get_customers():
+            import sqlite3
+            import pandas as pd
+            db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+            conn = sqlite3.connect(db_path)
+            query = """
+                SELECT r.kode_reseller, r.nama_reseller, r.grup, r.kode_upline, r.root_agen_id, 
+                       r.cabang, r.leveling, a.nama_agen AS nama_root_agen, a.type, a.sco, 
+                       r.limit_saldo, r.markup
+                FROM resellers r
+                LEFT JOIN agents a ON r.root_agen_id = a.agen_id AND r.brand = a.brand
+                WHERE r.brand = ?
+                ORDER BY r.kode_reseller
+            """
+            df = pd.read_sql_query(query, conn, params=(brand,))
+            conn.close()
+            return df.to_csv(index=False)
+
+        csv_data = await asyncio.to_thread(_get_customers)
+        filename = f"master_customer_{brand.lower()}.csv"
+        return Response(
+            csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return PlainTextResponse(f"Error generating customers CSV: {str(e)}", status_code=500)
+
+
+async def api_export_products_csv(request):
+    """Menyediakan tabel dimensi Produk (Master Produk, Kategori, Operator, Paket) dalam format CSV Stream
+    untuk relasi di Power BI / Excel Power Query (Dimension Table: Dim_Product).
+    Query Params:
+    - brand: ASTAGA / OKIPAY (default: ASTAGA)
+    - key: depas2026
+    """
+    try:
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+        
+        def _get_products():
+            import sqlite3
+            import pandas as pd
+            db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+            conn = sqlite3.connect(db_path)
+            query = """
+                SELECT kode_produk, nama_produk, kategori, operator, paket
+                FROM products
+                WHERE brand = ?
+                ORDER BY kode_produk
+            """
+            df = pd.read_sql_query(query, conn, params=(brand,))
+            conn.close()
+            return df.to_csv(index=False)
+
+        csv_data = await asyncio.to_thread(_get_products)
+        filename = f"master_product_{brand.lower()}.csv"
+        return Response(
+            csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return PlainTextResponse(f"Error generating products CSV: {str(e)}", status_code=500)
+
+
 async def api_admin_agents(request):
     """Query daftar agen, statistik, dan opsi filter."""
     try:
@@ -1214,6 +1293,8 @@ routes = [
     Route("/api/admin/upload-tsv",       api_admin_upload_tsv, methods=["POST"]),
     Route("/api/export/transactions.csv", api_export_transactions_csv),
     Route("/api/export/transactions.parquet", api_export_transactions_parquet),
+    Route("/api/export/customers.csv",    api_export_customers_csv),
+    Route("/api/export/products.csv",     api_export_products_csv),
     Route("/api/admin/agents",          api_admin_agents),
     Route("/api/admin/agents/detail",    api_admin_agent_detail),
     Route("/api/admin/agents/save",      api_admin_agent_save, methods=["POST"]),
