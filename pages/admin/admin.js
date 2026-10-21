@@ -2898,3 +2898,177 @@ window.confirmDeleteUser = confirmDeleteUser;
 
 
 
+
+
+
+// =========================================================================
+// DIRECT TSV UPLOADER & DATA STREAM (FASE 2)
+// =========================================================================
+
+let directTsvSelectedFile = null;
+
+function handleDirectTsvFileSelect(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  setDirectTsvFile(file);
+}
+
+function setDirectTsvFile(file) {
+  directTsvSelectedFile = file;
+  const nameDisplay = document.getElementById("direct-tsv-filename-display");
+  const sizeDisplay = document.getElementById("direct-tsv-filesize-display");
+  const btn = document.getElementById("btn-direct-tsv-upsert");
+  const resultBox = document.getElementById("direct-tsv-result-box");
+
+  if (nameDisplay) nameDisplay.textContent = file.name;
+  if (sizeDisplay) {
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    sizeDisplay.textContent = `Ukuran file: ${sizeMb} MB (${file.size.toLocaleString("id-ID")} bytes)`;
+  }
+  if (btn) {
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+  }
+  if (resultBox) {
+    resultBox.style.display = "none";
+  }
+}
+
+async function executeDirectTsvUpsert() {
+  if (!directTsvSelectedFile) {
+    alert("Silakan pilih file TSV terlebih dahulu.");
+    return;
+  }
+
+  const brandRadio = document.querySelector('input[name="direct-tsv-brand"]:checked');
+  const brand = brandRadio ? brandRadio.value : "ASTAGA";
+
+  const btn = document.getElementById("btn-direct-tsv-upsert");
+  const btnText = document.getElementById("btn-direct-tsv-upsert-text");
+  const statusEl = document.getElementById("direct-tsv-status-text");
+  const resultBox = document.getElementById("direct-tsv-result-box");
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.textContent = "Mengunggah & Memproses...";
+  if (statusEl) statusEl.textContent = "Mengunggah file ke server...";
+  if (resultBox) resultBox.style.display = "none";
+
+  const formData = new FormData();
+  formData.append("brand", brand);
+  formData.append("file", directTsvSelectedFile);
+
+  try {
+    const startTime = performance.now();
+    const res = await fetch("/api/admin/upload-tsv", {
+      method: "POST",
+      body: formData
+    });
+    const json = await res.json();
+    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+
+    if (!json.ok) {
+      if (statusEl) statusEl.textContent = "";
+      if (resultBox) {
+        resultBox.style.display = "block";
+        resultBox.style.background = "#fef2f2";
+        resultBox.style.border = "1px solid #fecaca";
+        resultBox.style.color = "#991b1b";
+        resultBox.innerHTML = `<strong>Upsert Gagal:</strong> ${json.error || "Terjadi kesalahan saat memproses data."}`;
+      }
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = `Selesai (${duration}s)`;
+    if (resultBox) {
+      resultBox.style.display = "block";
+      resultBox.style.background = "#f0fdf4";
+      resultBox.style.border = "1px solid #bbf7d0";
+      resultBox.style.color = "#166534";
+      resultBox.innerHTML = `
+        <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Upsert Parquet Berhasil (${brand})
+        </div>
+        <div>Total baris bersih TSV: <strong>${(json.rows_clean || 0).toLocaleString("id-ID")}</strong></div>
+        <div>Baris baru di-append: <strong>${(json.appended || 0).toLocaleString("id-ID")}</strong> | Di-update: <strong>${(json.updated || 0).toLocaleString("id-ID")}</strong></div>
+        <div>Total transaksi Parquet sekarang: <strong>${(json.total_rows || 0).toLocaleString("id-ID")}</strong></div>
+        <div style="font-size: 11px; color: #15803d; margin-top: 4px;">Durasi eksekusi engine: ${json.duration_sec || duration} detik. Cache memori telah di-refresh.</div>
+      `;
+    }
+
+    if (typeof loadAdminStatus === "function") {
+      loadAdminStatus(true);
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = "";
+    if (resultBox) {
+      resultBox.style.display = "block";
+      resultBox.style.background = "#fef2f2";
+      resultBox.style.border = "1px solid #fecaca";
+      resultBox.style.color = "#991b1b";
+      resultBox.innerHTML = `<strong>Koneksi Error:</strong> ${err.message}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = "Proses Upsert ke Parquet";
+  }
+}
+
+function copyStreamUrl(elementId) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.select();
+  el.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(el.value).then(() => {
+    alert("URL Data Stream berhasil disalin ke clipboard!");
+  }).catch(() => {
+    document.execCommand("copy");
+    alert("URL Data Stream berhasil disalin ke clipboard!");
+  });
+}
+
+function setupDirectTsvDropzone() {
+  const dropzone = document.getElementById("direct-tsv-dropzone");
+  if (!dropzone) return;
+
+  ["dragenter", "dragover"].forEach(evtName => {
+    dropzone.addEventListener(evtName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.style.background = "rgba(37,99,235,0.06)";
+      dropzone.style.borderColor = "var(--primary)";
+    }, false);
+  });
+
+  ["dragleave", "drop"].forEach(evtName => {
+    dropzone.addEventListener(evtName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.style.background = "rgba(0,0,0,0.01)";
+      dropzone.style.borderColor = "var(--surface-border)";
+    }, false);
+  });
+
+  dropzone.addEventListener("drop", (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files && files.length > 0) {
+      setDirectTsvFile(files[0]);
+    }
+  }, false);
+}
+
+window.handleDirectTsvFileSelect = handleDirectTsvFileSelect;
+window.executeDirectTsvUpsert = executeDirectTsvUpsert;
+window.copyStreamUrl = copyStreamUrl;
+window.setupDirectTsvDropzone = setupDirectTsvDropzone;
+
+// Panggil setup dropzone langsung jika sudah dimuat
+if (document.readyState === "complete" || document.readyState === "interactive") {
+  setTimeout(setupDirectTsvDropzone, 100);
+} else {
+  document.addEventListener("DOMContentLoaded", setupDirectTsvDropzone);
+}

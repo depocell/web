@@ -611,3 +611,141 @@ def get_job_status(job_id: str) -> dict:
     Mengambil status terkini dari sebuah job.
     """
     return ADMIN_JOBS.get(job_id, {"status": "not_found"})
+
+
+def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026") -> dict:
+    """
+    Eksekusi conditional upsert langsung dari file TSV ke file Parquet tanpa perantara Excel.
+    Proses:
+    1. Membaca file TSV mentah.
+    2. Menjalankan aturan conditional filtering (buang transaksi sampah).
+    3. Membaca Parquet tahun berjalan eksisting di .cache/.
+    4. Melakukan deduplikasi & update baris eksisting serta insert baris baru.
+    5. Menyimpan langsung ke Parquet & reload cache RAM.
+    Kecepatan: ~1 detik untuk ratusan ribu transaksi.
+    """
+    t0 = time.time()
+    brand = brand.upper()
+    
+    if not os.path.exists(tsv_file_path):
+        return {"ok": False, "error": f"File TSV {tsv_file_path} tidak ditemukan"}
+
+    try:
+        df = pd.read_csv(tsv_file_path, sep="\t")
+    except Exception as e:
+        return {"ok": False, "error": f"Gagal membaca format TSV: {e}"}
+
+    total_raw = len(df)
+    if total_raw == 0:
+        return {"ok": False, "error": "File TSV kosong (0 baris)"}
+
+    # Aturan conditional filtering
+    zero_jual = (df["Hrg. Jual"] == 0) | (df["Hrg. Jual"].isna())
+    status_lower = df["Status"].astype(str).str.lower().str.strip()
+    bad_status = (
+        status_lower.str.contains("saldo tidak cukup", na=False) |
+        status_lower.str.contains("diluar wilayah", na=False) |
+        status_lower.str.contains("tujuan salah", na=False)
+    )
+
+    if brand == "ASTAGA":
+        ar_takeout = df["Kode Reseller"].astype(str).str.strip().str.upper().isin(["AR00037", "AR00009", "AR20408"])
+        to_drop = zero_jual | ar_takeout | bad_status
+    else:
+        one_jual = (df["Hrg. Jual"] == 1)
+        to_drop = zero_jual | one_jual | bad_status
+
+    clean_df = df[~to_drop].copy()
+    eliminated_count = int(to_drop.sum())
+    clean_count = len(clean_df)
+
+    if clean_count == 0:
+        return {
+            "ok": True,
+            "message": "Semua baris dalam TSV tereliminasi oleh filter sampah (tidak ada data bersih yang di-upsert).",
+            "total_raw": total_raw,
+            "eliminated": eliminated_count,
+            "inserted": 0,
+            "updated": 0,
+            "elapsed_sec": round(time.time() - t0, 2)
+        }
+
+    # Standarisasi kolom sesuai skema Parquet
+    col_mapping = {
+        "TrxID": "trx_id",
+        "Tgl. Entri": "tgl_entry",
+        "Produk": "product_id",
+        "Qty": "qty",
+        "Kode Reseller": "ar_id",
+        "Modul": "modul_id",
+        "Status": "status",
+        "Tgl. Status": "tgl_stat",
+        "Hrg. Beli": "beli",
+        "Hrg. Jual": "jual"
+    }
+    for old_c, new_c in col_mapping.items():
+        if old_c in clean_df.columns:
+            clean_df[new_c] = clean_df[old_c]
+
+    # Convert types
+    clean_df["trx_id"] = clean_df["trx_id"].astype("int64")
+    clean_df["tgl_entry"] = pd.to_datetime(clean_df["tgl_entry"])
+    clean_df["product_id"] = clean_df["product_id"].astype(str)
+    clean_df["qty"] = clean_df["qty"].fillna(1).astype("int64")
+    clean_df["ar_id"] = clean_df["ar_id"].astype(str)
+    clean_df["modul_id"] = clean_df["modul_id"].astype(str)
+    clean_df["status"] = clean_df["status"].astype(str)
+    clean_df["tgl_stat"] = pd.to_datetime(clean_df["tgl_stat"])
+    clean_df["beli"] = clean_df["beli"].fillna(0).astype("int64")
+    clean_df["jual"] = clean_df["jual"].fillna(0).astype("int64")
+    clean_df["_source_file"] = os.path.basename(tsv_file_path)
+
+    needed_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual", "_source_file"]
+    clean_df = clean_df[needed_cols]
+
+    parquet_file = os.path.join(BASE_DIR, ".cache", f"trx_{brand.lower()}_{year}.parquet")
+    os.makedirs(os.path.dirname(parquet_file), exist_ok=True)
+
+    if os.path.exists(parquet_file):
+        df_existing = pd.read_parquet(parquet_file)
+        incoming_ids = set(clean_df["trx_id"])
+        existing_mask = df_existing["trx_id"].isin(incoming_ids)
+        updated_count = int(existing_mask.sum())
+        inserted_count = clean_count - updated_count
+
+        df_kept = df_existing[~existing_mask]
+        df_final = pd.concat([df_kept, clean_df], ignore_index=True)
+        df_final = df_final.sort_values(by=["tgl_entry", "trx_id"]).reset_index(drop=True)
+    else:
+        df_final = clean_df.sort_values(by=["tgl_entry", "trx_id"]).reset_index(drop=True)
+        inserted_count = clean_count
+        updated_count = 0
+
+    # Simpan atomic ke Parquet
+    temp_p = parquet_file + f".tmp_{int(time.time())}"
+    df_final.to_parquet(temp_p, index=False, compression="snappy")
+    shutil.move(temp_p, parquet_file)
+
+    # Invalidate cache memory
+    trx_engine.clear_memory_cache(brand, year)
+    trx_engine.load(brand, year)
+
+    # Hapus watermark cache
+    _WATERMARK_CACHE.clear()
+
+    elapsed = round(time.time() - t0, 2)
+    return {
+        "ok": True,
+        "message": f"Berhasil upsert langsung ke Parquet {brand} {year}!",
+        "brand": brand,
+        "year": year,
+        "total_raw": total_raw,
+        "eliminated": eliminated_count,
+        "clean_rows": clean_count,
+        "inserted": inserted_count,
+        "updated": updated_count,
+        "total_rows_now": len(df_final),
+        "min_date": str(df_final["tgl_entry"].min()),
+        "max_date": str(df_final["tgl_entry"].max()),
+        "elapsed_sec": elapsed
+    }

@@ -10,7 +10,7 @@ import json
 import uvicorn
 import asyncio
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse, HTMLResponse, FileResponse, RedirectResponse
+from starlette.responses import JSONResponse, HTMLResponse, FileResponse, RedirectResponse, Response, PlainTextResponse, StreamingResponse
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -827,6 +827,99 @@ async def api_admin_sync_vps(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+async def api_admin_upload_tsv(request):
+    """Menerima upload file TSV OtomaX secara langsung dari browser/admin UI,
+    melakukan pembersihan data, deduplikasi trx_id, dan upsert ke file Parquet."""
+    try:
+        form = await request.form()
+        brand = form.get("brand", "ASTAGA").upper()
+        uploaded_file = form.get("file")
+        if not uploaded_file:
+            return JSONResponse({"ok": False, "error": "File TSV tidak ditemukan dalam form upload."}, status_code=400)
+
+        upload_dir = os.path.join(BASE_DIR, ".cache", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = getattr(uploaded_file, "filename", None) or f"upload_{brand}.tsv"
+        temp_path = os.path.join(upload_dir, filename)
+
+        contents = await uploaded_file.read()
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+
+        res = await asyncio.to_thread(admin_engine.upsert_direct_to_parquet, brand=brand, tsv_file_path=temp_path)
+
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        except Exception:
+            pass
+
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_export_transactions_parquet(request):
+    """Menyediakan file Parquet mentah teroptimasi untuk konsumsi Power BI Desktop (From Web / Parquet)."""
+    try:
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+        year = request.query_params.get("year", "2026")
+        parquet_path = trx_engine._cache_path(brand, year)
+        if not os.path.exists(parquet_path):
+            return JSONResponse({"ok": False, "error": f"File Parquet untuk {brand} {year} belum tersedia di server."}, status_code=404)
+
+        return FileResponse(
+            parquet_path,
+            media_type="application/octet-stream",
+            filename=f"trx_{brand.lower()}_{year}.parquet"
+        )
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_export_transactions_csv(request):
+    """Menyediakan data transaksi dalam format CSV Stream untuk Excel Power Query (From Web / CSV).
+    Query Params:
+    - brand: ASTAGA / OKIPAY (default: ASTAGA)
+    - year: 2026 (default: 2026)
+    - month: format YYYY-MM (misal: 2026-10) atau ALL (default: ALL)
+    - status: Sukses / Gagal / ALL (default: ALL)
+    - key: depas2026
+    """
+    try:
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+        year = request.query_params.get("year", "2026")
+        month = request.query_params.get("month", "").strip()
+        status_filter = request.query_params.get("status", "ALL").strip().lower()
+
+        df = await asyncio.to_thread(trx_engine.load, brand, year)
+        if df is None or len(df) == 0:
+            return PlainTextResponse("trx_id,tgl_entry,product_id,qty,ar_id,modul_id,status,tgl_stat,beli,jual\n", media_type="text/csv")
+
+        if month and month.upper() != "ALL":
+            s_tgl = df["tgl_entry"].astype(str)
+            df = df[s_tgl.str.startswith(month)]
+
+        if status_filter and status_filter != "all":
+            df = df[df["status"].astype(str).str.lower() == status_filter]
+
+        cols = [c for c in ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"] if c in df.columns]
+        csv_data = df[cols].to_csv(index=False)
+
+        filename = f"trx_{brand.lower()}_{month if month and month.upper() != 'ALL' else year}.csv"
+        return Response(
+            csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return PlainTextResponse(f"Error generating CSV: {str(e)}", status_code=500)
+
+
 async def api_admin_agents(request):
     """Query daftar agen, statistik, dan opsi filter."""
     try:
@@ -1019,6 +1112,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         path = request.url.path
 
+        # Whitelist token key untuk Data Stream (Power BI / Excel Power Query)
+        export_key = request.query_params.get("key", "")
+        if path.startswith("/api/export/") and export_key in ("depas2026", "secret_export_token"):
+            return await call_next(request)
+
         # 2. Whitelist rute publik:
         # - Halaman login & endpoint auth
         # - Akses langsung tim sales lapangan ke SCO Suite (/sco, /pages/sco/*, /api/sco/*)
@@ -1113,6 +1211,9 @@ routes = [
     Route("/api/admin/upsert",          api_admin_upsert, methods=["POST"]),
     Route("/api/admin/job-status",      api_admin_job_status),
     Route("/api/admin/sync-vps",        api_admin_sync_vps, methods=["GET", "POST"]),
+    Route("/api/admin/upload-tsv",       api_admin_upload_tsv, methods=["POST"]),
+    Route("/api/export/transactions.csv", api_export_transactions_csv),
+    Route("/api/export/transactions.parquet", api_export_transactions_parquet),
     Route("/api/admin/agents",          api_admin_agents),
     Route("/api/admin/agents/detail",    api_admin_agent_detail),
     Route("/api/admin/agents/save",      api_admin_agent_save, methods=["POST"]),
