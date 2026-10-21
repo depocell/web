@@ -7,24 +7,33 @@ let currentAuthUser = {
   is_local: false
 };
 
-async function checkAuthStatus() {
-  try {
-    const res = await fetch("/api/auth/status?t=" + Date.now());
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.ok) {
-        currentAuthUser = {
-          authenticated: !!data.authenticated,
-          username: data.username || "Guest",
-          role: (data.role || "guest").toLowerCase(),
-          is_local: !!data.is_local
-        };
+let authCheckPromise = null;
+
+async function checkAuthStatus(force = false) {
+  if (authCheckPromise && !force) return authCheckPromise;
+
+  authCheckPromise = (async () => {
+    try {
+      const res = await fetch("/api/auth/status?t=" + Date.now());
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ok) {
+          currentAuthUser = {
+            authenticated: !!data.authenticated,
+            username: data.username || "Guest",
+            role: (data.role || "guest").toLowerCase(),
+            is_local: !!data.is_local
+          };
+        }
       }
+    } catch (e) {
+      console.warn("Gagal memeriksa status auth:", e);
     }
-  } catch (e) {
-    console.warn("Gagal memeriksa status auth:", e);
-  }
-  applyAuthUI();
+    applyAuthUI();
+    return currentAuthUser;
+  })();
+
+  return authCheckPromise;
 }
 
 function applyAuthUI() {
@@ -175,6 +184,9 @@ function triggerBrandSwitchVisual(activeBrand, clickedEl, targetContainerId) {
 window.triggerBrandSwitchVisual = triggerBrandSwitchVisual;
 
 async function navigate() {
+  // Pastikan status autentikasi dari server sudah selesai diperiksa sebelum evaluasi hak akses rute
+  await checkAuthStatus();
+
   let rawHash = window.location.hash || "#overview";
   let [hash] = rawHash.split("?");
 
