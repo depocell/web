@@ -90,7 +90,7 @@ def ask_gemini(prompt: str) -> str:
     if not GEMINI_API_KEY:
         return "Mohon maaf Juragan, GEMINI_API_KEY belum dikonfigurasi di server."
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    models = ["gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash-lite", "gemini-3.8-flash"]
     payload = {
         "system_instruction": {
             "parts": [{"text": SYSTEM_INSTRUCTION}]
@@ -104,20 +104,21 @@ def ask_gemini(prompt: str) -> str:
         }
     }
 
-    try:
-        resp = requests.post(url, json=payload, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            candidates = data.get("candidates", [])
-            if candidates:
-                return candidates[0]["content"]["parts"][0]["text"].strip()
-            return "Maaf Juragan, AI tidak memberikan respon."
-        else:
-            logger.error(f"Gemini API Error {resp.status_code}: {resp.text}")
-            return f"Kendala koneksi ke Google Gemini AI (HTTP {resp.status_code})."
-    except Exception as e:
-        logger.error(f"Exception saat memanggil Gemini: {e}")
-        return f"Terjadi kesalahan saat memproses jawaban: {e}"
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_API_KEY}"
+        try:
+            resp = requests.post(url, json=payload, timeout=12)
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    return candidates[0]["content"]["parts"][0]["text"].strip()
+            else:
+                logger.warning(f"Model {model} returned {resp.status_code}: {resp.text[:100]}")
+        except Exception as e:
+            logger.warning(f"Error calling {model}: {e}")
+
+    return "Maaf Juragan, AI sedang mengalami lonjakan trafik sementara dari Google. Silakan ketik pertanyaan lagi ya!"
 
 
 # 4. Command Handlers
