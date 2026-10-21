@@ -151,39 +151,6 @@
       </div>
     </div>
 
-    <!-- CLOUD / VPS SYNC BANNER -->
-    <div class="card-box" style="padding: 16px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); border-left: 4px solid var(--primary);">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(37,99,235,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
-          </svg>
-        </div>
-        <div>
-          <div style="font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-            <span>Sinkronisasi Cloud Live</span>
-            <span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 600;">depas.my.id</span>
-          </div>
-          <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
-            Unggah database master, cache transaksi Parquet, dan otomatis update server cloud <strong>https://depas.my.id</strong>
-          </div>
-        </div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <span id="sync-vps-status" style="font-size: 12px; color: var(--text-muted);"></span>
-        <button type="button" id="btn-sync-vps" onclick="syncToVpsCloud()"
-          style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-weight: 600; font-size: 13px; border-radius: 8px; background: var(--primary); color: #fff; border: none; cursor: pointer; transition: all 0.2s ease;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="16 16 12 12 8 16"></polyline>
-            <line x1="12" y1="12" x2="12" y2="21"></line>
-            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
-            <polyline points="16 16 12 12 8 16"></polyline>
-          </svg>
-          <span id="btn-sync-vps-text">Sinkronkan ke depas.my.id</span>
-        </button>
-      </div>
-    </div>
-
     <!-- DIRECT TSV UPLOADER & DATA STREAM HUB (FASE 2) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px;">
       
@@ -360,39 +327,6 @@
     </div>
 
 
-    <!-- BRAND CARDS CONTAINER (WATERMARK & RADAR) -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;"
-      id="admin-cards-container">
-      <div class="card-box" style="padding: 30px; text-align: center; color: var(--text-muted);">
-        Memindai status raw data dan radar incoming TSV...
-      </div>
-    </div>
-
-    <!-- LIVE EXECUTION CONSOLE -->
-    <div class="card-box" id="admin-console-box"
-      style="display: none; padding: 0; overflow: hidden; border: 1px solid var(--surface-border);">
-      <div
-        style="padding: 14px 18px; background: var(--surface-card); border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div id="console-spinner"
-            style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 8px #16a34a;">
-          </div>
-          <strong style="font-size: 13.5px;" id="console-title">Live Pipeline Execution</strong>
-        </div>
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);" id="console-percent">0%</div>
-      </div>
-
-      <div style="width: 100%; height: 4px; background: rgba(0,0,0,0.06); position: relative;">
-        <div id="console-progress-bar"
-          style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
-      </div>
-
-      <div id="console-terminal"
-        style="background: #0f172a; color: #f8fafc; font-family: var(--font-mono); font-size: 12px; padding: 16px; min-height: 180px; max-height: 320px; overflow-y: auto; line-height: 1.6;">
-        <div style="color: #94a3b8;">Menunggu eksekusi job...</div>
-      </div>
-    </div>
-
     <!-- AUDIT MASTER: KODE BARU TERDETEKSI DI TRANSAKSI (UNMAPPED RESELLER & PRODUK) -->
     <div id="admin-unmapped-audit-section" class="card-box"
       style="display: none; padding: 0; overflow: hidden; border: 1px solid #fde68a; background: var(--surface-card);">
@@ -497,41 +431,6 @@
 
       <!-- PROGRESS & RESULT BOX -->
       <div id="reseller-upload-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
-    </div>
-
-    <!-- RADAR TSV RESELLER MINGGUAN (C:\RAW DATA) -->
-    <div id="reseller-radar-container" class="card-box" style="padding: 12px 18px; background: rgba(8, 145, 178, 0.05); border-left: 4px solid #0891b2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; transition: all 0.3s ease;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span id="reseller-radar-icon-wrap" style="display:inline-flex; align-items:center; color:#0891b2;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="2"></circle>
-            <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
-          </svg>
-        </span>
-        <div style="font-size: 12.5px;">
-          <strong style="color: var(--text-main);">Radar TSV Reseller Mingguan (C:\RAW DATA):</strong>
-          <span id="reseller-radar-desc" style="color: var(--text-muted); margin-left: 6px;">Memeriksa ketersediaan file TSV...</span>
-        </div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span id="reseller-radar-badge" class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700; padding: 4px 10px; border-radius: 6px;">Up-to-Date</span>
-        
-        <!-- Tombol Sync Utama (Hanya Menyala jika TSV Baru Terdeteksi) -->
-        <button type="button" id="reseller-radar-sync-btn" onclick="syncResellerTSV()" class="btn-primary" style="display: none; padding: 5px 14px; font-size: 12px; font-weight: 600; background: #0891b2; border: none; border-radius: 6px; cursor: pointer; align-items: center; gap: 5px; box-shadow: 0 1px 3px rgba(8,145,178,0.3);">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-          </svg>
-          <span id="reseller-radar-sync-text">Sync Sekarang</span>
-        </button>
-
-        <!-- Tombol Sinkron Ulang Sekunder (Hanya jika ingin paksa re-sync) -->
-        <button type="button" id="reseller-radar-resync-btn" onclick="syncResellerTSV()" title="Paksa sinkronisasi ulang data TSV ke SQLite" style="display: none; padding: 4px 10px; font-size: 11.5px; font-weight: 600; background: transparent; border: 1px solid var(--surface-border); color: var(--text-muted); border-radius: 6px; cursor: pointer; align-items: center; gap: 5px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-          </svg>
-          <span>Sinkron Ulang</span>
-        </button>
-      </div>
     </div>
 
     <!-- STAT KPI SUMMARY CARDS -->
