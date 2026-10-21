@@ -299,8 +299,11 @@ function toggleSidebar() {
   const backdrop = document.getElementById("sidebar-backdrop");
 
   if (isMobile) {
-    sidebar.classList.toggle("open");
-    if (backdrop) backdrop.classList.toggle("active", sidebar.classList.contains("open"));
+    if (!sidebar) return;
+    const willOpen = !sidebar.classList.contains("open");
+    sidebar.classList.toggle("open", willOpen);
+    if (backdrop) backdrop.classList.toggle("active", willOpen);
+    document.body.style.overflow = willOpen ? "hidden" : "";
   } else {
     const isCollapsed = document.documentElement.classList.toggle("sidebar-collapsed");
     localStorage.setItem("sidebar_collapsed", isCollapsed ? "true" : "false");
@@ -313,8 +316,9 @@ function closeSidebar() {
   const backdrop = document.getElementById("sidebar-backdrop");
 
   if (isMobile) {
-    sidebar.classList.remove("open");
+    if (sidebar) sidebar.classList.remove("open");
     if (backdrop) backdrop.classList.remove("active");
+    document.body.style.overflow = "";
   } else {
     document.documentElement.classList.add("sidebar-collapsed");
     localStorage.setItem("sidebar_collapsed", "true");
@@ -441,6 +445,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const backdrop = document.getElementById("sidebar-backdrop");
   if (backdrop) backdrop.addEventListener("click", closeSidebar);
+
+  // Mobile Topbar Theme Toggle Button
+  const btnMobileTheme = document.getElementById("btn-mobile-theme-toggle");
+  if (btnMobileTheme) {
+    btnMobileTheme.addEventListener("click", () => {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+      toggleAppTheme(currentTheme !== "dark");
+    });
+  }
+
+  // Handle window resize from mobile to desktop
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      const sidebar = document.getElementById("sidebar");
+      const backdrop = document.getElementById("sidebar-backdrop");
+      if (sidebar) sidebar.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("active");
+      document.body.style.overflow = "";
+    }
+  });
 
   // Global Keyboard Shortcuts: F5 / Ctrl+R untuk refresh di mode desktop app
   window.addEventListener("keydown", (e) => {

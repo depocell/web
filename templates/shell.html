@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css?v=11">
+  <link rel="stylesheet" href="/static/css/app.css?v=12">
   <script>
     (function() {
       var savedTheme = localStorage.getItem('theme_preference');
@@ -43,9 +43,13 @@
           <div class="brand-subtitle">BI &amp; Analytics</div>
         </div>
       </div>
-      <button id="btn-collapse-sidebar" class="btn-sidebar-collapse" title="Lipat / Perluas Sidebar" aria-label="Toggle Sidebar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="btn-collapse-sidebar" class="btn-sidebar-collapse" title="Tutup / Lipat Sidebar" aria-label="Toggle Sidebar">
+        <svg class="icon-desktop-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <svg class="icon-mobile-close" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
     </div>
@@ -191,18 +195,39 @@
 
   <!-- MAIN WRAPPER -->
   <div id="main-wrapper">
-    <header id="topbar">
+    <header id="topbar" class="mobile-header">
       <div class="topbar-left">
-        <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="Sembunyikan / Tampilkan Sidebar" aria-label="Toggle Sidebar">
+        <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="Menu Navigasi" aria-label="Buka Menu Navigasi">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="3" y1="12" x2="21" y2="12"></line>
             <line x1="3" y1="6" x2="21" y2="6"></line>
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
+        <div class="mobile-brand-mark">
+          <img src="/static/img/fav_icon.png" alt="Web Report" class="mobile-topbar-icon">
+          <span class="mobile-topbar-brand">WEB REPORT</span>
+        </div>
         <div class="page-breadcrumb" id="page-title">Overview Dashboard</div>
       </div>
-      <div class="topbar-actions"></div>
+      <div class="topbar-actions">
+        <button id="btn-mobile-theme-toggle" class="btn-mobile-action" title="Ganti Mode Gelap / Terang" aria-label="Ganti Mode Gelap / Terang">
+          <svg class="mobile-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg class="mobile-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+      </div>
     </header>
 
     <main id="content-area">
@@ -271,6 +296,6 @@
     </footer>
   </div>
 
-  <script src="/static/js/app.js?v=28"></script>
+  <script src="/static/js/app.js?v=29"></script>
 </body>
 </html>
