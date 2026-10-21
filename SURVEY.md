@@ -17,15 +17,19 @@ Pada hierarki server OtomaX / Depo Cell:
 
 ---
 
-## 2. Pemetaan Kontak WhatsApp (`MASTER/PENGIRIM`)
+## 2. Pemetaan Kontak WhatsApp (`C:\DEPASMYID\RESELLER\`) & Eliminasi Akun Zombie
 
-Data kontak berhasil diintegrasikan ke database SQLite `MASTER/master_data.db` pada tabel **`reseller_contacts`**:
+Data kontak diintegrasikan ke database SQLite `MASTER/master_data.db` pada tabel **`reseller_contacts`**:
 * **Sumber Data**: 
-  * `MASTER/PENGIRIM/Jabber.tsv` (WhatsApp JID resmi `@c.us`).
-  * `MASTER/PENGIRIM/SMS.tsv` (Nomor seluler GSM).
-* **Hasil Ingestion**:
-  * Total kontak di database: **25.849 reseller terstandarisasi** (`628...`).
-  * **Tingkat Pencocokan Reseller Churn: 100% (159 dari 159 reseller pasif memiliki kontak WhatsApp valid)**.
+  * `C:\DEPASMYID\RESELLER\KONTAK_ASTAGA.tsv` (33.076 pengirim OtomaX: SMS, Jabber `@c.us`, WA Center).
+  * `C:\DEPASMYID\RESELLER\KONTAK_OKIPAY.tsv` (Pengirim lengkap OKIPAY).
+* **Eliminasi Akun Zombie (Filter Anti-Zombie)**:
+  * Akun dengan aktivitas kosong (`<null>`) atau akun tidur sebelum tahun 2023 **dieliminasi total** (~18.000 akun zombie dibuang).
+  * Database hanya menyimpan **9.555 kontak mitra aktif** (7.153 ASTAGA + 2.402 OKIPAY) dengan tingkat pencocokan 99,96%.
+* **Smart Multi-Number Resolution**:
+  * Ada 17,5% reseller yang memiliki lebih dari 1 nomor pengirim di OtomaX.
+  * Sistem menyimpan seluruh nomor unik di kolom `candidate_phones` (JSON Array).
+  * **Auto-Promotion WhatsApp**: Jika nomor utama mati, sistem otomatis memindai nomor-nomor alternatifnya di background. Begitu ditemukan nomor yang aktif ber-WA (seperti kasus `081388980564` pada `AR02460` NOVAL CELL), nomor aktif tersebut **langsung dipromosikan jadi nomor WhatsApp utama** dan menyala hijau 🟢!
 
 ---
 
