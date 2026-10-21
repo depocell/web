@@ -86,7 +86,7 @@ Karaktermu: Sangat cerdas, santun, lugas, solutif, dan berwawasan tajam seputar 
 Gunakan bahasa Indonesia yang profesional namun luwes dan bersahabat. Selalu gunakan format poin-poin yang mudah dibaca di layar HP jika memberikan penjelasan panjang.
 """
 
-def get_live_context_snapshot() -> str:
+def get_live_context_snapshot(prompt: str = "") -> str:
     """Mengambil snapshot ringkas data transaksi & server terkini untuk disuntikkan ke konteks AI."""
     lines = []
     data_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
@@ -133,25 +133,76 @@ def get_live_context_snapshot() -> str:
         except Exception:
             pass
 
-    # 3. Data Top Drop Agen (Growth Paling Rendah)
-    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
-    if os.path.exists(tb_path):
+    # 3. Data Top Drop & Top Growth Agen langsung dari pages/sco/data_sco.json
+    sco_path = os.path.join(BASE_DIR, "pages", "sco", "data_sco.json")
+    if os.path.exists(sco_path):
         try:
-            with open(tb_path, "r", encoding="utf-8") as f:
-                tb_data = json.load(f)
-            for b, binfo in tb_data.items():
-                top_drop = binfo.get("top_drop", [])
-                if top_drop:
-                    lines.append(f"\n[DAFTAR 10 AGEN DENGAN DROP HARIAN TERBESAR / GROWTH PALING RENDAH ({b} MTD OKTOBER 2026)]:")
-                    for i, a in enumerate(top_drop[:10]):
+            with open(sco_path, "r", encoding="utf-8") as f:
+                sco_data = json.load(f)
+            tren_all = sco_data.get("tren_agen", [])
+            tren = [x for x in tren_all if x.get("avg_prev", 0) >= 5 or x.get("avg_curr", 0) >= 5]
+
+            # Top 10 Drop
+            sorted_drop = sorted(tren, key=lambda x: x.get("diff", 0))
+            if sorted_drop:
+                lines.append("\n[DAFTAR 10 AGEN DENGAN PENURUNAN / DROP HARIAN TERBESAR (OKTOBER 2026 VS SEPTEMBER)]:")
+                for i, a in enumerate(sorted_drop[:10], 1):
+                    aid = a.get("aid", "-")
+                    name = a.get("name", "-")
+                    cb = a.get("cabang", "-")
+                    p = a.get("avg_prev", 0)
+                    c = a.get("avg_curr", 0)
+                    diff = round(a.get("diff", 0), 1)
+                    pct = round(a.get("growth", 0) * 100, 1)
+                    lines.append(f"  {i}. [{aid}] {name} ({cb}) | Run-rate: {p}/hari -> {c}/hari (Drop: {diff}/hari | {pct}%)")
+
+            # Top 10 Growth
+            sorted_growth = sorted(tren, key=lambda x: x.get("diff", 0), reverse=True)
+            if sorted_growth:
+                lines.append("\n[DAFTAR 10 AGEN DENGAN PERTUMBUHAN / KENAIKAN HARIAN TERTINGGI (OKTOBER 2026 VS SEPTEMBER)]:")
+                for i, a in enumerate(sorted_growth[:10], 1):
+                    aid = a.get("aid", "-")
+                    name = a.get("name", "-")
+                    cb = a.get("cabang", "-")
+                    p = a.get("avg_prev", 0)
+                    c = a.get("avg_curr", 0)
+                    diff = round(a.get("diff", 0), 1)
+                    pct = round(a.get("growth", 0) * 100, 1)
+                    lines.append(f"  {i}. [{aid}] {name} ({cb}) | Run-rate: {p}/hari -> {c}/hari (Naik: +{diff}/hari | +{pct}%)")
+
+            # Spesifik Agen Lookup jika disebut dalam prompt
+            if prompt:
+                import re
+                found_ids = [x.upper() for x in re.findall(r'(?:AR|OP)\d{4,5}', prompt, re.IGNORECASE)]
+                matched_agents = [a for a in tren_all if a.get("aid", "").upper() in found_ids]
+
+                if not matched_agents:
+                    STOPWORDS = {
+                        'CELL', 'CELLULAR', 'PULSA', 'KONTER', 'COUNTER', 'GIMANA', 'BAGAIMANA',
+                        'PERFORMA', 'TOKO', 'BULAN', 'HARI', 'TRANSAKSI', 'BERAPA', 'SAYA', 'AGEN',
+                        'YANG', 'INFO', 'TOLONG', 'CEK', 'DONG', 'COBA', 'SIAPA', 'MANA', 'BISA',
+                        'KIRA', 'KASIH', 'LIHAT', 'TULIS', 'TULISKAN', 'DENGAN', 'UNTUK', 'DARI'
+                    }
+                    words = [w.upper() for w in re.findall(r'\b[A-Za-z0-9]{4,}\b', prompt) if w.upper() not in STOPWORDS]
+                    if words:
+                        for a in tren_all:
+                            aname = a.get("name", "").upper()
+                            if any(k in aname for k in words):
+                                matched_agents.append(a)
+                                if len(matched_agents) >= 3:
+                                    break
+
+                if matched_agents:
+                    lines.append("\n[DETAIL DATA AGEN TERKAIT PERTANYAAN USER]:")
+                    for a in matched_agents[:3]:
+                        m_hist = ", ".join([f"{k}: {v}" for k, v in a.get("monthly", {}).items()])
                         lines.append(
-                            f"  {i+1}. [{a['agen_id']}] {a['name']} ({a['cabang']}) | "
-                            f"Run-rate: {a['daily_prev']:.1f} -> {a['daily_curr']:.1f} trx/hari "
-                            f"(Drop: {a['drop_daily']:.1f}/hari | {a['drop_pct']}%) | "
-                            f"MTD: {a['mtd_trx']:,} trx (Bulan Lalu: {a['prev_trx']:,} trx)"
+                            f"  • ID: {a.get('aid')} | Nama: {a.get('name')} | Cabang: {a.get('cabang')} | SCO: {a.get('sco')} | Tipe: {a.get('type')}\n"
+                            f"    Run-rate Sep: {a.get('avg_prev')}/hari -> Oct: {a.get('avg_curr')}/hari (Diff: {a.get('diff')}/hari)\n"
+                            f"    Riwayat Run-rate Bulanan: {m_hist}"
                         )
         except Exception as e:
-            logger.error(f"Error reading top_bottom_agen.json: {e}")
+            logger.error(f"Error reading tren_agen from data_sco.json: {e}")
 
     return "\n".join(lines)
 
@@ -160,7 +211,7 @@ def ask_gemini(prompt: str) -> str:
     if not GEMINI_API_KEY:
         return "Mohon maaf Juragan, GEMINI_API_KEY belum dikonfigurasi di server."
 
-    live_context = get_live_context_snapshot()
+    live_context = get_live_context_snapshot(prompt)
     system_instruction_full = f"""{SYSTEM_INSTRUCTION}
 
 KONTEKS DATA RESMI SERVER DEPAS SAAT INI (REAL-TIME SNAPSHOT):
