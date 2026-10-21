@@ -302,7 +302,10 @@ def migrate_astaga(tsv_path: str = None) -> dict:
         print(f"[WARN] File TSV ASTAGA {tsv_path} tidak ditemukan!")
         return {"ok": False, "error": f"File TSV ASTAGA {tsv_path} tidak ditemukan"}
 
-    df_tsv = pd.read_csv(tsv_path, sep="\t")
+    try:
+        df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="utf-8")
+    except UnicodeDecodeError:
+        df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="latin-1")
     print(f"[MIGRATE] Membaca {len(df_tsv):,} raw baris dari {os.path.basename(tsv_path)}.")
 
     # Baca metadata existing dari database agents terlebih dahulu agar edit manual / SCO tidak hilang
@@ -511,7 +514,10 @@ def migrate_okipay(tsv_path: str = None) -> dict:
         print(f"[WARN] File TSV OKIPAY {tsv_path} tidak ditemukan!")
         return {"ok": False, "error": f"File TSV OKIPAY {tsv_path} tidak ditemukan"}
 
-    df_tsv = pd.read_csv(tsv_path, sep="\t")
+    try:
+        df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="utf-8")
+    except UnicodeDecodeError:
+        df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="latin-1")
     print(f"[MIGRATE] Membaca {len(df_tsv):,} raw baris dari {os.path.basename(tsv_path)}.")
 
     # Baca metadata existing dari database agents terlebih dahulu agar edit manual tidak hilang

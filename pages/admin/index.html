@@ -458,6 +458,47 @@
   <!-- ========================================================================= -->
   <div id="view-admin-master" style="display: none; flex-direction: column; gap: 20px;">
 
+    <!-- DIRECT UPLOAD MASTER RESELLER TSV -->
+    <div class="card-box" style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #0891b2; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(8,145,178,0.1); display: flex; align-items: center; justify-content: center; color: #0891b2;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 14px;">Upload &amp; Sinkronisasi Data Reseller Langsung</div>
+            <div style="font-size: 11.5px; color: var(--text-muted);">Perbarui database master reseller, pemetaan cabang toko, dan pohon downline dari file ekspor OtomaX</div>
+          </div>
+        </div>
+        
+        <!-- BRAND SELECTOR -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+            <input type="radio" name="reseller-upload-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
+            <span>ASTAGA</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+            <input type="radio" name="reseller-upload-brand" value="OKIPAY" style="accent-color: var(--primary);" />
+            <span>OKIPAY</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- FILE INPUT -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <input type="file" id="reseller-tsv-file-input" accept=".tsv,.txt" onchange="handleResellerTsvFileSelect(event)"
+          style="display: block; width: 100%; padding: 10px 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-main);" />
+      </div>
+
+      <!-- PROGRESS & RESULT BOX -->
+      <div id="reseller-upload-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
+    </div>
+
     <!-- RADAR TSV RESELLER MINGGUAN (C:\RAW DATA) -->
     <div id="reseller-radar-container" class="card-box" style="padding: 12px 18px; background: rgba(8, 145, 178, 0.05); border-left: 4px solid #0891b2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; transition: all 0.3s ease;">
       <div style="display: flex; align-items: center; gap: 10px;">

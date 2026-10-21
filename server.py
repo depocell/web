@@ -861,6 +861,50 @@ async def api_admin_upload_tsv(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+async def api_admin_upload_reseller_tsv(request):
+    """Menerima upload file TSV Master Reseller OtomaX (astaga.tsv / okipay.tsv),
+    menjalankan migrasi hierarki, update database SQLite, dan refresh cache Parquet/Stream."""
+    try:
+        import time
+        form = await request.form()
+        brand = form.get("brand", "ASTAGA").upper()
+        uploaded_file = form.get("file")
+        if not uploaded_file:
+            return JSONResponse({"ok": False, "error": "File TSV Reseller tidak ditemukan dalam form upload."}, status_code=400)
+
+        upload_dir = os.path.join(BASE_DIR, ".cache", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = getattr(uploaded_file, "filename", None) or f"reseller_{brand}.tsv"
+        temp_path = os.path.join(upload_dir, filename)
+
+        contents = await uploaded_file.read()
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+
+        def _do_migration():
+            t0 = time.time()
+            if brand == "ASTAGA":
+                res = master_data_engine.migrate_astaga(tsv_path=temp_path)
+            else:
+                res = master_data_engine.migrate_okipay(tsv_path=temp_path)
+            res["elapsed_sec"] = round(time.time() - t0, 2)
+            return res
+
+        res = await asyncio.to_thread(_do_migration)
+
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        except Exception:
+            pass
+
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 async def api_export_transactions_parquet(request):
     """Menyediakan file Parquet mentah teroptimasi untuk konsumsi Power BI Desktop (From Web / Parquet)."""
     try:
@@ -1291,6 +1335,7 @@ routes = [
     Route("/api/admin/job-status",      api_admin_job_status),
     Route("/api/admin/sync-vps",        api_admin_sync_vps, methods=["GET", "POST"]),
     Route("/api/admin/upload-tsv",       api_admin_upload_tsv, methods=["POST"]),
+    Route("/api/admin/upload-reseller-tsv", api_admin_upload_reseller_tsv, methods=["POST"]),
     Route("/api/export/transactions.csv", api_export_transactions_csv),
     Route("/api/export/transactions.parquet", api_export_transactions_parquet),
     Route("/api/export/customers.csv",    api_export_customers_csv),
