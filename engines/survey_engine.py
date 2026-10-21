@@ -97,16 +97,24 @@ def get_survey_candidates(brand: str = "ASTAGA", month_code: Optional[str] = Non
         prev_trx = int(r.get("prev_trx", 0))
 
         # Cari kontak di reseller_contacts
-        cur.execute("SELECT no_wa, no_sms, primary_channel, source FROM reseller_contacts WHERE kode_reseller = ?", (cid,))
+        cur.execute("SELECT no_wa, no_sms, primary_channel, source, candidate_phones FROM reseller_contacts WHERE kode_reseller = ?", (cid,))
         c_row = cur.fetchone()
 
         phone = None
         channel = "WHATSAPP"
         source = "NONE"
+        candidate_phones = []
         if c_row:
             phone = c_row["no_wa"] or c_row["no_sms"]
             channel = c_row["primary_channel"] or "WHATSAPP"
             source = c_row["source"] or "-"
+            if c_row["candidate_phones"]:
+                try:
+                    candidate_phones = json.loads(c_row["candidate_phones"])
+                except Exception:
+                    candidate_phones = [phone] if phone else []
+            elif phone:
+                candidate_phones = [phone]
 
         # Log status sebelumnya
         log_info = logs_by_reseller.get(cid, {})
@@ -123,6 +131,8 @@ def get_survey_candidates(brand: str = "ASTAGA", month_code: Optional[str] = Non
             "prev_trx": prev_trx,
             "curr_trx": 0,
             "no_wa": phone,
+            "candidate_phones": candidate_phones,
+            "candidate_count": len(candidate_phones),
             "primary_channel": channel,
             "source": source,
             "status": status,
@@ -320,11 +330,20 @@ def analyze_reply_nlp(reply_text: str) -> Dict[str, Any]:
 
 def record_survey_reply(log_id: int, reply_text: str) -> Dict[str, Any]:
     """Menyimpan balasan reseller dan memperbarui status log ke REPLIED."""
-    analysis = analyze_reply_nlp(reply_text)
-    now = datetime.now().isoformat()
-
     conn = get_db_connection()
     cur = conn.cursor()
+    cur.execute("SELECT reply_received FROM survey_churn_logs WHERE id = ?", (log_id,))
+    row = cur.fetchone()
+    existing = row["reply_received"] if row and row["reply_received"] else ""
+
+    if existing and existing != reply_text:
+        full_text = f"{existing}\n[Lanjutan]: {reply_text}"
+    else:
+        full_text = reply_text
+
+    analysis = analyze_reply_nlp(full_text)
+    now = datetime.now().isoformat()
+
     cur.execute(
         """
         UPDATE survey_churn_logs
@@ -339,7 +358,7 @@ def record_survey_reply(log_id: int, reply_text: str) -> Dict[str, Any]:
         WHERE id = ?
         """,
         (
-            reply_text,
+            full_text,
             now,
             analysis["ai_category"],
             analysis["ai_sentiment"],
@@ -359,7 +378,8 @@ def process_incoming_wa_webhook(phone: str, text: str) -> Dict[str, Any]:
     """
     Menerima webhook dari WA Gateway saat reseller membalas chat WhatsApp.
     Mencari log survey terakhir untuk nomor tersebut, mencatat balasan,
-    dan menjalankan analisa NLP intent & sentimen secara otomatis.
+    menjalankan analisa NLP intent & sentimen secara otomatis,
+    dan mengirimkan 1x pesan penutup apresiasi mengarahkan ke CS Resmi (+62 857-7197-5556).
     """
     clean_p = clean_phone_number(phone) or phone
     last_9 = clean_p[-9:] if len(clean_p) >= 9 else clean_p
@@ -368,7 +388,7 @@ def process_incoming_wa_webhook(phone: str, text: str) -> Dict[str, Any]:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, agen_id, agen_name, status
+        SELECT id, agen_id, agen_name, status, brand, reply_received
         FROM survey_churn_logs
         WHERE no_wa = ? OR no_wa LIKE ?
         ORDER BY id DESC
@@ -384,7 +404,29 @@ def process_incoming_wa_webhook(phone: str, text: str) -> Dict[str, Any]:
         return {"ok": False, "note": "Tidak ada log survey aktif untuk nomor ini"}
 
     log_id = row["id"]
-    return record_survey_reply(log_id, text)
+    prev_status = row["status"]
+    brand_name = row["brand"] or "ASTAGA"
+
+    is_first_reply = prev_status in ("SENT", "TEST_SENT")
+    reply_res = record_survey_reply(log_id, text)
+
+    # Kirim 1x pesan penutup otomatis jika ini balasan pertama
+    if is_first_reply:
+        closing_msg = (
+            f"Terima kasih banyak atas informasinya ya Kak! Masukan Kakak sangat berharga untuk peningkatan layanan kami.\n\n"
+            f"Jika Kakak membutuhkan bantuan transaksi, cek saldo, atau kendala aplikasi, "
+            f"tim Customer Service {brand_name} siap melayani Kakak dengan senang hati di:\n"
+            f"WhatsApp CS: 0857-7197-5556\n"
+            f"Link: https://wa.me/6285771975556\n"
+            f"Email: customercare@myastaga.com\n\n"
+            f"Semoga usaha konter Kakak semakin lancar dan berkah selalu ya Kak!"
+        )
+        try:
+            dispatch_to_wa_gateway(clean_p, closing_msg)
+        except Exception as e:
+            logger.error(f"Gagal mengirim pesan penutup CS ke +{clean_p}: {e}")
+
+    return reply_res
 
 
 def delete_survey_log(log_id: int) -> Dict[str, Any]:
@@ -433,5 +475,31 @@ def get_survey_history(brand: str = "ASTAGA", periode: Optional[str] = None) -> 
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return rows
+
+
+def update_reseller_primary_wa(kode_reseller: str, active_phone: str) -> Dict[str, Any]:
+    """Mengupdate nomor WhatsApp utama reseller jika ditemukan nomor alternatif yang aktif ber-WA."""
+    clean_p = clean_phone_number(active_phone)
+    if not clean_p or not kode_reseller:
+        return {"ok": False, "error": "Nomor atau kode reseller tidak valid"}
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE reseller_contacts
+            SET no_wa = ?, primary_channel = 'WHATSAPP', updated_at = CURRENT_TIMESTAMP
+            WHERE kode_reseller = ?
+            """,
+            (clean_p, kode_reseller.strip().upper())
+        )
+        conn.commit()
+        conn.close()
+        logger.info(f"Updated primary WA for {kode_reseller} to +{clean_p}")
+        return {"ok": True, "kode_reseller": kode_reseller, "new_primary_wa": clean_p}
+    except Exception as e:
+        logger.error(f"Gagal update primary WA untuk {kode_reseller}: {e}")
+        return {"ok": False, "error": str(e)}
+
 
 

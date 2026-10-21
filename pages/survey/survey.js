@@ -211,7 +211,16 @@ function populateCabangFilter(candidates) {
 }
 
 async function checkCandidatesWaStatus(candidates) {
-  const phones = Array.from(new Set((candidates || []).map(c => c.no_wa).filter(Boolean)));
+  // 1. Kumpulkan seluruh nomor unik (primary no_wa + seluruh candidate_phones)
+  const phoneSet = new Set();
+  (candidates || []).forEach(c => {
+    if (c.no_wa) phoneSet.add(c.no_wa);
+    if (Array.isArray(c.candidate_phones)) {
+      c.candidate_phones.forEach(p => p && phoneSet.add(p));
+    }
+  });
+
+  const phones = Array.from(phoneSet);
   if (phones.length === 0) return;
 
   try {
@@ -223,6 +232,27 @@ async function checkCandidatesWaStatus(candidates) {
     const json = await res.json();
     if (json.ok && json.results) {
       surveyState.waStatus = { ...surveyState.waStatus, ...json.results };
+
+      // 2. SMART MULTI-NUMBER PROMOTION:
+      // Jika no_wa awal tidak aktif di WA (false/null), tapi salah satu candidate_phones AKTIF (true),
+      // otomatis promosikan nomor aktif tersebut menjadi no_wa utama!
+      (candidates || []).forEach(c => {
+        const isCurrentActive = surveyState.waStatus[c.no_wa] === true;
+        if (!isCurrentActive && Array.isArray(c.candidate_phones)) {
+          const activeWinner = c.candidate_phones.find(p => surveyState.waStatus[p] === true);
+          if (activeWinner && activeWinner !== c.no_wa) {
+            console.log(`[SmartWA] Promoted active number for ${c.reseller_id}: ${c.no_wa} -> ${activeWinner}`);
+            c.no_wa = activeWinner;
+            // Sinkronkan ke database server secara background
+            fetch('/api/survey/update-primary-phone', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ kode_reseller: c.reseller_id, active_phone: activeWinner })
+            }).catch(() => {});
+          }
+        }
+      });
+
       renderCandidatesTable();
       const modal = document.getElementById('survey-batch-modal');
       if (modal && modal.style.display !== 'none') {
@@ -296,11 +326,16 @@ function renderCandidatesTable() {
     let phone = '<span style="color: #ef4444; font-size: 11px;">Belum Ada</span>';
     if (c.no_wa) {
       const hasWa = surveyState.waStatus[c.no_wa];
+      const multiBadge = (c.candidate_count && c.candidate_count > 1)
+        ? `<span class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 9.5px; padding: 1px 5px; font-weight: 600; margin-left: 4px; border: 1px solid var(--surface-border);" title="Tersedia total ${c.candidate_count} nomor pengirim OtomaX">+${c.candidate_count - 1} no</span>`
+        : '';
+
       if (hasWa === true) {
         phone = `
           <div style="font-family: monospace; font-weight: 700; color: #16a34a; display: inline-flex; align-items: center; gap: 6px;" title="Terverifikasi: Akun WhatsApp Aktif">
             <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
             <span>${escapeHtml(c.no_wa)}</span>
+            ${multiBadge}
           </div>
         `;
       } else if (hasWa === false) {
@@ -309,12 +344,14 @@ function renderCandidatesTable() {
             <span style="width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; display: inline-block;"></span>
             <span style="opacity: 0.85;">${escapeHtml(c.no_wa)}</span>
             <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 10px; padding: 1px 5px; font-weight: 600;">Non-WA</span>
+            ${multiBadge}
           </div>
         `;
       } else {
         phone = `
           <div style="font-family: monospace; font-weight: 600; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
             <span>${escapeHtml(c.no_wa)}</span>
+            ${multiBadge}
           </div>
         `;
       }

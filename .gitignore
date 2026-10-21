@@ -9,6 +9,8 @@ scratch/
 MASTER/master.db
 # Ignore root-level raw dumps but keep UI icons in static/img
 MASTER/.server_secret
+.env
+*.env
 
 .git_sco/
 *_backup/

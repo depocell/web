@@ -69,6 +69,20 @@ Untuk mencegah chat terkirim sia-sia ke nomor hangus atau HP mati:
   - Status di log otomatis dilabeli: 🔴 **`TIDAK ADA WA`** (`NOT_ON_WA`).
   - Sistem memberikan saran pengalihan: *"Nomor tidak terdaftar di WhatsApp. Dialihkan ke Panggilan Telepon GSM atau Kunjungan Fisik Tim SCO."*
 
+### D. Pesan Penutup Apresiasi & Eskalasi Resmi ke Tim CS
+Saat reseller pertama kali membalas chat survei:
+* Sistem NLP AI mengklasifikasikan jawabannya untuk laporan marketing.
+* Bot otomatis mengirimkan 1x pesan penutup apresiasi yang mengarahkan reseller ke kontak resmi Customer Service:
+  > *"Terima kasih banyak atas informasinya ya Kak! Masukan Kakak sangat berharga untuk peningkatan layanan kami.*
+  > 
+  > *Jika Kakak membutuhkan bantuan transaksi, cek saldo, atau kendala aplikasi, tim Customer Service siap melayani Kakak dengan senang hati di:*
+  > *📱 WhatsApp CS: 0857-7197-5556*
+  > *🔗 Link: https://wa.me/6285771975556*
+  > *📧 Email: customercare@myastaga.com*
+  > 
+  > *Semoga usaha konter Kakak semakin lancar dan berkah selalu ya Kak!"*
+* Jika reseller mengirim balasan lanjutan, sistem akan mencatatnya di log tanpa melakukan spam balasan ulang.
+
 ---
 
 ## 4. Halaman Baru di Web Report: `Survei AI` (`#survey`)

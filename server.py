@@ -659,6 +659,18 @@ async def api_survey_check_phones(request):
         return JSONResponse({"ok": False, "error": str(e), "results": {}})
 
 
+async def api_survey_update_primary_phone(request):
+    """Mengupdate nomor WhatsApp utama reseller saat nomor alternatif terverifikasi aktif."""
+    try:
+        body = await request.json()
+        kode_reseller = body.get("kode_reseller")
+        active_phone = body.get("active_phone")
+        res = survey_engine.update_reseller_primary_wa(kode_reseller, active_phone)
+        return JSONResponse(res)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 async def api_survey_reset_session(request):
     """Menghapus sesi WhatsApp lama agar siap scan nomor baru."""
     import shutil
@@ -1362,6 +1374,7 @@ routes = [
     Route("/api/survey/logs",       api_survey_logs),
     Route("/api/survey/logs/delete", api_survey_log_delete, methods=["POST"]),
     Route("/api/survey/check-phones", api_survey_check_phones, methods=["POST"]),
+    Route("/api/survey/update-primary-phone", api_survey_update_primary_phone, methods=["POST"]),
     Route("/api/survey/gateway-status", api_survey_gateway_status),
     Route("/api/survey/reset-session",  api_survey_reset_session, methods=["POST"]),
     Route("/api/fisik",         api_fisik),
