@@ -119,22 +119,27 @@ async function loadOverview() {
   try {
     let json = null;
 
-    // 1. Coba baca snapshot data static /pages/home/overview_data.json
+    // 1. Prioritaskan API live /api/overview agar selalu real-time dengan data transaksi terbaru
     try {
-      const resStatic = await fetch(`./pages/home/overview_data.json?t=${Date.now()}`);
-      if (resStatic.ok) {
-        json = await resStatic.json();
+      const resApi = await fetch(`/api/overview?t=${Date.now()}`);
+      if (resApi.ok) {
+        const apiJson = await resApi.json();
+        if (apiJson && apiJson.ok && apiJson.data && apiJson.data.brands && apiJson.data.brands.ASTAGA && apiJson.data.brands.ASTAGA.daily_trx) {
+          json = apiJson;
+        }
       }
-    } catch (_) {}
+    } catch (e) {
+      console.warn("[Overview] Gagal fetch live API, mencoba fallback static snapshot:", e);
+    }
 
-    // 2. Fallback baca endpoint /api/overview jika snapshot belum valid
+    // 2. Fallback baca snapshot static jika API server offline / belum merespons
     if (!json || !json.data || !json.data.brands || !json.data.brands.ASTAGA || !json.data.brands.ASTAGA.daily_trx) {
       try {
-        const resApi = await fetch(`/api/overview?t=${Date.now()}`);
-        if (resApi.ok) {
-          const apiJson = await resApi.json();
-          if (apiJson && apiJson.data && apiJson.data.brands && apiJson.data.brands.ASTAGA && apiJson.data.brands.ASTAGA.daily_trx) {
-            json = apiJson;
+        const resStatic = await fetch(`./pages/home/overview_data.json?t=${Date.now()}`);
+        if (resStatic.ok) {
+          const staticJson = await resStatic.json();
+          if (staticJson && staticJson.data && staticJson.data.brands) {
+            json = staticJson;
           }
         }
       } catch (_) {}

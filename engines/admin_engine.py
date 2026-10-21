@@ -547,6 +547,17 @@ def execute_upsert_job(job_id: str, brand: str, delete_tsv: bool = True, year: s
         except Exception:
             pass
 
+        # Refresh snapshot Executive Overview
+        try:
+            import engines.overview_engine as oe
+            ov_data = oe.calculate_daily_growth(year=year, force=True)
+            ov_file = os.path.join(BASE_DIR, "pages", "home", "overview_data.json")
+            with open(ov_file, "w", encoding="utf-8") as f_ov:
+                json.dump({"ok": True, "data": ov_data}, f_ov, indent=2)
+            log("Snapshot Executive Overview berhasil di-refresh.")
+        except Exception as e_ov:
+            log(f"Peringatan: Gagal refresh snapshot overview: {e_ov}")
+
         # 9. Hapus file TSV jika diminta
         if delete_tsv:
             try:
