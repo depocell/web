@@ -258,6 +258,11 @@
             if (json.periods_list && json.periods_list.length > 0) {
               state.selectedPeriod = json.latest_period || json.periods_list[0].code;
             }
+            // Update drawer cutoff date element immediately
+            const drawerCutoff = document.getElementById('drawer-cutoff-date');
+            if (drawerCutoff && json.cutoff_date) {
+              drawerCutoff.textContent = json.cutoff_date;
+            }
             loaded = true;
             break;
           }
@@ -387,6 +392,10 @@
 
     if (headerBadge && state.data) {
       headerBadge.textContent = `Cutoff: ${state.data.cutoff_date || '-'}`;
+    }
+    const drawerCutoff = document.getElementById('drawer-cutoff-date');
+    if (drawerCutoff && state.data && state.data.cutoff_date) {
+      drawerCutoff.textContent = state.data.cutoff_date;
     }
 
     if (periodBar && periodSelect && state.data && state.data.periods_list) {
@@ -2363,7 +2372,7 @@
           <div class="sidebar-footer">
             <div class="footer-pill">
               <span>Cutoff Data</span>
-              <strong id="drawer-cutoff-date">${state.data?.cutoff_date || '07-10-2026'}</strong>
+              <strong id="drawer-cutoff-date">${state.data?.cutoff_date || '-'}</strong>
             </div>
             <button class="action-btn btn-secondary" onclick="window.toggleQuickTheme()" style="width:100%; justify-content:center;">
               <i class="fa-solid fa-circle-half-stroke"></i> Ganti Tema
