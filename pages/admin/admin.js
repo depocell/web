@@ -1665,6 +1665,18 @@ async function openEditAgentModal(agenId) {
   }
 }
 
+function openDownlinesModal(agenId, namaAgen) {
+  const modal = document.getElementById("modal-agent-downlines");
+  const title = document.getElementById("modal-downline-title");
+  if (title) title.textContent = "Daftar Downline: " + (namaAgen || agenId);
+  if (modal) modal.style.display = "flex";
+}
+
+function closeDownlinesModal() {
+  const modal = document.getElementById("modal-agent-downlines");
+  if (modal) modal.style.display = "none";
+}
+
 function closeEditAgentModal() {
   const modal = document.getElementById("modal-edit-agent");
   if (modal) modal.style.display = "none";
