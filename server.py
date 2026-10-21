@@ -964,6 +964,44 @@ async def api_export_transactions_csv(request):
         return PlainTextResponse(f"Error generating CSV: {str(e)}", status_code=500)
 
 
+async def api_export_agents_csv(request):
+    """Menyediakan tabel dimensi Toko Induk (Master Agen Langsung) dalam format CSV Stream.
+    Query Params:
+    - brand: ASTAGA / OKIPAY (default: ASTAGA)
+    - key: depas2026
+    """
+    try:
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+        
+        def _get_agents():
+            import sqlite3
+            import pandas as pd
+            db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+            conn = sqlite3.connect(db_path)
+            query = """
+                SELECT agen_id, nama_agen, cabang, type, sco, dso, limit_saldo, markup, 
+                       tgl_daftar, tgl_aktivitas_terakhir, jadwal, location, kota_kab, kecamatan, kelurahan
+                FROM agents
+                WHERE brand = ?
+                ORDER BY agen_id
+            """
+            df = pd.read_sql_query(query, conn, params=(brand,))
+            conn.close()
+            return df.to_csv(index=False)
+
+        csv_data = await asyncio.to_thread(_get_agents)
+        filename = f"master_agen_{brand.lower()}.csv"
+        return Response(
+            csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return PlainTextResponse(f"Error generating agents CSV: {str(e)}", status_code=500)
+
+
 async def api_export_customers_csv(request):
     """Menyediakan tabel dimensi Customer (Reseller & Agen Induk) dalam format CSV Stream
     untuk relasi di Power BI / Excel Power Query (Dimension Table: Dim_Customer).
@@ -1339,6 +1377,7 @@ routes = [
     Route("/api/export/transactions.csv", api_export_transactions_csv),
     Route("/api/export/transactions.parquet", api_export_transactions_parquet),
     Route("/api/export/customers.csv",    api_export_customers_csv),
+    Route("/api/export/agents.csv",       api_export_agents_csv),
     Route("/api/export/products.csv",     api_export_products_csv),
     Route("/api/admin/agents",          api_admin_agents),
     Route("/api/admin/agents/detail",    api_admin_agent_detail),
