@@ -486,16 +486,24 @@ def handle_command_sco(chat_id: int):
         try:
             with open(data_sco_path, "r", encoding="utf-8") as f:
                 d = json.load(f)
-            cutoff = d.get("cutoff_date", "2026-10-20")
-            msg = (
-                f"📋 <b>REKAP LAPORAN SALES CABANG (SCO):</b>\n"
-                f"- Tanggal Cut-off: {cutoff}\n"
-                f"- Gambar di atas adalah potret jernih HD siap kirim WhatsApp.\n"
-                f"- Mencakup evaluasi target visit, koleksi saldo, dan pencapaian transaksi per sales."
-            )
-            send_telegram_message(chat_id, msg)
-        except Exception:
-            pass
+            cutoff = d.get("cutoff_date", "20-10-2026")
+            p = d.get("periods", {}).get(d.get("latest_period", "1026"), {})
+            idx = p.get("index", [])
+            lines = [f"📋 <b>REKAP SALES CABANG (SCO) - CUTOFF: {cutoff}</b>\n"]
+            for item in idx:
+                s_name = item.get("SCO")
+                if s_name in ["TOTAL SCO", "TOTAL NON SCO", "ONLINE", "Grand Total"]:
+                    curr = item.get("curr", 0)
+                    prev = item.get("prev", 0)
+                    diff = item.get("Growth", 0)
+                    diff_sign = f"+{diff:.1f}" if diff > 0 else f"{diff:.1f}"
+                    pct = item.get("%", 0) * 100
+                    pct_sign = f"+{pct:.1f}%" if pct > 0 else f"{pct:.1f}%"
+                    lines.append(f"• <b>{s_name}</b>: {curr:,.1f}/hari (Sep: {prev:,.1f} | {diff_sign} / {pct_sign})")
+            lines.append("\n<i>Gambar di atas adalah potret jernih HD terbaru (Cutoff: 20-10-2026) siap forward ke WhatsApp.</i>")
+            send_telegram_message(chat_id, "\n".join(lines))
+        except Exception as e:
+            logger.error(f"Error sending sco text summary: {e}")
 
 
 def handle_command_cabang(chat_id: int):
