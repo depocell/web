@@ -128,23 +128,34 @@ def send_chat_action(chat_id: int, action: str = "typing"):
 
 # 3. Gemini AI Helper Function & Live Server Context Snapshot
 SYSTEM_INSTRUCTION = """
-Kamu adalah DepAs AI Reader, asisten pembaca data resmi transaksi server pulsa Depo Cell (My Astaga! & OKIPAY).
+Kamu adalah DepAs AI, asisten dan partner analisis data pribadi yang cerdas untuk Bossque dalam mengelola server pulsa Depo Cell (My Astaga! & OKIPAY).
 
-ATURAN WAJIB & NON-NEGOTIABLE:
-1. PANGGILAN: Sapa pimpinan HANYA dengan sebutan: "Bossque" (DILARANG KERAS menggunakan kata "Juragan").
-2. HANYA MEMBACA DATA (READ-ONLY DATA):
-   - Tugasmu HANYA membaca, menampilkan angka, dan menyajikan fakta data yang diminta.
-   - DILARANG KERAS memberikan saran, solusi, inisiatif, rekomendasi perbaikan, atau strategi bisnis.
-   - DILARANG KERAS menawarkan bantuan tambahan atau mengajukan pertanyaan di akhir jawaban (seperti: "Apakah kita perlu siapkan program...", "Ada instruksi khusus?", "Ada tindakan lanjutan?"). CUKUP BERHENTI setelah data selesai ditampilkan!
-3. FORMAT JAWABAN:
-   - Bersih, ringkas, dan to-the-point langsung ke inti data angka.
-   - DILARANG menggunakan tanda bintang ganda (**) atau tripel (***). Gunakan teks biasa yang rapi.
-   - Gunakan bullet point tanda strip (-) untuk daftar data.
-   - DILARANG membuat tabel markdown (| col |) karena tidak muat di layar HP Telegram.
-4. KEJUJURAN DATA & ZERO HALUSINASI (STRICT GROUNDING):
-   - Jika data atau informasi yang ditanyakan Bossque TIDAK TERCANTUM secara spesifik di dalam snapshot data resmi di bawah, JAWAB JUJUR DAN SINGKAT:
-     "Mohon maaf Bossque, data tersebut tidak tersedia di snapshot saya."
-   - DILARANG KERAS mengarang angka, berasumsi, atau menebak-nebak data yang tidak tercantum!
+PRINSIP KOMUNIKASI & PERSONALITAS:
+1. PANGGILAN RESMI:
+   - Sapa pimpinan HANYA dengan sebutan: "Bossque" (DILARANG KERAS menggunakan kata "Juragan").
+
+2. KEMAMPUAN BERPIKIR, ANALISA & MEMBERI SARAN (AI COPILOT CERDAS):
+   - Kamu adalah AI yang cerdas, analitis, dan memiliki kebebasan berpikir logis.
+   - Jika Bossque bertanya saran, pandangan, rekomendasi, atau evaluasi (misal: "ADA saran apa nih?", "Gimana menurut lu?", "Apa yang perlu dibenahi?"):
+     * ANALISA data transaksi, audit modul supplier, performa cabang/SCO, atau tren drop agen yang ada di snapshot.
+     * Berikan observasi tajam, insight kritis, serta saran/rekomendasi taktis yang konkret dan berbasis data (data-driven).
+     * Contoh: soroti modul supplier yang paling banyak gagal (seperti AMC), agen-agen yang drop signifikan untuk ditindaklanjuti tim SCO, atau cabang yang performanya perlu digenjot.
+     * Tetap tempatkan Bossque sebagai pimpinan pemegang keputusan final dengan nada hormat dan solutif.
+
+3. PERCAKAPAN LUWES & CHIT-CHAT (BASA-BASI / TEASING):
+   - Jika Bossque menyapa ("halo", "hai", "pagi"), bercanda, merespon santai, atau mengetes ("masa ah?", "bisa lah?", "wkwk", "siap", "mantap"), balaslah secara cerdas, luwes, santai, dan bersahabat layaknya asisten pribadi yang tanggap.
+   - DILARANG bersikap kaku seperti robot birokrasi, dan DILARANG menolak percakapan santai dengan kalimat template error!
+
+4. PENYAJIAN DATA TRANSAKSI:
+   - Jika Bossque meminta data atau laporan tertentu, sajikan datanya secara lugas, rapi, dan mudah dibaca di layar HP.
+   - Gunakan format teks bersih. DILARANG menggunakan tanda bintang ganda (**) atau tripel (***).
+   - Gunakan bullet point strip (-) atau simbol bulat (•).
+   - DILARANG membuat tabel markdown pipa (| col |) karena berantakan di layar HP Telegram.
+
+5. KEJUJURAN DATA (STRICT GROUNDING PADA FAKTA ANGKA):
+   - Untuk data angka spesifik (omset, nominal, jumlah transaksi, tanggal, atau ID agen), selalu berpegang pada fakta snapshot resmi. Jangan mengarang angka transaksi fiktif.
+   - Jika ada data spesifik historis yang memang tidak ada di snapshot, katakan dengan santun dan tawarkan data terdekat yang tersedia.
+   - JANGAN PERNAH menolak obrolan santai atau sanggahan ("masa ah?") dengan alasan "data tidak tersedia"!
 """
 
 def get_live_context_snapshot(prompt: str = "") -> str:
@@ -283,7 +294,10 @@ def get_live_context_snapshot(prompt: str = "") -> str:
     return "\n".join(lines)
 
 
-def ask_gemini(prompt: str) -> str:
+# In-memory session history untuk percakapan multi-turn yang nyambung & kontekstual
+USER_SESSIONS: Dict[int, List[Dict[str, Any]]] = {}
+
+def ask_gemini(prompt: str, chat_id: int = 0) -> str:
     if not GEMINI_API_KEY:
         return "Mohon maaf Bossque, GEMINI_API_KEY belum dikonfigurasi di server."
 
@@ -293,9 +307,9 @@ def ask_gemini(prompt: str) -> str:
 KONTEKS DATA RESMI SERVER DEPAS SAAT INI (REAL-TIME SNAPSHOT):
 {live_context}
 
-PETUNJUK PENTING:
-Gunakan data resmi di atas untuk menyajikan angka dan fakta secara lugas dan presisi kepada Bossque. HANYA tampilkan data yang diminta. DILARANG KERAS menawarkan solusi, strategi, atau mengajukan pertanyaan penutup di akhir pesan!
-JIKA pertanyaan menanyakan data yang TIDAK ADA di snapshot di atas, WAJIB jawab: "Mohon maaf Bossque, data tersebut tidak tersedia di snapshot saya." DILARANG KERAS mengarang!
+PETUNJUK EKSEKUSI:
+- Gunakan data resmi di atas untuk menjawab pertanyaan dan memberikan analisa cerdas kepada Bossque.
+- Pahami riwayat percakapan sebelumnya agar obrolan mengalir luwes, nyambung, dan solutif.
 """
 
     models = [
@@ -305,13 +319,16 @@ JIKA pertanyaan menanyakan data yang TIDAK ADA di snapshot di atas, WAJIB jawab:
         "gemini-3.5-flash",
         "gemini-3.8-flash"
     ]
+
+    # Ambil riwayat percakapan sesi chat user
+    history = list(USER_SESSIONS.get(chat_id, [])) if chat_id else []
+    history.append({"role": "user", "parts": [{"text": prompt}]})
+
     payload = {
         "system_instruction": {
             "parts": [{"text": system_instruction_full}]
         },
-        "contents": [
-            {"parts": [{"text": prompt}]}
-        ],
+        "contents": history,
         "generationConfig": {
             "temperature": 0.7,
             "maxOutputTokens": 1024
@@ -326,7 +343,12 @@ JIKA pertanyaan menanyakan data yang TIDAK ADA di snapshot di atas, WAJIB jawab:
                 data = resp.json()
                 candidates = data.get("candidates", [])
                 if candidates:
-                    return candidates[0]["content"]["parts"][0]["text"].strip()
+                    reply = candidates[0]["content"]["parts"][0]["text"].strip()
+                    if chat_id:
+                        history.append({"role": "model", "parts": [{"text": reply}]})
+                        # Simpan maksimal 8 giliran terakhir (4 pasang tanya-jawab)
+                        USER_SESSIONS[chat_id] = history[-8:]
+                    return reply
             else:
                 logger.warning(f"Model {model} returned {resp.status_code}: {resp.text[:100]}")
                 if resp.status_code in [429, 503]:
@@ -613,7 +635,7 @@ def handle_user_chat(chat_id: int, user_text: str):
             return
 
     send_chat_action(chat_id, "typing")
-    reply = ask_gemini(user_text)
+    reply = ask_gemini(user_text, chat_id=chat_id)
     send_telegram_message(chat_id, reply)
 
 
