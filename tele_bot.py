@@ -295,7 +295,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
 
 
 # In-memory session history untuk percakapan multi-turn yang nyambung & kontekstual
-USER_SESSIONS: Dict[int, List[Dict[str, Any]]] = {}
+USER_SESSIONS = {}
 
 def ask_gemini(prompt: str, chat_id: int = 0) -> str:
     if not GEMINI_API_KEY:
