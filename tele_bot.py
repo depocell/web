@@ -475,6 +475,24 @@ def get_live_context_snapshot(prompt: str = "") -> str:
         except Exception as e:
             logger.error(f"Error reading supplier_modules.json: {e}")
 
+    # 5. Data Tren Subtipe Operator (DATA vs REGULER) 6 Bulan Terakhir dari operator_subtypes.json
+    subtypes_path = os.path.join(BASE_DIR, "pages", "analisa", "operator_subtypes.json")
+    if os.path.exists(subtypes_path):
+        try:
+            with open(subtypes_path, "r", encoding="utf-8") as f:
+                sub_data = json.load(f)
+            lines.append("\n[TREN 6 BULAN REVENUE & RUN-RATE OPERATOR: DATA VS REGULER (MEI s/d OKT 2026 - ASTAGA)]:")
+            for op, tps in sub_data.items():
+                lines.append(f"• OPERATOR {op}:")
+                for tp, m_dict in tps.items():
+                    m_list = []
+                    for m_k, mv in m_dict.items():
+                        m_name = {'05': 'Mei', '06': 'Jun', '07': 'Jul', '08': 'Ags', '09': 'Sep', '10': 'Okt'}.get(m_k[-2:], m_k[-2:])
+                        m_list.append(f"{m_name}: {mv['daily_trx']}/hari (Rp {mv['daily_rev']:,.0f}/hari)")
+                    lines.append(f"  - {tp}: " + " | ".join(m_list))
+        except Exception as e:
+            logger.error(f"Error reading operator_subtypes.json: {e}")
+
     return "\n".join(lines)
 
 

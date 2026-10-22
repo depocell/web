@@ -1,0 +1,362 @@
+{
+  "INDOSAT": {
+    "DATA": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 39209,
+        "daily_trx": 1264.8,
+        "tot_rev": 624567050,
+        "daily_rev": 20147324
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 37887,
+        "daily_trx": 1262.9,
+        "tot_rev": 604103796,
+        "daily_rev": 20136793
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 36167,
+        "daily_trx": 1166.7,
+        "tot_rev": 586631537,
+        "daily_rev": 18923598
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 35008,
+        "daily_trx": 1129.3,
+        "tot_rev": 574790614,
+        "daily_rev": 18541633
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 32522,
+        "daily_trx": 1084.1,
+        "tot_rev": 557662544,
+        "daily_rev": 18588751
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 20269,
+        "daily_trx": 1013.5,
+        "tot_rev": 352093075,
+        "daily_rev": 17604654
+      }
+    },
+    "REGULER": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 8606,
+        "daily_trx": 277.6,
+        "tot_rev": 245928132,
+        "daily_rev": 7933166
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 8260,
+        "daily_trx": 275.3,
+        "tot_rev": 238257332,
+        "daily_rev": 7941911
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 7841,
+        "daily_trx": 252.9,
+        "tot_rev": 224285490,
+        "daily_rev": 7235016
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 8061,
+        "daily_trx": 260.0,
+        "tot_rev": 222365199,
+        "daily_rev": 7173071
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 7696,
+        "daily_trx": 256.5,
+        "tot_rev": 211705690,
+        "daily_rev": 7056856
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 4709,
+        "daily_trx": 235.4,
+        "tot_rev": 129346005,
+        "daily_rev": 6467300
+      }
+    }
+  },
+  "TELKOMSEL": {
+    "DATA": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 5581,
+        "daily_trx": 180.0,
+        "tot_rev": 94962877,
+        "daily_rev": 3063319
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 5227,
+        "daily_trx": 174.2,
+        "tot_rev": 91172082,
+        "daily_rev": 3039069
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 5160,
+        "daily_trx": 166.5,
+        "tot_rev": 88700923,
+        "daily_rev": 2861320
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 5011,
+        "daily_trx": 161.6,
+        "tot_rev": 83886477,
+        "daily_rev": 2706015
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 4583,
+        "daily_trx": 152.8,
+        "tot_rev": 78771046,
+        "daily_rev": 2625702
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 3016,
+        "daily_trx": 150.8,
+        "tot_rev": 52743947,
+        "daily_rev": 2637197
+      }
+    },
+    "REGULER": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 10334,
+        "daily_trx": 333.4,
+        "tot_rev": 357089132,
+        "daily_rev": 11519004
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 9436,
+        "daily_trx": 314.5,
+        "tot_rev": 320279030,
+        "daily_rev": 10675968
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 8729,
+        "daily_trx": 281.6,
+        "tot_rev": 309389111,
+        "daily_rev": 9980294
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 8482,
+        "daily_trx": 273.6,
+        "tot_rev": 297823226,
+        "daily_rev": 9607201
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 8049,
+        "daily_trx": 268.3,
+        "tot_rev": 284963018,
+        "daily_rev": 9498767
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 5048,
+        "daily_trx": 252.4,
+        "tot_rev": 181308448,
+        "daily_rev": 9065422
+      }
+    }
+  },
+  "XL - AXIS": {
+    "DATA": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 20446,
+        "daily_trx": 659.5,
+        "tot_rev": 304000243,
+        "daily_rev": 9806459
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 19913,
+        "daily_trx": 663.8,
+        "tot_rev": 294808760,
+        "daily_rev": 9826959
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 19822,
+        "daily_trx": 639.4,
+        "tot_rev": 291635749,
+        "daily_rev": 9407605
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 18424,
+        "daily_trx": 594.3,
+        "tot_rev": 278857110,
+        "daily_rev": 8995391
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 16814,
+        "daily_trx": 560.5,
+        "tot_rev": 271374670,
+        "daily_rev": 9045822
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 10569,
+        "daily_trx": 528.5,
+        "tot_rev": 174007637,
+        "daily_rev": 8700382
+      }
+    },
+    "REGULER": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 9470,
+        "daily_trx": 305.5,
+        "tot_rev": 182025914,
+        "daily_rev": 5871804
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 8683,
+        "daily_trx": 289.4,
+        "tot_rev": 171172515,
+        "daily_rev": 5705750
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 8022,
+        "daily_trx": 258.8,
+        "tot_rev": 157883486,
+        "daily_rev": 5093016
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 8087,
+        "daily_trx": 260.9,
+        "tot_rev": 152657737,
+        "daily_rev": 4924443
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 7178,
+        "daily_trx": 239.3,
+        "tot_rev": 143113540,
+        "daily_rev": 4770451
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 4434,
+        "daily_trx": 221.7,
+        "tot_rev": 92102974,
+        "daily_rev": 4605149
+      }
+    }
+  },
+  "TRI": {
+    "DATA": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 22100,
+        "daily_trx": 712.9,
+        "tot_rev": 307660051,
+        "daily_rev": 9924518
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 20936,
+        "daily_trx": 697.9,
+        "tot_rev": 298217251,
+        "daily_rev": 9940575
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 19414,
+        "daily_trx": 626.3,
+        "tot_rev": 277409778,
+        "daily_rev": 8948703
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 18918,
+        "daily_trx": 610.3,
+        "tot_rev": 276229663,
+        "daily_rev": 8910634
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 16587,
+        "daily_trx": 552.9,
+        "tot_rev": 260687948,
+        "daily_rev": 8689598
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 10604,
+        "daily_trx": 530.2,
+        "tot_rev": 170702079,
+        "daily_rev": 8535104
+      }
+    },
+    "REGULER": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 5177,
+        "daily_trx": 167.0,
+        "tot_rev": 125715961,
+        "daily_rev": 4055354
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 4835,
+        "daily_trx": 161.2,
+        "tot_rev": 121002312,
+        "daily_rev": 4033410
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 4637,
+        "daily_trx": 149.6,
+        "tot_rev": 113617663,
+        "daily_rev": 3665086
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 4388,
+        "daily_trx": 141.5,
+        "tot_rev": 107590612,
+        "daily_rev": 3470665
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 3734,
+        "daily_trx": 124.5,
+        "tot_rev": 98750939,
+        "daily_rev": 3291698
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 2257,
+        "daily_trx": 112.8,
+        "tot_rev": 60448002,
+        "daily_rev": 3022400
+      }
+    }
+  }
+}
