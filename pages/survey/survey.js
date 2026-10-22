@@ -1,6 +1,6 @@
 /**
  * pages/survey/survey.js
- * Controller Modul Survei Interaktif AI & Reaktivasi Reseller
+ * Controller Modul SURVEI AGEN CHURN
  */
 
 const surveyState = {
