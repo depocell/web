@@ -504,6 +504,47 @@ def get_live_context_snapshot(prompt: str = "") -> str:
         except Exception as e:
             logger.error(f"Error reading operator_subtypes.json: {e}")
 
+    # 6. Data Reseller Churn, Pendaftar Baru, & Keaktifan Resmi (dari engines.reseller_engine)
+    try:
+        import engines.reseller_engine as re_eng
+        for brand in ["ASTAGA", "OKIPAY"]:
+            r_data = re_eng.calculate_reseller_dashboard(brand=brand, month_code="2026-10", year="2026")
+            if r_data.get("ok"):
+                kpi = r_data.get("kpi", {})
+                churn_rows = r_data.get("churn_rows", [])
+                tot_prev_trx = sum(r.get("prev_trx", 0) for r in churn_rows)
+                tot_prev_daily = sum(r.get("daily_prev", 0) for r in churn_rows)
+                churn_cnt = kpi.get("churned", len(churn_rows))
+                active_prev = kpi.get("retained", 0) + churn_cnt
+                churn_rate = (churn_cnt / active_prev * 100) if active_prev > 0 else 0
+                lines.append(f"\n[DATA RESELLER PASIF / CHURN MURNI & MITRA BARU {brand} (OKTOBER 2026 VS SEPTEMBER)]:")
+                lines.append(f"• Total Reseller Terdaftar di Master: {kpi.get('total_registered', 0):,} toko")
+                lines.append(f"• Mitra Aktif September 2026: {active_prev:,} toko")
+                lines.append(f"• Mitra Aktif Oktober 2026 (MTD): {kpi.get('active_current', 0):,} toko")
+                lines.append(f"• Mitra Aktif Rutin (Retained): {kpi.get('retained', 0):,} toko")
+                lines.append(f"• Mitra Reaktivasi: {kpi.get('reactivated', 0):,} toko")
+                lines.append(f"• PENDAFTAR BARU BULAN INI: {kpi.get('new_registered', 0):,} toko terdaftar (Langsung Aktif Trx: {kpi.get('new_active', 0):,}, Belum Trx: {kpi.get('new_untransacted', 0):,})")
+                lines.append(f"• TOTAL AGEN CHURN MURNI (Sep transaksi > 0, tapi Okt nihil = 0): {churn_cnt:,} toko (Churn Rate: {churn_rate:.2f}%)")
+                lines.append(f"• Potensi Volume Transaksi yang Hilang dari Churn: {tot_prev_trx:,} trx ({tot_prev_daily:,.1f} trx/hari)")
+
+                cbg_cnt = {}
+                sco_cnt = {}
+                for r in churn_rows:
+                    cb = r.get("cabang") or "UNKNOWN"
+                    cbg_cnt[cb] = cbg_cnt.get(cb, 0) + 1
+                    sc = r.get("sco") or "-"
+                    if sc != "-":
+                        sco_cnt[sc] = sco_cnt.get(sc, 0) + 1
+                cbg_str = ", ".join([f"{cb}: {cnt} toko" for cb, cnt in sorted(cbg_cnt.items(), key=lambda x: x[1], reverse=True)])
+                lines.append(f"  - Sebaran Churn per Cabang: {cbg_str}")
+                if sco_cnt:
+                    sco_str = ", ".join([f"{sc}: {cnt} toko" for sc, cnt in sorted(sco_cnt.items(), key=lambda x: x[1], reverse=True)])
+                    lines.append(f"  - Sebaran Churn per SCO: {sco_str}")
+                top_str = "; ".join([f"[{r.get('kode')}] {r.get('name')} ({r.get('cabang')}/{r.get('sco')}, Sep: {r.get('prev_trx', 0):,} trx)" for r in churn_rows[:5]])
+                lines.append(f"  - Top 5 Toko Churn Terbesar: {top_str}")
+    except Exception as e:
+        logger.error(f"Error loading reseller churn context in tele_bot: {e}")
+
     return "\n".join(lines)
 
 
