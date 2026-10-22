@@ -140,7 +140,7 @@ const ROUTES = {
     initFn: "loadTransaksi"
   },
   "#survey": {
-    title: "Survei AI & Reaktivasi",
+    title: "Survey Churn",
     pageUrl: "./pages/survey/index.html",
     scriptUrl: "./pages/survey/survey.js",
     initFn: "loadSurveyPage"
