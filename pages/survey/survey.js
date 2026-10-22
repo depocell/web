@@ -822,20 +822,11 @@ function closeSurveyModal() {
 }
 window.closeSurveyModal = closeSurveyModal;
 
-function toggleSurveyTestInput() {
-  const isTest = document.getElementById('survey-is-test').checked;
-  const box = document.getElementById('survey-test-phone-box');
-  if (box) box.style.display = isTest ? 'flex' : 'none';
-}
-window.toggleSurveyTestInput = toggleSurveyTestInput;
-
 async function submitSurveyAction() {
   if (!surveyState.currentCandidate) return;
 
   const cand = surveyState.currentCandidate;
-  const isTest = document.getElementById('survey-is-test')?.checked;
-  const testPhone = document.getElementById('survey-test-phone')?.value.trim();
-  const rawPhone = isTest && testPhone ? testPhone : (cand.no_wa || '');
+  const rawPhone = cand.no_wa || '';
 
   let cleanPhone = String(rawPhone).replace(/[^0-9]/g, '');
   if (cleanPhone.startsWith('08')) cleanPhone = '628' + cleanPhone.slice(2);
@@ -862,7 +853,7 @@ async function submitSurveyAction() {
       no_wa: cleanPhone,
       prev_trx: cand.prev_trx,
       message: customMsg,
-      is_test: isTest,
+      is_test: false,
       mode: 'wa.me'
     })
   }).then(() => {
