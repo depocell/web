@@ -420,6 +420,65 @@ function initThemeToggle() {
   }
 }
 
+// ── DepAs AI Copilot Floating Widget ("Tanya AI") ─────────────────────────────
+function initCopilotWidget() {
+  const trigger = document.getElementById("btn-toggle-copilot");
+  const card = document.getElementById("depas-copilot-card");
+  const btnClose = document.getElementById("btn-close-copilot");
+
+  if (!trigger || !card) return;
+
+  function toggleCard(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const isVisible = card.style.display !== "none";
+    card.style.display = isVisible ? "none" : "block";
+  }
+
+  function closeCard() {
+    card.style.display = "none";
+  }
+
+  trigger.addEventListener("click", toggleCard);
+
+  if (btnClose) {
+    btnClose.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeCard();
+    });
+  }
+
+  // Klik chip perintah: otomatis salin teks command ke clipboard
+  document.querySelectorAll(".copilot-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const cmd = chip.getAttribute("data-cmd") || chip.querySelector(".chip-cmd")?.textContent;
+      if (cmd && navigator.clipboard) {
+        navigator.clipboard.writeText(cmd).catch(() => {});
+      }
+    });
+  });
+
+  // Auto close jika klik di luar widget
+  document.addEventListener("click", (e) => {
+    if (card.style.display !== "none") {
+      const widget = document.getElementById("depas-copilot-widget");
+      if (widget && !widget.contains(e.target)) {
+        closeCard();
+      }
+    }
+  });
+
+  // Tutup dengan tombol ESC
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && card.style.display !== "none") {
+      closeCard();
+    }
+  });
+}
+
 window.addEventListener("hashchange", navigate);
 document.addEventListener("DOMContentLoaded", () => {
   if (!window.location.hash) {
@@ -428,6 +487,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize Theme Switch Toggle
   initThemeToggle();
+
+  // Initialize DepAs AI Copilot Floating Widget
+  initCopilotWidget();
 
   // Bind Sidebar Toggle & Collapse
   const btnToggle = document.getElementById("btn-toggle-sidebar");
