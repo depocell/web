@@ -344,7 +344,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     c_pct_str = f"+{c_pct:.1f}%" if c_pct > 0 else f"{c_pct:.1f}%"
                     lines.append(f"  • {c_name}: {c_curr:,.1f}/hari (Sep: {c_prev:,.1f} | {c_diff_str} / {c_pct_str})")
 
-            # Data Historis KPI SCO Resmi (Final September)
+            # Data Historis KPI SCO Resmi & Multi-Bulan (Sumber: KPI_SCO.xlsx)
             kpi_list = sco_data.get("kpi_sco", [])
             if kpi_list:
                 latest_kpi_m = sorted(list(set(x.get("bulan", "") for x in kpi_list)))[-1]
@@ -353,6 +353,24 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     lines.append(f"\n[DATA HISTORIS KPI RESMI & INSENTIF SALES (FINAL {latest_kpi_m})]:")
                     for k in sorted(m_records, key=lambda x: x.get("score", 0), reverse=True):
                         lines.append(f"  • {k.get('nama')}: Skor KPI {k.get('score', 0):.1f}% | Insentif Rp {k.get('insentif', 0):,.0f} (Ach Visit: {k.get('pct_visit', 0)}%, Coll: {k.get('pct_coll', 0)}%, Trx: {k.get('pct_trx', 0)}%)")
+
+                by_sales_kpi = {}
+                for k in kpi_list:
+                    nm = k.get("nama")
+                    if nm in ["Abdul Harris", "Febri Kurniawan", "Hupron", "Khoirul Anan", "Mas Komarjaya"]:
+                        if nm not in by_sales_kpi:
+                            by_sales_kpi[nm] = []
+                        by_sales_kpi[nm].append(k)
+
+                if by_sales_kpi:
+                    lines.append("\n[HISTORIS KPI & INSENTIF MULTI-BULAN 5 SALES SCO (SUMBER: KPI_SCO.XLSX)]:")
+                    for nm in sorted(by_sales_kpi.keys()):
+                        records = by_sales_kpi[nm]
+                        tot_ins = sum(x.get("insentif", 0) for x in records)
+                        lines.append(f"  • {nm} (Total Insentif Terbayar 2026: Rp {tot_ins:,.0f}):")
+                        for r in records[-4:]:
+                            b_str = r.get("bulan", "")[:7]
+                            lines.append(f"    - {b_str}: Skor {r.get('score', 0):.1f}% | Insentif Rp {r.get('insentif', 0):,.0f} | Visit {r.get('pct_visit', 0)}% | Coll {r.get('pct_coll', 0)}% | Trx {r.get('pct_trx', 0)}%")
 
             # --- B. TOP DROP & TOP GROWTH AGEN ---
             tren_all = sco_data.get("tren_agen", [])
