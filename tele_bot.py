@@ -195,6 +195,14 @@ PRINSIP KOMUNIKASI & PERSONALITAS:
      - Akun Internal: AR00037, AR00009, AR20408 sudah di-exclude total dari ASTAGA.
    • LEVEL 3 - EKSEKUSI DATA SNAPSHOT RESMI:
      - Gunakan fakta angka dari snapshot resmi di bawah untuk menjawab pertanyaan Bossque secara presisi.
+
+8. PROTOKOL ESKALASI TIKET KE DATA CENTER (SISTEM TIKETING OTOMATIS):
+   - Jika Bossque menanyakan analisa data mendalam, produk/operator baru, atau rentang waktu historis yang BENAR-BENAR BELUM TERSEDIA di ringkasan snapshot resmi:
+     * DILARANG KERAS mengarang angka fiktif!
+     * Responlah dengan santun, solutif, dan profesional:
+       "Mohon maaf Bossque, untuk analisa ini datanya kami tampung dulu ya, dan tiketnya sudah kami eskalasikan ke DATA CENTER untuk ditarikkan dari database transaksi mentah. Begitu datanya selesai diracik, kami kabari segera, Bossque!"
+     * Wajib sertakan penanda tiket resmi di baris paling akhir:
+       [[ESKALASI_TIKET: <ringkasan singkat kebutuhan data/analisa yang diminta>]]
 """
 
 def get_live_context_snapshot(prompt: str = "") -> str:
@@ -502,6 +510,60 @@ def get_live_context_snapshot(prompt: str = "") -> str:
 # In-memory session history untuk percakapan multi-turn yang nyambung & kontekstual
 USER_SESSIONS = {}
 
+TICKETS_DIR = os.path.join(BASE_DIR, "pages", "analisa", "tickets")
+
+def create_escalation_ticket(chat_id: int, prompt: str, requirement: str, user_name: str = "Bossque") -> str:
+    """Menerbitkan tiket eskalasi resmi ke folder tickets/ untuk diracik Data Center."""
+    try:
+        os.makedirs(TICKETS_DIR, exist_ok=True)
+        import datetime
+        now = datetime.datetime.now()
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        tkt_code = now.strftime("TKT-%Y%m%d-%H%M%S")
+        
+        tkt_data = {
+            "ticket_id": tkt_code,
+            "created_at": now_str,
+            "chat_id": chat_id,
+            "user_name": user_name,
+            "prompt": prompt,
+            "requirement": requirement,
+            "status": "PENDING",
+            "resolution_note": ""
+        }
+        
+        # Simpan file tiket perorangan
+        tkt_file = os.path.join(TICKETS_DIR, f"{tkt_code}.json")
+        with open(tkt_file, "w", encoding="utf-8") as f:
+            json.dump(tkt_data, f, ensure_ascii=False, indent=2)
+            
+        # Update master index tiket
+        index_file = os.path.join(TICKETS_DIR, "tickets_index.json")
+        index_data = []
+        if os.path.exists(index_file):
+            try:
+                with open(index_file, "r", encoding="utf-8") as f:
+                    index_data = json.load(f)
+            except Exception:
+                index_data = []
+                
+        index_data.insert(0, {
+            "ticket_id": tkt_code,
+            "created_at": now_str,
+            "prompt": prompt[:100],
+            "requirement": requirement[:100],
+            "status": "PENDING"
+        })
+        
+        with open(index_file, "w", encoding="utf-8") as f:
+            json.dump(index_data[:50], f, ensure_ascii=False, indent=2)
+            
+        logger.info(f"Tiket eskalasi baru diterbitkan: {tkt_code} | Kebutuhan: {requirement}")
+        return tkt_code
+    except Exception as e:
+        logger.error(f"Gagal menerbitkan tiket eskalasi: {e}")
+        return "TKT-AUTO"
+
 def ask_gemini(prompt: str, chat_id: int = 0) -> str:
     if not GEMINI_API_KEY:
         return "Mohon maaf Bossque, GEMINI_API_KEY belum dikonfigurasi di server."
@@ -549,6 +611,14 @@ PETUNJUK EKSEKUSI:
                 candidates = data.get("candidates", [])
                 if candidates:
                     reply = candidates[0]["content"]["parts"][0]["text"].strip()
+                    if "[[ESKALASI_TIKET:" in reply:
+                        import re
+                        m = re.search(r'\[\[ESKALASI_TIKET:\s*(.*?)\]\]', reply, re.DOTALL)
+                        ticket_need = m.group(1).strip() if m else prompt
+                        tkt_id = create_escalation_ticket(chat_id=chat_id, prompt=prompt, requirement=ticket_need)
+                        reply = re.sub(r'\[\[ESKALASI_TIKET:\s*.*?\]\]', '', reply).strip()
+                        reply += f"\n\n🎫 <i>Tiket Eskalasi Resmi Diterbitkan: <code>{tkt_id}</code> (Status: PENDING di Data Center)</i>"
+
                     if chat_id:
                         history.append({"role": "model", "parts": [{"text": reply}]})
                         # Simpan maksimal 8 giliran terakhir (4 pasang tanya-jawab)
@@ -582,6 +652,7 @@ def register_telegram_commands():
         {"command": "drop", "description": "10 Agen dengan Penurunan Transaksi Terbesar"},
         {"command": "mitra", "description": "Total Reseller Aktif & Kontak Terverifikasi"},
         {"command": "server", "description": "Status Kesehatan VPS (RAM, CPU, Disk)"},
+        {"command": "tiket", "description": "Status Antrean Tiket Eskalasi ke Data Center"},
         {"command": "help", "description": "Panduan dan Bantuan Penggunaan"}
     ]
     try:
@@ -864,6 +935,36 @@ def handle_user_chat(chat_id: int, user_text: str):
     send_telegram_message(chat_id, reply)
 
 
+def handle_command_tiket(chat_id: int):
+    """Menampilkan daftar tiket eskalasi yang menunggu atau sedang diproses Data Center."""
+    index_file = os.path.join(BASE_DIR, "pages", "analisa", "tickets", "tickets_index.json")
+    if not os.path.exists(index_file):
+        send_telegram_message(chat_id, "🎫 <b>STATUS DATA CENTER:</b>\n\nBelum ada antrean tiket eskalasi saat ini, Bossque! Seluruh pertanyaan masih ter-cover snapshot resmi.")
+        return
+        
+    try:
+        with open(index_file, "r", encoding="utf-8") as f:
+            tkts = json.load(f)
+    except Exception:
+        tkts = []
+        
+    if not tkts:
+        send_telegram_message(chat_id, "🎫 <b>STATUS DATA CENTER:</b>\n\nBelum ada antrean tiket eskalasi saat ini, Bossque!")
+        return
+        
+    lines = ["🎫 <b>ANTREAN TIKET ESKALASI KE DATA CENTER:</b>\n"]
+    for i, t in enumerate(tkts[:5], 1):
+        st = t.get("status", "PENDING")
+        st_icon = "⏳" if st == "PENDING" else "✅"
+        lines.append(f"{i}. <b>[{t.get('ticket_id')}]</b> {st_icon} <b>{st}</b>")
+        lines.append(f"   - Waktu: <code>{t.get('created_at')}</code>")
+        lines.append(f"   - Kebutuhan: <i>{t.get('requirement')}</i>")
+        p_val = t.get("prompt", "")
+        lines.append(f"   - Pertanyaan: \"{p_val}\"\n")
+        
+    lines.append("<i>DATA CENTER membaca antrean ini untuk meracik agregasi data transaksi baru sesuai kebutuhan Bossque.</i>")
+    send_telegram_message(chat_id, "\n".join(lines))
+
 # 5. Main Polling Loop
 def main():
     logger.info("Memulai DepAs AI Telegram Bot (@depas_ai_bot)...")
@@ -936,6 +1037,8 @@ def main():
                     handle_command_mitra(chat_id)
                 elif cmd in ("/server", "/status"):
                     handle_command_server(chat_id)
+                elif cmd in ("/tiket", "/ticket", "/helpme"):
+                    handle_command_tiket(chat_id)
                 else:
                     handle_user_chat(chat_id, text)
 
