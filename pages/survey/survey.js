@@ -497,9 +497,31 @@ function renderLogsTable() {
     }
 
     const visitBadge = (l.need_sco_visit || l.status === 'NOT_ON_WA') ? '<span class="badge" style="background: #eff6ff; color: #1d4ed8; font-weight: 700;">BUTUH VISIT</span>' : '<span style="color: var(--text-muted);">-</span>';
-    let replyText = l.reply_received ? `<div style="font-style: italic; color: var(--text-main);">"${escapeHtml(l.reply_received)}"</div>` : '<span style="color: var(--text-muted); font-size: 11px;">(Menunggu balasan)</span>';
-    if (l.status === 'NOT_ON_WA') {
-      replyText = '<span style="color: #dc2626; font-size: 11px; font-weight: 600;">Nomor tidak terdaftar di WhatsApp. Hubungi via GSM / Visit SCO.</span>';
+    let replyText = '';
+    if (l.reply_received) {
+      replyText = `
+        <div style="font-style: italic; color: var(--text-main); font-size: 12px; margin-bottom: 4px;">"${escapeHtml(l.reply_received)}"</div>
+        <button type="button" onclick="openReplyModal(${l.id}, '${escapeHtml(l.reseller_name || l.reseller_id)}', '${escapeHtml(l.reply_received).replace(/'/g, "\\'")}')"
+          style="background: none; border: none; color: #0284c7; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">
+          Edit Balasan
+        </button>
+      `;
+    } else if (l.status === 'NOT_ON_WA') {
+      replyText = '<span style="color: #dc2626; font-size: 11px; font-weight: 600;">Nomor tidak terdaftar di WhatsApp.</span>';
+    } else {
+      replyText = `
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="color: var(--text-muted); font-size: 11px;">(Belum ada respon)</span>
+          <button type="button" onclick="openReplyModal(${l.id}, '${escapeHtml(l.reseller_name || l.reseller_id)}')"
+            style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>+ Catat Balasan</span>
+          </button>
+        </div>
+      `;
     }
 
     const sentTime = l.sent_at ? l.sent_at.substring(0, 16).replace('T', ' ') : '-';
@@ -1095,3 +1117,83 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+
+// =========================================================================
+// REPLY MODAL & NLP AI PROCESSING
+// =========================================================================
+let currentReplyLogId = null;
+
+function openReplyModal(logId, resellerName, currentText = '') {
+  currentReplyLogId = logId;
+  const modal = document.getElementById('survey-reply-modal');
+  if (!modal) return;
+
+  document.getElementById('reply-modal-title').textContent = `Catat Balasan: ${resellerName}`;
+  document.getElementById('reply-modal-sub').textContent = `Log ID #${logId} • Reseller Churn`;
+  document.getElementById('reply-input-text').value = currentText || '';
+
+  modal.style.display = 'flex';
+  document.getElementById('reply-input-text').focus();
+}
+window.openReplyModal = openReplyModal;
+
+function closeReplyModal() {
+  const modal = document.getElementById('survey-reply-modal');
+  if (modal) modal.style.display = 'none';
+  currentReplyLogId = null;
+}
+window.closeReplyModal = closeReplyModal;
+
+function setReplyTemplate(text) {
+  const ta = document.getElementById('reply-input-text');
+  if (!ta) return;
+  if (ta.value.trim()) {
+    ta.value += ' ' + text;
+  } else {
+    ta.value = text;
+  }
+  ta.focus();
+}
+window.setReplyTemplate = setReplyTemplate;
+
+async function submitReplyAction() {
+  if (!currentReplyLogId) return;
+
+  const text = document.getElementById('reply-input-text').value.trim();
+  if (!text) {
+    alert('Mohon masukkan isi balasan atau keluhan toko terlebih dahulu.');
+    document.getElementById('reply-input-text').focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-reply');
+  btn.disabled = true;
+  btn.textContent = 'Menganalisa NLP...';
+
+  try {
+    const res = await fetch('/api/survey/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        log_id: currentReplyLogId,
+        reply_text: text
+      })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      closeReplyModal();
+      loadSurveyLogs();
+      loadSurveyCandidates();
+    } else {
+      alert('Gagal memproses balasan: ' + (data.error || 'Terjadi kesalahan'));
+    }
+  } catch (err) {
+    alert('Error koneksi: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>Analisa &amp; Simpan (NLP AI)</span>';
+  }
+}
+window.submitReplyAction = submitReplyAction;
