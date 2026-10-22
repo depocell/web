@@ -177,11 +177,34 @@ PRINSIP KOMUNIKASI & PERSONALITAS:
      - Menjaga stabilitas CPU, RAM, SSD, dan status ketiga background services (FastAPI, WA Gateway, Telebot).
 
    Jika Bossque menanyakan tentang menu, panduan, atau perbandingan antar sektor bisnis di atas, jelaskan secara cerdas, sistematis, dan hubungkan dengan data snapshot yang tersedia!
+
+7. KERANGKA BERPIKIR SENIOR DATA ANALYST (HIERARCHICAL REASONING):
+   Sebelum menjawab pertanyaan tentang data, berpikirlah secara bertahap dan sistematis:
+   • LEVEL 0 - PARTISI BRAND (PEMISAH PUNCAK):
+     - ASTAGA: Model Retail & Toko Fisik. Prefix akun AR... Ada 4 Cabang Fisik (BSD, ICON, PP, PRG) + 1 Cabang ONLINE. Punya Tim Sales Lapangan (5 SCO: Abdul Harris, Febri, Hupron, Khoirul, Mas Komarjaya). Ada produk Transfer Stok/Bank (BCA, BRI, Mandiri, VT, Mobo, dll).
+     - OKIPAY: Model B2B H2H (Host-to-Host) & Online Aggregator. Prefix akun OP... Jalur cabang HANYA H2H dan ONLINE. TIDAK ADA Cabang Fisik, TIDAK MEMILIKI TIM SALES SCO! Di Dim Produk OKIPAY TIDAK ADA produk Transfer Stok/Bank (hanya TELCO, PLN, EWALLET, PPOB, GAME).
+   • LEVEL 1 - VALIDASI DIMENSI (FAIL FAST):
+     - Cek apakah objek yang ditanyakan Bossque benar-benar ada di master dimensi brand tersebut (Dim Product, Dim Agent, Dim Modul, Dim Sales).
+     - Jika Bossque bertanya hal yang tidak ada di brand tersebut (misal "SCO di OKIPAY" atau "Transfer Stok di OKIPAY"): JAWAB TEGAS & LUGAS di awal tanpa muter-muter:
+       "Bossque, di brand OKIPAY kita TIDAK ADA tim sales SCO (atau produk Transfer Stok). Objek tersebut HANYA ADA di ASTAGA!"
+   • LEVEL 2 - HUKUM METRIK RESMI DEPAS (GEMINI.MD):
+     - Total Trx = Jumlah baris transaksi (COUNTROWS / Frekuensi Hit). DILARANG menggunakan SUM(qty).
+     - Daily Trx (Run-rate) = Total Hit Sukses / Hari Aktif Global Cut-off Server.
+     - Speed Telemetry = Rata-rata durasi detik (tgl_stat - tgl_entry) HANYA untuk status Sukses.
+     - Net Profit Server = (Harga Jual - Markup) - Harga Beli. Markup adalah komisi upline, bukan laba server.
+     - Akun Internal: AR00037, AR00009, AR20408 sudah di-exclude total dari ASTAGA.
+   • LEVEL 3 - EKSEKUSI DATA SNAPSHOT RESMI:
+     - Gunakan fakta angka dari snapshot resmi di bawah untuk menjawab pertanyaan Bossque secara presisi.
 """
 
 def get_live_context_snapshot(prompt: str = "") -> str:
     """Mengambil snapshot ringkas data transaksi & server terkini untuk disuntikkan ke konteks AI."""
     lines = []
+    # 0. Kamus Ontologi & Dimensi DepAs (Pondasi Bisnis)
+    lines.append("[KAMUS ONTOLOGI & DIMENSI DEPAS]:")
+    lines.append("• BRAND ASTAGA (Retail): Cabang BSD, ICON, PP, PRG, ONLINE | Ada 5 Sales SCO: Abdul Harris (ICON), Febri Kurniawan (PP), Hupron (BSD), Khoirul Anan (PRG), Mas Komarjaya (PP) | Produk: TELCO, DATA, PLN, TRANSFER BANK/STOK (BCA, BRI, Mandiri, VT, Mobo), EWALLET, GAME.")
+    lines.append("• BRAND OKIPAY (B2B H2H): Cabang H2H & ONLINE | TIDAK ADA TIM SALES SCO | Produk: TELCO, PLN, EWALLET, PPOB, GAME (TIDAK ADA PRODUK TRANSFER STOK/BANK).")
+    lines.append("• DIM MODUL (Terminal Suplier OtomaX): AMC, MARKAZ, METRO, DIGIFLAZZ, CEBONG, PCU, MR, CSK, dll.\n")
     data_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
     if os.path.exists(data_path):
         try:
@@ -237,6 +260,8 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                         for cat_name, cat_tot in sorted(cats_c.items(), key=lambda x: x[1], reverse=True):
                             cat_rate = round(cat_tot / days, 1) if days else 0
                             lines.append(f"    - {cat_name}: {cat_rate:,.1f}/hari (Total MTD: {cat_tot:,} trx)")
+                        if brand == "OKIPAY" and cat_name == list(cats_c.keys())[-1]:
+                            lines.append("    - (Catatan Dim Produk OKIPAY: TIDAK MEMILIKI produk Transfer Stok / Transfer Bank)")
         except Exception as e:
             logger.error(f"Error reading live context snapshot: {e}")
 
@@ -271,6 +296,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
             if sales_rows:
                 sorted_sales = sorted(sales_rows, key=lambda x: x.get("%", 0), reverse=True)
                 lines.append(f"\n[PERFORMA TIM SALES CABANG (SCO) - CUTOFF: {cutoff_sco} (OKTOBER 2026 MTD VS SEPTEMBER)]:")
+                lines.append("CATATAN PENTING: BRAND OKIPAY TIDAK MEMILIKI TIM SALES SCO MAUPUN CABANG FISIK!")
                 lines.append("Peringkat Growth Harian 5 Sales SCO (Tertinggi ke Terendah):")
                 for rank, s in enumerate(sorted_sales, 1):
                     s_name = s.get("SCO", "-")
