@@ -14,30 +14,37 @@
       padding: 0;
     }
     :root {
-      --bg-dark: #070b14;
-      --card-bg: #0f172a;
-      --card-border: #1e293b;
-      --card-hover: #334155;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg-body: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-sub: #475569;
       --primary: #0284c7;
       --primary-hover: #0369a1;
-      --primary-light: rgba(2, 132, 199, 0.15);
-      --accent: #38bdf8;
-      --danger: #ef4444;
-      --danger-bg: rgba(239, 68, 68, 0.12);
-      --danger-border: rgba(239, 68, 68, 0.3);
-      --radius: 12px;
+      --primary-light: rgba(2, 132, 199, 0.08);
+      --input-bg: #f8fafc;
+      --input-border: #cbd5e1;
+      --input-focus: #0284c7;
+      --accent: #0284c7;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+      --radius: 16px;
     }
     body {
-      background-color: var(--bg-dark);
+      background-color: var(--bg-body);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(248, 250, 252, 1) 0px, transparent 100%);
       color: var(--text-main);
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px 20px;
       position: relative;
       overflow-x: hidden;
     }
@@ -45,12 +52,12 @@
     body::before {
       content: '';
       position: absolute;
-      top: -20%;
+      top: -120px;
       left: 50%;
       transform: translateX(-50%);
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(2, 132, 199, 0.12) 0%, rgba(7, 11, 20, 0) 70%);
+      width: 680px;
+      height: 480px;
+      background: radial-gradient(ellipse at center, rgba(2, 132, 199, 0.08) 0%, rgba(248, 250, 252, 0) 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -62,54 +69,47 @@
     }
     .brand-header {
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 26px;
     }
-    .brand-logo-badge {
+    .brand-logo-container {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.4);
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
-    .brand-logo-badge svg {
-      width: 28px;
-      height: 28px;
-      color: #ffffff;
-    }
-    .brand-title {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: var(--text-main);
-      margin-bottom: 6px;
+    .brand-logo-img {
+      height: 50px;
+      width: auto;
+      max-width: 230px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.04));
     }
     .brand-subtitle {
       font-size: 13px;
       color: var(--text-muted);
       font-weight: 500;
+      letter-spacing: -0.2px;
     }
     .login-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
-      padding: 32px 28px;
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(10px);
+      padding: 34px 30px;
+      box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
     }
     .card-heading {
-      font-size: 15px;
+      font-size: 17px;
       font-weight: 700;
       color: var(--text-main);
       margin-bottom: 4px;
+      letter-spacing: -0.3px;
     }
     .card-desc {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-muted);
       margin-bottom: 22px;
+      line-height: 1.4;
     }
     .form-group {
       margin-bottom: 18px;
@@ -118,7 +118,7 @@
       display: block;
       font-size: 12px;
       font-weight: 600;
-      color: var(--text-muted);
+      color: var(--text-sub);
       margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -133,15 +133,15 @@
       left: 14px;
       width: 18px;
       height: 18px;
-      color: var(--text-muted);
+      color: #94a3b8;
       pointer-events: none;
       transition: color 0.2s;
     }
     .form-input {
       width: 100%;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 9px;
       padding: 12px 14px 12px 42px;
       color: var(--text-main);
       font-size: 14px;
@@ -149,20 +149,23 @@
       outline: none;
       transition: all 0.2s ease;
     }
+    .form-input::placeholder {
+      color: #94a3b8;
+    }
     .form-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-      background: #0f172a;
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+      background: #ffffff;
     }
     .form-input:focus + .input-icon {
-      color: var(--accent);
+      color: var(--primary);
     }
     .btn-toggle-pwd {
       position: absolute;
       right: 12px;
       background: transparent;
       border: none;
-      color: var(--text-muted);
+      color: #94a3b8;
       cursor: pointer;
       padding: 4px;
       display: flex;
@@ -188,9 +191,10 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: var(--text-muted);
+      color: var(--text-sub);
       cursor: pointer;
       user-select: none;
+      font-size: 13px;
     }
     .remember-label input[type="checkbox"] {
       width: 16px;
@@ -204,10 +208,10 @@
       background: var(--primary);
       color: #ffffff;
       border: none;
-      border-radius: 8px;
+      border-radius: 9px;
       padding: 13px;
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 600;
       font-family: inherit;
       cursor: pointer;
       display: flex;
@@ -215,12 +219,12 @@
       justify-content: center;
       gap: 10px;
       transition: all 0.2s ease;
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
     }
     .btn-submit:hover:not(:disabled) {
       background: var(--primary-hover);
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4);
+      box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
     }
     .btn-submit:active:not(:disabled) {
       transform: translateY(0);
@@ -244,7 +248,7 @@
       align-items: center;
       gap: 10px;
       font-size: 13px;
-      color: #fca5a5;
+      color: var(--danger);
     }
     .alert-banner svg {
       width: 18px;
@@ -256,7 +260,7 @@
       text-align: center;
       margin-top: 24px;
       font-size: 12px;
-      color: #475569;
+      color: var(--text-muted);
     }
     .spinner {
       display: none;
@@ -276,12 +280,12 @@
 
   <div class="login-container">
     <div class="brand-header">
-      <div class="brand-logo-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-        </svg>
+      <div class="brand-logo-container">
+        <img src="https://www.myastaga.com/images/214/11002412/LOGO1.png" 
+             onerror="this.onerror=null; this.src='/static/img/astaga_logo1.png'" 
+             alt="MY ASTAGA!" 
+             class="brand-logo-img">
       </div>
-      <h1 class="brand-title">DEPO CELL</h1>
       <p class="brand-subtitle">Business Intelligence &amp; Analytics Platform</p>
     </div>
 
@@ -356,7 +360,7 @@
       const icon = document.getElementById('eyeIcon');
       if (pwd.type === 'password') {
         pwd.type = 'text';
-        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></line><line x1="1" y1="1" x2="23" y2="23"></line>';
       } else {
         pwd.type = 'password';
         icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
@@ -392,7 +396,6 @@
 
         if (res.ok && data.ok) {
           btnText.textContent = 'Berhasil! Mengalihkan...';
-          // Redirect ke halaman utama atau return_url jika ada
           const params = new URLSearchParams(window.location.search);
           const next = params.get('next') || '/';
           window.location.href = next;
