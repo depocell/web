@@ -648,11 +648,8 @@ PETUNJUK EKSEKUSI:
 """
 
     models = [
-        "gemini-flash-lite-latest",
-        "gemini-3-flash-preview",
         "gemini-flash-latest",
-        "gemini-3.5-flash",
-        "gemini-3.8-flash"
+        "gemini-flash-lite-latest"
     ]
 
     # Ambil riwayat percakapan sesi chat user
@@ -673,7 +670,7 @@ PETUNJUK EKSEKUSI:
     for model in models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_API_KEY}"
         try:
-            resp = requests.post(url, json=payload, timeout=25)
+            resp = requests.post(url, json=payload, timeout=45)
             if resp.status_code == 200:
                 data = resp.json()
                 candidates = data.get("candidates", [])
