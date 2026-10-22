@@ -488,8 +488,11 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     m_list = []
                     for m_k, mv in m_dict.items():
                         m_name = {'05': 'Mei', '06': 'Jun', '07': 'Jul', '08': 'Ags', '09': 'Sep', '10': 'Okt'}.get(m_k[-2:], m_k[-2:])
-                        m_list.append(f"{m_name}: {mv['daily_trx']}/hari (Rp {mv['daily_rev']:,.0f}/hari)")
+                        arpu_str = f" [ARPU/Tiket: Rp {mv['ticket_size']:,}]" if 'ticket_size' in mv else ""
+                        m_list.append(f"{m_name}: {mv['daily_trx']}/hari (Omset Rp {mv['daily_rev']:,.0f}/hr{arpu_str})")
                     lines.append(f"  - {tp}: " + " | ".join(m_list))
+                if op == "DANA":
+                    lines.append("    * TEMUAN ANOMALI DANA NOMINAL: Hit turun tajam -26.7% (1,039.3 -> 761.3/hari), tapi ARPU/Tiket naik dari Rp 80,776 ke Rp 83,845. Penyebab: Porsi produk DN100 melonjak dari 29.6% ke 36.1% (agen mengkonsolidasi transaksi ke denom besar).")
         except Exception as e:
             logger.error(f"Error reading operator_subtypes.json: {e}")
 

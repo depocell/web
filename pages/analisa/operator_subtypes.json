@@ -358,5 +358,119 @@
         "daily_rev": 3022400
       }
     }
+  },
+  "DANA": {
+    "BEBAS NOMINAL": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 8675,
+        "daily_trx": 279.8,
+        "tot_rev": 1625559499,
+        "daily_rev": 52437403,
+        "ticket_size": 187384,
+        "margin_per_hit": 503.4
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 8273,
+        "daily_trx": 275.8,
+        "tot_rev": 1478878353,
+        "daily_rev": 49295945,
+        "ticket_size": 178760,
+        "margin_per_hit": 494.7
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 8431,
+        "daily_trx": 272.0,
+        "tot_rev": 1470573476,
+        "daily_rev": 47437854,
+        "ticket_size": 174425,
+        "margin_per_hit": 459.5
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 9691,
+        "daily_trx": 312.6,
+        "tot_rev": 1653451424,
+        "daily_rev": 53337143,
+        "ticket_size": 170617,
+        "margin_per_hit": 481.5
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 9285,
+        "daily_trx": 309.5,
+        "tot_rev": 1528432480,
+        "daily_rev": 50947749,
+        "ticket_size": 164613,
+        "margin_per_hit": 472.7
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 6066,
+        "daily_trx": 303.3,
+        "tot_rev": 1078521171,
+        "daily_rev": 53926059,
+        "ticket_size": 177798,
+        "margin_per_hit": 474.3
+      }
+    },
+    "NOMINAL": {
+      "2026-05": {
+        "days": 31,
+        "tot_trx": 32218,
+        "daily_trx": 1039.3,
+        "tot_rev": 2602443136,
+        "daily_rev": 83949779,
+        "ticket_size": 80776,
+        "margin_per_hit": 806.7
+      },
+      "2026-06": {
+        "days": 30,
+        "tot_trx": 30985,
+        "daily_trx": 1032.8,
+        "tot_rev": 2569336665,
+        "daily_rev": 85644556,
+        "ticket_size": 82922,
+        "margin_per_hit": 800.7
+      },
+      "2026-07": {
+        "days": 31,
+        "tot_trx": 28970,
+        "daily_trx": 934.5,
+        "tot_rev": 2384921956,
+        "daily_rev": 76932966,
+        "ticket_size": 82324,
+        "margin_per_hit": 810.1
+      },
+      "2026-08": {
+        "days": 31,
+        "tot_trx": 27258,
+        "daily_trx": 879.3,
+        "tot_rev": 2249440629,
+        "daily_rev": 72562601,
+        "ticket_size": 82524,
+        "margin_per_hit": 811.1
+      },
+      "2026-09": {
+        "days": 30,
+        "tot_trx": 25636,
+        "daily_trx": 854.5,
+        "tot_rev": 2131977873,
+        "daily_rev": 71065929,
+        "ticket_size": 83163,
+        "margin_per_hit": 820.4
+      },
+      "2026-10": {
+        "days": 20,
+        "tot_trx": 15226,
+        "daily_trx": 761.3,
+        "tot_rev": 1276622884,
+        "daily_rev": 63831144,
+        "ticket_size": 83845,
+        "margin_per_hit": 831.4
+      }
+    }
   }
 }
