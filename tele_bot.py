@@ -205,6 +205,34 @@ PRINSIP KOMUNIKASI & PERSONALITAS:
        [[ESKALASI_TIKET: <ringkasan singkat kebutuhan data/analisa yang diminta>]]
 """
 
+_RESELLER_BOT_CACHE = {}
+_RESELLER_BOT_CACHE_TIME = 0
+
+def get_cached_reseller_data(brand="ASTAGA"):
+    global _RESELLER_BOT_CACHE, _RESELLER_BOT_CACHE_TIME
+    now = time.time()
+    if brand in _RESELLER_BOT_CACHE and (now - _RESELLER_BOT_CACHE_TIME) < 300:
+        return _RESELLER_BOT_CACHE[brand]
+    try:
+        resp = requests.get(f"http://127.0.0.1:8000/api/reseller?brand={brand}&month=2026-10", timeout=2)
+        if resp.status_code == 200:
+            res_json = resp.json()
+            if res_json.get("ok"):
+                _RESELLER_BOT_CACHE[brand] = res_json.get("data", {})
+                _RESELLER_BOT_CACHE_TIME = now
+                return _RESELLER_BOT_CACHE[brand]
+    except Exception:
+        pass
+    try:
+        import engines.reseller_engine as re_eng
+        data = re_eng.calculate_reseller_dashboard(brand=brand, month_code="2026-10", year="2026")
+        _RESELLER_BOT_CACHE[brand] = data
+        _RESELLER_BOT_CACHE_TIME = now
+        return data
+    except Exception as e:
+        logger.error(f"Error fetching reseller data in tele_bot: {e}")
+        return {}
+
 def get_live_context_snapshot(prompt: str = "") -> str:
     """Mengambil snapshot ringkas data transaksi & server terkini untuk disuntikkan ke konteks AI."""
     lines = []
@@ -504,12 +532,11 @@ def get_live_context_snapshot(prompt: str = "") -> str:
         except Exception as e:
             logger.error(f"Error reading operator_subtypes.json: {e}")
 
-    # 6. Data Reseller Churn, Pendaftar Baru, & Keaktifan Resmi (dari engines.reseller_engine)
-    try:
-        import engines.reseller_engine as re_eng
-        for brand in ["ASTAGA", "OKIPAY"]:
-            r_data = re_eng.calculate_reseller_dashboard(brand=brand, month_code="2026-10", year="2026")
-            if r_data.get("ok"):
+    # 6. Data Reseller Churn, Pendaftar Baru, & Keaktifan Resmi (Fast Cache & Engine)
+    for brand in ["ASTAGA", "OKIPAY"]:
+        try:
+            r_data = get_cached_reseller_data(brand)
+            if r_data and r_data.get("ok"):
                 kpi = r_data.get("kpi", {})
                 churn_rows = r_data.get("churn_rows", [])
                 tot_prev_trx = sum(r.get("prev_trx", 0) for r in churn_rows)
@@ -542,8 +569,8 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     lines.append(f"  - Sebaran Churn per SCO: {sco_str}")
                 top_str = "; ".join([f"[{r.get('kode')}] {r.get('name')} ({r.get('cabang')}/{r.get('sco')}, Sep: {r.get('prev_trx', 0):,} trx)" for r in churn_rows[:5]])
                 lines.append(f"  - Top 5 Toko Churn Terbesar: {top_str}")
-    except Exception as e:
-        logger.error(f"Error loading reseller churn context in tele_bot: {e}")
+        except Exception as e:
+            logger.error(f"Error loading reseller churn context in tele_bot: {e}")
 
     return "\n".join(lines)
 
