@@ -1,0 +1,29 @@
+[
+  {
+    "ticket_id": "TKT-20261022-094941",
+    "created_at": "2026-10-22 09:49:41",
+    "prompt": "Coba lakukan analisa 6 bulan terakhir untuk hit transaksi sukses DANA, trend dana bebas nominal vs n",
+    "requirement": "Analisa 6 bulan hit sukses DANA Bebas vs Nominal, ARPU tiket size, dan anomali hit turun vs ARPU nai",
+    "status": "RESOLVED",
+    "user_name": "Bossque",
+    "resolution_note": "Data sudah diracik di operator_subtypes.json (terbukti porsi DN100 naik dari 29.6% ke 36.1%) dan disuntikkan ke otak AI."
+  },
+  {
+    "ticket_id": "TKT-20261022-092144",
+    "created_at": "2026-10-22 09:21:44",
+    "prompt": "Berapa daily revenue Indosat Data dan Indosat Reguler? Trendnya bagaimana 6 bulan terakhir?",
+    "requirement": "Daily revenue (Rp/hari) dan run-rate transaksi Indosat Data vs Reguler 6 bulan terakhir",
+    "status": "RESOLVED",
+    "user_name": "Bossque",
+    "resolution_note": "Data 6 bulan sudah diekstrak dari parquet dan disuntikkan ke operator_subtypes.json."
+  },
+  {
+    "ticket_id": "TKT-20261022-090512",
+    "created_at": "2026-10-22 09:05:12",
+    "prompt": "Riwayat multi-bulan skor KPI SCO dan total insentif tahun 2026",
+    "requirement": "Akumulasi insentif 2026 dan pencapaian bulanan (Visit, Coll, Trx) dari KPI_SCO.xlsx",
+    "status": "RESOLVED",
+    "user_name": "Bossque",
+    "resolution_note": "Data sudah diekstrak dari KPI_SCO.xlsx dan disuntikkan ke snapshot tele_bot."
+  }
+]

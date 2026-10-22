@@ -1,0 +1,10 @@
+{
+  "ticket_id": "TKT-20261022-094941",
+  "created_at": "2026-10-22 09:49:41",
+  "chat_id": 6166710846,
+  "user_name": "Bossque",
+  "prompt": "Coba lakukan analisa 6 bulan terakhir untuk hit transaksi sukses DANA, trend dana bebas nominal vs nominal, dan bandingkan ARPU-nya. Apakah ada anomali hit turun tapi arpu naik?",
+  "requirement": "Analisa 6 bulan hit sukses DANA Bebas vs Nominal, ARPU tiket size, dan anomali hit turun vs ARPU naik",
+  "status": "RESOLVED",
+  "resolution_note": "Data sudah diracik di operator_subtypes.json (terbukti porsi DN100 naik dari 29.6% ke 36.1%) dan disuntikkan ke otak AI."
+}

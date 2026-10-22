@@ -210,6 +210,72 @@ async def api_admin_users_delete(request):
     return JSONResponse({"ok": ok, "message" if ok else "error": msg}, status_code=200 if ok else 400)
 
 
+
+async def api_admin_tickets_list(request):
+    """Mengembalikan daftar tiket eskalasi AI (Help Me Please) ke Data Center."""
+    tkt_index_path = os.path.join(BASE_DIR, "pages", "analisa", "tickets", "tickets_index.json")
+    tickets = []
+    if os.path.exists(tkt_index_path):
+        try:
+            with open(tkt_index_path, "r", encoding="utf-8") as f:
+                tickets = json.load(f)
+        except Exception:
+            tickets = []
+    total = len(tickets)
+    pending = sum(1 for t in tickets if t.get("status") == "PENDING")
+    resolved = sum(1 for t in tickets if t.get("status") == "RESOLVED")
+    return JSONResponse({
+        "ok": True,
+        "tickets": tickets,
+        "total": total,
+        "pending": pending,
+        "resolved": resolved
+    })
+
+
+async def api_admin_tickets_resolve(request):
+    """Menandai tiket eskalasi sebagai RESOLVED."""
+    try:
+        body = await request.json()
+        ticket_id = body.get("ticket_id")
+        note = body.get("note", "Data sudah diracik dan disuntikkan ke snapshot AI.")
+        if not ticket_id:
+            return JSONResponse({"ok": False, "error": "ticket_id wajib diisi"}, status_code=400)
+            
+        tkt_dir = os.path.join(BASE_DIR, "pages", "analisa", "tickets")
+        tkt_file = os.path.join(tkt_dir, f"{ticket_id}.json")
+        if os.path.exists(tkt_file):
+            try:
+                with open(tkt_file, "r", encoding="utf-8") as f:
+                    t_data = json.load(f)
+                t_data["status"] = "RESOLVED"
+                t_data["resolution_note"] = note
+                with open(tkt_file, "w", encoding="utf-8") as f:
+                    json.dump(t_data, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+                
+        # Update index
+        index_file = os.path.join(tkt_dir, "tickets_index.json")
+        if os.path.exists(index_file):
+            try:
+                with open(index_file, "r", encoding="utf-8") as f:
+                    idx = json.load(f)
+                for item in idx:
+                    if item.get("ticket_id") == ticket_id:
+                        item["status"] = "RESOLVED"
+                        item["resolution_note"] = note
+                        break
+                with open(index_file, "w", encoding="utf-8") as f:
+                    json.dump(idx, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+                
+        return JSONResponse({"ok": True, "message": f"Tiket {ticket_id} berhasil diselesaikan!"})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 async def api_auth_change_password(request):
     """Mengubah password akun manajemen."""
     try:
@@ -1406,6 +1472,8 @@ routes = [
     Route("/api/admin/users/create",    api_admin_users_create, methods=["POST"]),
     Route("/api/admin/users/password",  api_admin_users_password, methods=["POST"]),
     Route("/api/admin/users/delete",    api_admin_users_delete, methods=["POST"]),
+    Route("/api/admin/tickets",         api_admin_tickets_list),
+    Route("/api/admin/tickets/resolve", api_admin_tickets_resolve, methods=["POST"]),
     Route("/api/analisa/data",   api_analisa_data),
     Route("/api/analisa",        api_analisa_data),
     Route("/api/analisa/overview", api_analisa_data),

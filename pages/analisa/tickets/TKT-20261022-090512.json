@@ -1,0 +1,10 @@
+{
+  "ticket_id": "TKT-20261022-090512",
+  "created_at": "2026-10-22 09:05:12",
+  "chat_id": 6166710846,
+  "user_name": "Bossque",
+  "prompt": "Riwayat multi-bulan skor KPI SCO dan total insentif tahun 2026",
+  "requirement": "Akumulasi insentif 2026 dan pencapaian bulanan (Visit, Coll, Trx) dari KPI_SCO.xlsx",
+  "status": "RESOLVED",
+  "resolution_note": "Data sudah diekstrak dari KPI_SCO.xlsx dan disuntikkan ke snapshot tele_bot."
+}

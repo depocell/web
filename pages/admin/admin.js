@@ -149,6 +149,7 @@ async function switchAdminTab(tabName) {
   const viewSystem = document.getElementById("view-admin-system");
   const viewFinancial = document.getElementById("view-admin-financial");
   const viewUsers = document.getElementById("view-admin-users");
+  const viewTickets = document.getElementById("view-admin-tickets");
 
   const btnIngestion = document.getElementById("tab-btn-ingestion");
   const btnMaster = document.getElementById("tab-btn-master");
@@ -157,6 +158,7 @@ async function switchAdminTab(tabName) {
   const btnSystem = document.getElementById("tab-btn-system");
   const btnFinancial = document.getElementById("tab-btn-financial");
   const btnUsers = document.getElementById("tab-btn-users");
+  const btnTickets = document.getElementById("tab-btn-tickets");
 
   // Kontrol Tampilan Global Brand Ribbon (Hanya untuk Tab Financial, Pivot, Master, Products)
   const ribbon = document.getElementById("admin-global-brand-ribbon");
@@ -177,6 +179,7 @@ async function switchAdminTab(tabName) {
   if (viewSystem) viewSystem.style.display = "none";
   if (viewFinancial) viewFinancial.style.display = "none";
   if (viewUsers) viewUsers.style.display = "none";
+  if (viewTickets) viewTickets.style.display = "none";
 
   if (btnIngestion) btnIngestion.classList.remove("active");
   if (btnMaster) btnMaster.classList.remove("active");
@@ -185,8 +188,13 @@ async function switchAdminTab(tabName) {
   if (btnSystem) btnSystem.classList.remove("active");
   if (btnFinancial) btnFinancial.classList.remove("active");
   if (btnUsers) btnUsers.classList.remove("active");
+  if (btnTickets) btnTickets.classList.remove("active");
 
-  if (tabName === "users") {
+  if (tabName === "tickets") {
+    if (viewTickets) viewTickets.style.display = "flex";
+    if (btnTickets) btnTickets.classList.add("active");
+    await loadAdminTickets();
+  } else if (tabName === "users") {
     if (viewUsers) viewUsers.style.display = "flex";
     if (btnUsers) btnUsers.classList.add("active");
     await loadAdminUsers();
@@ -3157,3 +3165,150 @@ async function handleResellerTsvFileSelect(event) {
 }
 
 window.handleResellerTsvFileSelect = handleResellerTsvFileSelect;
+
+
+// =====================================================================
+// PUSAT TIKET ESKALASI AI (HELP ME PLEASE)
+// =====================================================================
+let adminTicketsCache = [];
+
+async function loadAdminTickets() {
+  const tbody = document.getElementById("tickets-table-body");
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 30px; text-align: center; color: var(--text-muted);"><span class="spinner" style="display:inline-block; margin-right:8px;"></span>Memuat antrean tiket...</td></tr>`;
+  }
+
+  try {
+    const res = await fetch("/api/admin/tickets");
+    const json = await res.json();
+    if (!json.ok) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: #ef4444;">Gagal memuat tiket: ${json.error || 'Unknown error'}</td></tr>`;
+      return;
+    }
+
+    adminTicketsCache = json.tickets || [];
+
+    // Update stats
+    const elTot = document.getElementById("stat-total-tickets");
+    const elPend = document.getElementById("stat-pending-tickets");
+    const elRes = document.getElementById("stat-resolved-tickets");
+    const elBadge = document.getElementById("badge-ticket-count");
+
+    if (elTot) elTot.innerText = json.total || 0;
+    if (elPend) elPend.innerText = json.pending || 0;
+    if (elRes) elRes.innerText = json.resolved || 0;
+
+    if (elBadge) {
+      if (json.pending > 0) {
+        elBadge.innerText = json.pending;
+        elBadge.style.display = "inline-block";
+      } else {
+        elBadge.style.display = "none";
+      }
+    }
+
+    renderAdminTickets(adminTicketsCache);
+  } catch (err) {
+    console.error("Error loading tickets:", err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: #ef4444;">Terjadi kesalahan jaringan saat mengambil tiket.</td></tr>`;
+  }
+}
+
+function filterAdminTickets() {
+  const sel = document.getElementById("filter-ticket-status");
+  const val = sel ? sel.value : "ALL";
+  if (val === "ALL") {
+    renderAdminTickets(adminTicketsCache);
+  } else {
+    const filtered = adminTicketsCache.filter(t => (t.status || "PENDING") === val);
+    renderAdminTickets(filtered);
+  }
+}
+
+function renderAdminTickets(tickets) {
+  const tbody = document.getElementById("tickets-table-body");
+  if (!tbody) return;
+
+  if (!tickets || tickets.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted); opacity:0.5;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span style="font-weight:600; color:var(--text-main);">Belum Ada Tiket Eskalasi</span>
+            <span style="font-size:12px;">Semua pertanyaan analisis Bossque di Telegram masih ter-cover oleh data snapshot resmi.</span>
+          </div>
+        </td>
+      </tr>`;
+    return;
+  }
+
+  let html = "";
+  tickets.forEach(t => {
+    const isPending = (t.status || "PENDING") === "PENDING";
+    const statusBadge = isPending
+      ? `<span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:rgba(245, 158, 11, 0.12); color:#d97706; border:1px solid rgba(245, 158, 11, 0.25);">
+           <span style="width:6px; height:6px; border-radius:50%; background:#d97706;"></span> PENDING
+         </span>`
+      : `<span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:rgba(16, 185, 129, 0.12); color:#059669; border:1px solid rgba(16, 185, 129, 0.25);">
+           <span style="width:6px; height:6px; border-radius:50%; background:#059669;"></span> RESOLVED
+         </span>`;
+
+    const actionBtn = isPending
+      ? `<button type="button" onclick="resolveAdminTicket('${t.ticket_id}')" style="padding:4px 10px; font-size:11.5px; font-weight:600; border-radius:6px; background:var(--primary); color:#ffffff; border:none; cursor:pointer;">
+           Selesaikan
+         </button>`
+      : `<span style="font-size:11px; color:var(--text-muted);">Selesai</span>`;
+
+    html += `
+      <tr style="border-bottom: 1px solid var(--surface-border); transition: background 0.15s;">
+        <td style="padding: 12px 16px; font-weight: 700; font-family: monospace; color: var(--primary);">
+          ${t.ticket_id}
+        </td>
+        <td style="padding: 12px 16px;">
+          <div style="font-weight: 600; color: var(--text-main);">${t.user_name || 'Bossque'}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">${t.created_at || '-'}</div>
+        </td>
+        <td style="padding: 12px 16px; color: var(--text-main); max-width: 280px; word-break: break-word;">
+          "${t.prompt || '-'}"
+        </td>
+        <td style="padding: 12px 16px; color: var(--text-muted); max-width: 280px; word-break: break-word;">
+          <div style="font-weight: 600; color: var(--text-main);">${t.requirement || '-'}</div>
+          ${t.resolution_note ? `<div style="font-size: 11px; color: #059669; margin-top: 3px;">Catatan: ${t.resolution_note}</div>` : ''}
+        </td>
+        <td style="padding: 12px 16px; text-align: center;">
+          ${statusBadge}
+        </td>
+        <td style="padding: 12px 16px; text-align: right;">
+          ${actionBtn}
+        </td>
+      </tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+async function resolveAdminTicket(ticketId) {
+  if (!confirm(`Selesaikan tiket ${ticketId}? Tandai bahwa data sudah diracik di Data Center.`)) {
+    return;
+  }
+  try {
+    const res = await fetch("/api/admin/tickets/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticket_id: ticketId, note: "Data sudah diracik dan disuntikkan ke snapshot AI." })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      await loadAdminTickets();
+    } else {
+      alert("Gagal menyelesaikan tiket: " + (json.error || "Unknown error"));
+    }
+  } catch (err) {
+    alert("Terjadi kesalahan jaringan: " + err.message);
+  }
+}

@@ -68,6 +68,16 @@
         </svg>
         <span> Status Freshness Sistem</span>
       </button>
+      <button type="button" id="tab-btn-tickets" onclick="switchAdminTab('tickets')" class="admin-subtab-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
+          <path d="M13 5v2"></path>
+          <path d="M13 17v2"></path>
+          <path d="M13 11v2"></path>
+        </svg>
+        <span> Eskalasi AI (Help Me Please)</span>
+        <span id="badge-ticket-count" style="display:none; background: #ef4444; color: #ffffff; border-radius: 10px; font-size: 10px; padding: 1px 6px; font-weight: 700; margin-left: 4px;">0</span>
+      </button>
     </div>
   </div>
 
@@ -1795,6 +1805,127 @@
     </form>
   </div>
 </div>
+
+
+  <!-- =================================================================== -->
+  <!-- 7. SUB-TAB: ESKALASI AI (HELP ME PLEASE)                           -->
+  <!-- =================================================================== -->
+  <div id="view-admin-tickets" style="display: none; flex-direction: column; gap: 20px;">
+    <!-- HEADER ACTION STRIP -->
+    <div class="card-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 18px 20px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main);">
+            Pusat Tiket Eskalasi AI (Help Me Please)
+          </h3>
+          <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2);">
+            Data Center Queue
+          </span>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
+          Log antrean pertanyaan Bossque dari Telegram @depas_ai_bot yang membutuhkan racikan agregasi baru di Data Center.
+        </p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button type="button" onclick="loadAdminTickets()" class="btn-system-refresh" title="Muat Ulang Antrean Tiket">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>Refresh Tiket</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STATS STRIP -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+      <div class="card-box" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
+            <path d="M13 5v2"></path><path d="M13 17v2"></path><path d="M13 11v2"></path>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Tiket</div>
+          <div id="stat-total-tickets" style="font-size: 20px; font-weight: 700; color: var(--text-main); line-height: 1.2;">0</div>
+        </div>
+      </div>
+
+      <div class="card-box" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">Menunggu Data Center (Pending)</div>
+          <div id="stat-pending-tickets" style="font-size: 20px; font-weight: 700; color: #f59e0b; line-height: 1.2;">0</div>
+        </div>
+      </div>
+
+      <div class="card-box" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
+        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;">Sudah Terpenuhi (Resolved)</div>
+          <div id="stat-resolved-tickets" style="font-size: 20px; font-weight: 700; color: #10b981; line-height: 1.2;">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE CONTAINER -->
+    <div class="card-box" style="padding: 0; overflow: hidden;">
+      <div style="padding: 14px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">Daftar Tiket Permintaan Analisis</span>
+        </div>
+        <div>
+          <select id="filter-ticket-status" onchange="filterAdminTickets()" class="form-select" style="font-size: 12px; padding: 5px 10px; border-radius: 6px;">
+            <option value="ALL">Semua Status</option>
+            <option value="PENDING">Hanya PENDING</option>
+            <option value="RESOLVED">Hanya RESOLVED</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="table-clean" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead>
+            <tr style="background: var(--surface-hover); text-align: left; border-bottom: 1px solid var(--surface-border);">
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 170px;">ID Tiket</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 150px;">Waktu &amp; Pengirim</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted);">Pertanyaan Asli Bossque</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted);">Kebutuhan Data Center</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 110px; text-align: center;">Status</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 110px; text-align: right;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tickets-table-body">
+            <tr>
+              <td colspan="6" style="padding: 30px; text-align: center; color: var(--text-muted);">
+                Memuat antrean tiket eskalasi...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
 <style>
   .admin-subtab-btn {

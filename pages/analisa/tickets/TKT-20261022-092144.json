@@ -1,0 +1,10 @@
+{
+  "ticket_id": "TKT-20261022-092144",
+  "created_at": "2026-10-22 09:21:44",
+  "chat_id": 6166710846,
+  "user_name": "Bossque",
+  "prompt": "Berapa daily revenue Indosat Data dan Indosat Reguler? Trendnya bagaimana 6 bulan terakhir?",
+  "requirement": "Daily revenue (Rp/hari) dan run-rate transaksi Indosat Data vs Reguler 6 bulan terakhir",
+  "status": "RESOLVED",
+  "resolution_note": "Data 6 bulan sudah diekstrak dari parquet dan disuntikkan ke operator_subtypes.json."
+}
