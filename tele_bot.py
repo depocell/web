@@ -262,6 +262,21 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                             lines.append(f"    - {cat_name}: {cat_rate:,.1f}/hari (Total MTD: {cat_tot:,} trx)")
                         if brand == "OKIPAY" and cat_name == list(cats_c.keys())[-1]:
                             lines.append("    - (Catatan Dim Produk OKIPAY: TIDAK MEMILIKI produk Transfer Stok / Transfer Bank)")
+
+                    # Performa Operator & Produk Utama (Sukses Rate & Speed Telemetri)
+                    ops_c = curr.get("operators_perf", {})
+                    ops_p = bdata[prev_p].get("operators_perf", {}) if len(periods) > 1 else {}
+                    if ops_c:
+                        lines.append(f"  • Sukses Rate & Speed Operator Utama {brand} (Oktober MTD vs September):")
+                        top_ops = ["TELKOMSEL", "INDOSAT", "XL - AXIS", "TRI", "SMARTFREN", "TOKEN PLN", "DANA"]
+                        for op_name in top_ops:
+                            if op_name in ops_c:
+                                c_st = ops_c[op_name]
+                                p_st = ops_p.get(op_name, {})
+                                p_pct = p_st.get("sukses_pct", 0)
+                                diff_pct = round(c_st.get("sukses_pct", 0) - p_pct, 1)
+                                diff_str = f"+{diff_pct}%" if diff_pct > 0 else f"{diff_pct}%"
+                                lines.append(f"    - {op_name}: Sukses {c_st.get('sukses_pct')}% (Sep: {p_pct}% | Diff: {diff_str}) | Total {c_st.get('trx'):,} trx (Sukses: {c_st.get('trx_sukses'):,}) | Speed {c_st.get('avg_dur_str')}")
         except Exception as e:
             logger.error(f"Error reading live context snapshot: {e}")
 
