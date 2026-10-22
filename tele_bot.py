@@ -314,6 +314,22 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                         notes = " -> [GROWTH TERENDAH / PENURUNAN TERDALAM]"
                     lines.append(f"  {rank}. {s_name} ({s_cb}) | Sep: {s_prev:,.1f}/hari -> Oct: {s_curr:,.1f}/hari (Diff: {s_diff_str}/hari | {s_pct_str}){notes}")
 
+            # Tren Riwayat Run-rate Bulanan 5 Sales SCO (Jan s/d Okt 2026)
+            p_keys_all = sorted(list(sco_data.get("periods", {}).keys()))
+            p_map = {'0126': 'Jan', '0226': 'Feb', '0326': 'Mar', '0426': 'Apr', '0526': 'Mei', '0626': 'Jun', '0726': 'Jul', '0826': 'Ags', '0926': 'Sep', '1026': 'Okt(MTD)'}
+            sco_monthly = {}
+            for pk in p_keys_all:
+                for row in sco_data["periods"][pk].get("index", []):
+                    s_nm = row.get("SCO")
+                    if s_nm and s_nm not in ["NON SCO", "ONLINE", "TOTAL SCO", "TOTAL NON SCO", "Grand Total"]:
+                        if s_nm not in sco_monthly:
+                            sco_monthly[s_nm] = []
+                        sco_monthly[s_nm].append(f"{p_map.get(pk, pk)}: {row.get('curr', 0):.1f}")
+            if sco_monthly:
+                lines.append("\n[TREN RUN-RATE BULANAN 5 SALES SCO (JAN s/d OKT 2026)]:")
+                for s_nm, hist in sco_monthly.items():
+                    lines.append(f"  • {s_nm}: " + " | ".join(hist))
+
             # Kategori Saluran (SCO / NON SCO / ONLINE / Grand Total)
             cat_rows = [x for x in idx_list if x.get("SCO") in ["TOTAL SCO", "TOTAL NON SCO", "ONLINE", "Grand Total"]]
             if cat_rows:
