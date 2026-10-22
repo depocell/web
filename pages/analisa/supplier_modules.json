@@ -32,7 +32,26 @@
         "trx": 650,
         "sukses_pct": 82.5
       }
-    ]
+    ],
+    "telkomsel_audit": {
+      "total_failed": 1025,
+      "status_counts": {
+        "Gagal": 922,
+        "Produk Gangguan": 66,
+        "Timeout": 30,
+        "Dibatalkan": 5,
+        "Cutoff": 2
+      },
+      "status_str": "Gagal (922 trx / 90.0%), Produk Gangguan (66 trx), Timeout (30 trx), Dibatalkan (5 trx), Cutoff (2 trx)",
+      "modules_failing": {
+        "IP: AMC": 303,
+        "Rute Kosong / Unassigned (<null>)": 189,
+        "IP: CSK-MO3-MKE": 150,
+        "IP: MR": 119,
+        "IP: GR1": 21
+      },
+      "modules_str": "IP: AMC (303 gagal), Rute Kosong/Unassigned (189 gagal/timeout), IP: CSK-MO3-MKE (150 gagal), IP: MR (119 gagal)"
+    }
   },
   "OKIPAY": {
     "top_failed_modules": [

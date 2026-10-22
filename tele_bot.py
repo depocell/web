@@ -467,6 +467,11 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                 if fails:
                     fail_str = ", ".join([f"{x['module']}: {x['failed']} gagal" for x in fails[:5]])
                     lines.append(f"[{brand} AUDIT SUPPLIER] Modul Paling Banyak Gagal (MTD Oktober 2026): {fail_str}")
+                tsel_audit = binfo.get("telkomsel_audit", {})
+                if tsel_audit:
+                    lines.append(f"[{brand} AUDIT ROOT CAUSE TELKOMSEL GAGAL]:")
+                    lines.append(f"  • Status Error: {tsel_audit.get('status_str')}")
+                    lines.append(f"  • Modul Penyumbang Gagal: {tsel_audit.get('modules_str')}")
         except Exception as e:
             logger.error(f"Error reading supplier_modules.json: {e}")
 
