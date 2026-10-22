@@ -263,10 +263,12 @@ window.checkCandidatesWaStatus = checkCandidatesWaStatus;
 function applySurveyFilters() {
   const tSel = document.getElementById('survey-filter-trx');
   const cSel = document.getElementById('survey-filter-cabang');
+  const stSel = document.getElementById('survey-filter-status');
   const sInput = document.getElementById('survey-search-input');
 
   const selectedTrx = tSel ? tSel.value : 'GT5';
   const selectedCabang = cSel ? cSel.value : 'ALL';
+  const selectedStatus = stSel ? stSel.value : 'ALL';
   const query = sInput ? sInput.value.trim().toLowerCase() : '';
 
   let list = surveyState.candidates.slice();
@@ -281,7 +283,16 @@ function applySurveyFilters() {
     list = list.filter(c => (c.cabang || '').toUpperCase() === selectedCabang.toUpperCase());
   }
 
-  // 3. Search Box
+  // 3. Filter Status Kirim (Belum / Terkirim / Sudah Balas)
+  if (selectedStatus === 'UNSENT') {
+    list = list.filter(c => !c.status || c.status === 'BELUM_DISURVEY' || c.status === 'READY_TO_SURVEY' || c.status === 'UNSENT');
+  } else if (selectedStatus === 'SENT') {
+    list = list.filter(c => c.status && (c.status.startsWith('SENT') || c.status === 'DELIVERED' || c.status === 'TEST_SENT' || c.status.includes('wa.me')));
+  } else if (selectedStatus === 'REPLIED') {
+    list = list.filter(c => c.status === 'REPLIED');
+  }
+
+  // 4. Search Box
   if (query) {
     list = list.filter(c => {
       const id = (c.reseller_id || '').toLowerCase();
@@ -355,7 +366,7 @@ function renderCandidatesTable() {
     let statusBadge = '<span class="badge" style="background: var(--table-header); color: var(--text-muted);">Belum</span>';
     if (c.status === 'REPLIED') {
       statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Sudah Balas</span>';
-    } else if (c.status === 'SENT' || c.status === 'TEST_SENT') {
+    } else if (c.status === 'SENT' || c.status === 'TEST_SENT' || (c.status && c.status.startsWith('SENT')) || (c.status && c.status.includes('wa.me'))) {
       statusBadge = '<span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">Terkirim</span>';
     } else if (c.status === 'NOT_ON_WA') {
       statusBadge = '<span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 700;">Tidak Ada WA</span>';
@@ -431,7 +442,7 @@ async function loadSurveyLogs() {
       const logCnt = document.getElementById('survey-count-logs');
       if (logCnt) logCnt.textContent = json.logs.length;
 
-      renderLogsTable();
+      applyLogsFilterAndSearch();
     } else {
       if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding: 24px; text-align: center; color: #ef4444;">Gagal mengambil data log.</td></tr>';
     }
@@ -442,23 +453,46 @@ async function loadSurveyLogs() {
 }
 window.loadSurveyLogs = loadSurveyLogs;
 
+let currentLogStatusFilter = 'ALL';
+
 function filterLogsByStatus(statusFilter, btnElem) {
+  currentLogStatusFilter = statusFilter;
   document.querySelectorAll('#survey-tab-logs .reseller-tab').forEach(b => b.classList.remove('active'));
   if (btnElem) btnElem.classList.add('active');
-
-  if (statusFilter === 'ALL') {
-    surveyState.filteredLogs = surveyState.logs.slice();
-  } else if (statusFilter === 'REPLIED') {
-    surveyState.filteredLogs = surveyState.logs.filter(l => l.status === 'REPLIED');
-  } else if (statusFilter === 'NOT_ON_WA') {
-    surveyState.filteredLogs = surveyState.logs.filter(l => l.status === 'NOT_ON_WA');
-  } else {
-    surveyState.filteredLogs = surveyState.logs.filter(l => l.status === 'SENT' || l.status === 'TEST_SENT');
-  }
-
-  renderLogsTable();
+  applyLogsFilterAndSearch();
 }
 window.filterLogsByStatus = filterLogsByStatus;
+
+function applyLogsFilterAndSearch() {
+  const query = (document.getElementById('survey-logs-search-input')?.value || '').trim().toLowerCase();
+  let list = surveyState.logs ? surveyState.logs.slice() : [];
+
+  // 1. Filter Status
+  if (currentLogStatusFilter === 'REPLIED') {
+    list = list.filter(l => l.status === 'REPLIED');
+  } else if (currentLogStatusFilter === 'NOT_ON_WA') {
+    list = list.filter(l => l.status === 'NOT_ON_WA');
+  } else if (currentLogStatusFilter === 'SENT') {
+    list = list.filter(l => (l.status || '').startsWith('SENT') || l.status === 'TEST_SENT' || (l.status || '').includes('wa.me'));
+  }
+
+  // 2. Search Box Query (Toko, ID Reseller, No WA, Cabang, SCO, Balasan)
+  if (query) {
+    list = list.filter(l => {
+      const name = (l.reseller_name || l.agen_name || '').toLowerCase();
+      const id = (l.reseller_id || l.agen_id || '').toLowerCase();
+      const phone = (l.no_wa || '').toLowerCase();
+      const cabang = (l.cabang || '').toLowerCase();
+      const sco = (l.sco_name || '').toLowerCase();
+      const reply = (l.reply_received || '').toLowerCase();
+      return name.includes(query) || id.includes(query) || phone.includes(query) || cabang.includes(query) || sco.includes(query) || reply.includes(query);
+    });
+  }
+
+  surveyState.filteredLogs = list;
+  renderLogsTable();
+}
+window.applyLogsFilterAndSearch = applyLogsFilterAndSearch;
 
 function renderLogsTable() {
   const tbody = document.getElementById('survey-logs-tbody');
@@ -475,7 +509,7 @@ function renderLogsTable() {
     let statusBadge = '<span class="badge" style="background: var(--table-header); color: var(--text-muted);">PENDING</span>';
     if (l.status === 'REPLIED') {
       statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">SUDAH BALAS</span>';
-    } else if (l.status === 'SENT' || l.status === 'TEST_SENT') {
+    } else if (l.status === 'SENT' || l.status === 'TEST_SENT' || (l.status && l.status.startsWith('SENT')) || (l.status && l.status.includes('wa.me'))) {
       statusBadge = '<span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">TERKIRIM</span>';
     } else if (l.status === 'NOT_ON_WA') {
       statusBadge = '<span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 700;">TIDAK ADA WA</span>';

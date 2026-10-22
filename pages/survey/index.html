@@ -71,10 +71,20 @@
             </select>
           </div>
           <!-- Filter Cabang -->
-          <div style="min-width: 160px;">
+          <div style="min-width: 150px;">
             <select id="survey-filter-cabang" onchange="applySurveyFilters()" 
               style="height: 38px; width: 100%; padding: 0 12px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 13px; font-weight: 600; outline: none; cursor: pointer; box-sizing: border-box; transition: all 0.15s ease;">
               <option value="ALL">Semua Cabang</option>
+            </select>
+          </div>
+          <!-- Filter Status Kirim (Belum / Terkirim) -->
+          <div style="min-width: 175px;">
+            <select id="survey-filter-status" onchange="applySurveyFilters()" 
+              style="height: 38px; width: 100%; padding: 0 12px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 13px; font-weight: 600; outline: none; cursor: pointer; box-sizing: border-box; transition: all 0.15s ease;">
+              <option value="ALL">Semua Status</option>
+              <option value="UNSENT">Belum Dihubungi</option>
+              <option value="SENT">Sudah Dihubungi (wa.me)</option>
+              <option value="REPLIED">Sudah Membalas</option>
             </select>
           </div>
           <!-- Search Box -->
@@ -129,6 +139,19 @@
           <button type="button" class="reseller-tab" onclick="filterLogsByStatus('SENT', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px;">Menunggu Balasan</button>
           <button type="button" class="reseller-tab" onclick="filterLogsByStatus('NOT_ON_WA', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; color: #dc2626;">Tidak Ada WA</button>
         </div>
+
+        <!-- Search Box untuk Log Survei (Memudahkan Copas Jawaban) -->
+        <div style="flex: 1; min-width: 240px; max-width: 380px; position: relative; display: flex; align-items: center;">
+          <input type="text" id="survey-logs-search-input" oninput="applyLogsFilterAndSearch()"
+            placeholder="Cari Toko, ID Reseller, No WA..." 
+            style="height: 34px; width: 100%; padding: 0 14px 0 32px; border-radius: 7px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 12.5px; outline: none; box-sizing: border-box; transition: all 0.15s ease;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            style="position: absolute; left: 10px; color: var(--text-muted); pointer-events: none;">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+
         <div style="display: flex; gap: 8px; align-items: center;">
           <button type="button" onclick="loadSurveyLogs()" class="modern-btn" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
