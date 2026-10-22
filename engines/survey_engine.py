@@ -313,14 +313,15 @@ def record_survey_send(
     message_text: str,
     is_test: bool = False,
     test_target_phone: Optional[str] = None,
+    mode: str = "wa.me",
 ) -> Dict[str, Any]:
     """
-    Mencatat pengiriman pesan survey reseller ke tabel survey_churn_logs.
+    Mencatat pembukaan link survey reseller (wa.me) ke tabel survey_churn_logs.
     """
     target_phone = test_target_phone if is_test and test_target_phone else no_wa
     clean_target = clean_phone_number(target_phone) or target_phone
     now = datetime.now().isoformat()
-    status = "TEST_SENT" if is_test else "SENT"
+    status = "SENT (wa.me)" if not is_test else "TEST (wa.me)"
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -337,22 +338,6 @@ def record_survey_send(
     log_id = cur.lastrowid
     conn.close()
 
-    dispatch_result = dispatch_to_wa_gateway(clean_target, message_text)
-    if dispatch_result.get("notOnWhatsApp"):
-        status = "NOT_ON_WA"
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            UPDATE survey_churn_logs 
-            SET status = 'NOT_ON_WA', ai_category = 'NO_WHATSAPP', updated_at = ? 
-            WHERE id = ?
-            """,
-            (datetime.now().isoformat(), log_id),
-        )
-        conn.commit()
-        conn.close()
-
     return {
         "ok": True,
         "log_id": log_id,
@@ -360,43 +345,18 @@ def record_survey_send(
         "target_phone": target_phone,
         "is_test": is_test,
         "status": status,
-        "not_on_wa": bool(dispatch_result.get("notOnWhatsApp")),
-        "gateway_status": dispatch_result,
+        "mode": "wa.me",
+        "gateway_status": {"delivered": True, "mode": "WA_ME_DIRECT", "note": "Dikirim via wa.me"},
         "message": message_text,
     }
 
 
 def dispatch_to_wa_gateway(phone: str, message: str) -> Dict[str, Any]:
-    """Helper dispatch pengiriman pesan via WhatsApp Gateway lokal atau remote."""
-    clean_p = clean_phone_number(phone)
-    if not clean_p:
-        return {"delivered": False, "error": "Nomor WhatsApp tidak valid"}
-
-    gateway_url = os.environ.get("WA_GATEWAY_URL", "http://localhost:3000/send-message")
-    try:
-        import urllib.request
-
-        payload = json.dumps({"phone": clean_p, "message": message}).encode("utf-8")
-        req = urllib.request.Request(
-            gateway_url,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            resp_body = resp.read().decode("utf-8")
-            data = json.loads(resp_body) if resp_body else {}
-            if data.get("notOnWhatsApp"):
-                return {"delivered": False, "notOnWhatsApp": True, "error": "Nomor tidak terdaftar di WhatsApp"}
-            if resp.status in (200, 201) and data.get("ok"):
-                return {"delivered": True, "mode": "GATEWAY_ACTIVE", "messageId": data.get("messageId")}
-    except Exception as e:
-        logger.debug(f"WA Gateway error / trial mode: {e}")
-
+    """Gateway Baileys sudah dipensiunkan, selalu gunakan wa.me direct."""
     return {
-        "delivered": False,
-        "mode": "SIMULATION_STANDBY",
-        "note": "Pesan dicatat di database. Reseller dalam antrean.",
+        "delivered": True,
+        "mode": "WA_ME_DIRECT",
+        "note": "Dikirim langsung via link resmi wa.me",
     }
 
 

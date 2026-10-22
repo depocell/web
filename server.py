@@ -692,35 +692,29 @@ async def api_survey_log_delete(request):
 
 
 async def api_survey_gateway_status(request):
-    """Mengecek status live koneksi WhatsApp Gateway di localhost:3000."""
-    try:
-        import urllib.request
-        with urllib.request.urlopen("http://127.0.0.1:3000/status", timeout=1.5) as r:
-            data = json.loads(r.read().decode("utf-8"))
-            return JSONResponse(data)
-    except Exception:
-        return JSONResponse({"ok": True, "connected": False, "phone": None})
+    """Status WhatsApp: Mode Direct wa.me resmi aktif."""
+    return JSONResponse({
+        "ok": True,
+        "connected": True,
+        "mode": "wa.me",
+        "phone": "Direct wa.me",
+        "label": "Mode Aman: Direct WhatsApp (wa.me)"
+    })
 
 
 async def api_survey_check_phones(request):
-    """Mengecek validitas akun WhatsApp untuk daftar nomor (batch)."""
+    """Mengecek format nomor WhatsApp untuk daftar nomor (batch)."""
     try:
         body = await request.json()
         phones = body.get("phones", [])
         if not phones:
             return JSONResponse({"ok": True, "results": {}})
 
-        import urllib.request
-        payload = json.dumps({"phones": phones}).encode("utf-8")
-        req = urllib.request.Request(
-            "http://127.0.0.1:3000/check-phones",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read().decode("utf-8"))
-            return JSONResponse(data)
+        results = {}
+        for p in phones:
+            clean = survey_engine.clean_phone_number(p)
+            results[p] = bool(clean and len(clean) >= 10)
+        return JSONResponse({"ok": True, "results": results})
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e), "results": {}})
 

@@ -397,11 +397,11 @@ function renderCandidatesTable() {
         </td>
         <td style="padding: 10px 14px; text-align: center;">
           <button type="button" onclick="openSurveyModal('${escapeHtml(c.reseller_id)}', '${escapeHtml(c.reseller_name || c.reseller_id)}', '${escapeHtml(c.cabang || '-')}', '${escapeHtml(c.sco_name || '-')}', ${c.prev_trx || 0})"
-            style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 6px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 6px; padding: 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s ease;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
             </svg>
-            Survei
+            <span>Chat wa.me</span>
           </button>
         </td>
       </tr>
@@ -776,78 +776,50 @@ window.toggleSurveyTestInput = toggleSurveyTestInput;
 async function submitSurveyAction() {
   if (!surveyState.currentCandidate) return;
 
-  const btn = document.getElementById('btn-submit-survey');
-  const resBox = document.getElementById('survey-result-box');
-  const isTest = document.getElementById('survey-is-test').checked;
-  const testPhone = document.getElementById('survey-test-phone').value.trim();
-  const customMsg = document.getElementById('survey-message-text').value.trim();
+  const cand = surveyState.currentCandidate;
+  const isTest = document.getElementById('survey-is-test')?.checked;
+  const testPhone = document.getElementById('survey-test-phone')?.value.trim();
+  const rawPhone = isTest && testPhone ? testPhone : (cand.no_wa || '');
 
-  if (isTest && (!testPhone || testPhone.length < 9)) {
-    alert('Masukkan nomor HP/WA uji coba yang valid (contoh: 085882888808)');
-    document.getElementById('survey-test-phone').focus();
+  let cleanPhone = String(rawPhone).replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('08')) cleanPhone = '628' + cleanPhone.slice(2);
+  else if (cleanPhone.startsWith('8')) cleanPhone = '628' + cleanPhone.slice(1);
+
+  if (!cleanPhone || cleanPhone.length < 10) {
+    alert('Nomor WhatsApp toko ini belum tersedia atau tidak valid.');
     return;
   }
 
-  btn.disabled = true;
-  btn.style.opacity = '0.7';
-  btn.innerHTML = 'Mengirim...';
+  const customMsg = document.getElementById('survey-message-text').value.trim();
 
-  try {
-    const payload = {
+  // 1. Catat log pengiriman via wa.me ke database (background)
+  fetch('/api/survey/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       brand: surveyState.brand,
       periode: surveyState.period,
-      agen_id: surveyState.currentCandidate.reseller_id,
-      agen_name: surveyState.currentCandidate.reseller_name,
-      cabang: surveyState.currentCandidate.cabang,
-      sco_name: surveyState.currentCandidate.sco_name,
-      no_wa: surveyState.currentCandidate.no_wa,
-      prev_trx: surveyState.currentCandidate.prev_trx,
+      agen_id: cand.reseller_id,
+      agen_name: cand.reseller_name,
+      cabang: cand.cabang,
+      sco_name: cand.sco_name,
+      no_wa: cleanPhone,
+      prev_trx: cand.prev_trx,
       message: customMsg,
       is_test: isTest,
-      test_phone: testPhone
-    };
+      mode: 'wa.me'
+    })
+  }).then(() => {
+    loadSurveyCandidates();
+    loadSurveyLogs();
+  }).catch(() => {});
 
-    const resp = await fetch('/api/survey/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const res = await resp.json();
+  // 2. Langsung buka chat resmi WhatsApp
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(customMsg)}`;
+  window.open(waUrl, '_blank');
 
-    resBox.style.display = 'block';
-    if (res.ok) {
-      resBox.style.background = '#f0fdf4';
-      resBox.style.border = '1px solid #bbf7d0';
-      resBox.style.color = '#166534';
-      const dest = isTest ? `Nomor Uji Coba (+${res.target_phone})` : `Nomor Reseller (+${res.target_phone})`;
-      resBox.innerHTML = `<strong>Pesan Berhasil Diproses!</strong><br>Status: <code>${res.status}</code> &bull; Tujuan: ${dest}`;
-      
-      // Auto refresh candidates and logs
-      loadSurveyCandidates();
-      loadSurveyLogs();
-    } else {
-      resBox.style.background = '#fef2f2';
-      resBox.style.border = '1px solid #fecaca';
-      resBox.style.color = '#991b1b';
-      resBox.innerHTML = `<strong>Gagal:</strong> ${res.error || 'Terjadi kesalahan'}`;
-    }
-  } catch (err) {
-    resBox.style.display = 'block';
-    resBox.style.background = '#fef2f2';
-    resBox.style.border = '1px solid #fecaca';
-    resBox.style.color = '#991b1b';
-    resBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
-  } finally {
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="22" y1="2" x2="11" y2="13"></line>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-      </svg>
-      <span>Kirim Pesan Survei</span>
-    `;
-  }
+  // 3. Tutup modal
+  closeSurveyModal();
 }
 window.submitSurveyAction = submitSurveyAction;
 

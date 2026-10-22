@@ -1351,12 +1351,12 @@ function renderResellerTable() {
           <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
             ${(isChurn || r.activity_status === 'Pasif / Churn' || agenUnifiedState.reseller.activeStatus === 'churn') ? `
               <button type="button" onclick="openSurveyModal('${escapeHtml(r.kode)}', '${escapeHtml(r.name || r.kode)}', '${escapeHtml(r.cabang || '-')}', '${escapeHtml(r.sco || '-')}', ${r.prev_trx || 0})"
-                style="background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; border-radius: 6px; padding: 4px 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
-                title="Kirim Survey Interaktif AI via WhatsApp ke Reseller ini">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 6px; padding: 4px 9px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s ease;"
+                title="Hubungi Reseller via WhatsApp resmi (wa.me)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                 </svg>
-                Survey
+                wa.me
               </button>
             ` : ''}
             <button type="button" onclick="openResellerModal('${escapeHtml(r.kode)}')" style="background: none; border: 1px solid var(--surface-border); border-radius: 6px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; color: var(--primary); cursor: pointer;">
@@ -2421,82 +2421,48 @@ window.toggleSurveyTestInput = toggleSurveyTestInput;
 async function submitSurveyAction() {
   if (!currentSurveyCandidate) return;
 
-  const btn = document.getElementById('btn-submit-survey');
-  const resBox = document.getElementById('survey-result-box');
-  const isTest = document.getElementById('survey-is-test').checked;
-  const testPhone = document.getElementById('survey-test-phone').value.trim();
-  const customMsg = document.getElementById('survey-message-text').value.trim();
+  const isTest = document.getElementById('survey-is-test')?.checked;
+  const testPhone = document.getElementById('survey-test-phone')?.value.trim();
+  const rawPhone = isTest && testPhone ? testPhone : (currentSurveyCandidate.no_wa || '');
 
-  if (isTest && (!testPhone || testPhone.length < 9)) {
-    alert('Mohon masukkan nomor HP/WA uji coba Anda yang valid (contoh: 081234567890)');
-    document.getElementById('survey-test-phone').focus();
+  let cleanPhone = String(rawPhone).replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('08')) cleanPhone = '628' + cleanPhone.slice(2);
+  else if (cleanPhone.startsWith('8')) cleanPhone = '628' + cleanPhone.slice(1);
+
+  if (!cleanPhone || cleanPhone.length < 10) {
+    alert('Nomor WhatsApp toko ini belum tersedia atau tidak valid.');
     return;
   }
 
-  btn.disabled = true;
-  btn.style.opacity = '0.7';
-  btn.innerHTML = 'Mengirim...';
+  const customMsg = document.getElementById('survey-message-text').value.trim();
+  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+  const month = agenUnifiedState.currentPeriod || '2026-10';
 
-  try {
-    const brand = agenUnifiedState.currentBrand || 'ASTAGA';
-    const month = agenUnifiedState.currentPeriod || '2026-10';
-
-    const payload = {
+  // 1. Catat log ke server (background)
+  fetch('/api/survey/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       brand: brand,
       periode: month,
       agen_id: currentSurveyCandidate.agen_id,
       agen_name: currentSurveyCandidate.agen_name,
       cabang: currentSurveyCandidate.cabang,
       sco_name: currentSurveyCandidate.sco_name,
-      no_wa: currentSurveyCandidate.no_wa,
+      no_wa: cleanPhone,
       prev_trx: currentSurveyCandidate.prev_trx,
       message: customMsg,
       is_test: isTest,
-      test_phone: testPhone
-    };
+      mode: 'wa.me'
+    })
+  }).catch(() => {});
 
-    const resp = await fetch('/api/survey/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const res = await resp.json();
+  // 2. Langsung buka chat resmi WhatsApp
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(customMsg)}`;
+  window.open(waUrl, '_blank');
 
-    resBox.style.display = 'block';
-    if (res.ok) {
-      resBox.style.background = '#f0fdf4';
-      resBox.style.border = '1px solid #bbf7d0';
-      resBox.style.color = '#166534';
-      
-      const targetTxt = isTest ? `Nomor Uji Coba (${res.target_phone})` : `Nomor Toko (${res.target_phone})`;
-      resBox.innerHTML = `
-        <strong>Survey Berhasil Diproses!</strong><br>
-        Status: <code>${res.status}</code> &bull; Dikirim ke: ${targetTxt}<br>
-        <span style="font-size: 11px; color: #15803d;">${res.gateway_status ? res.gateway_status.note || 'Terkirim' : 'Tercatat di sistem'}</span>
-      `;
-    } else {
-      resBox.style.background = '#fef2f2';
-      resBox.style.border = '1px solid #fecaca';
-      resBox.style.color = '#991b1b';
-      resBox.innerHTML = `<strong>Gagal:</strong> ${res.error || 'Terjadi kesalahan'}`;
-    }
-  } catch (err) {
-    resBox.style.display = 'block';
-    resBox.style.background = '#fef2f2';
-    resBox.style.border = '1px solid #fecaca';
-    resBox.style.color = '#991b1b';
-    resBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
-  } finally {
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="22" y1="2" x2="11" y2="13"></line>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-      </svg>
-      <span>Kirim Pesan Survey</span>
-    `;
-  }
+  // 3. Tutup modal
+  closeSurveyModal();
 }
 window.submitSurveyAction = submitSurveyAction;
 
