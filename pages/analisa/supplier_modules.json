@@ -1,0 +1,71 @@
+{
+  "updated_at": "2026-10-21 20:00:00",
+  "ASTAGA": {
+    "top_failed_modules": [
+      {
+        "module": "IP: AMC",
+        "failed": 462,
+        "trx": 1890,
+        "sukses_pct": 75.6
+      },
+      {
+        "module": "IP: PCU",
+        "failed": 223,
+        "trx": 1420,
+        "sukses_pct": 84.3
+      },
+      {
+        "module": "IP: MR",
+        "failed": 172,
+        "trx": 980,
+        "sukses_pct": 82.4
+      },
+      {
+        "module": "IP: CSK-MO3-MKE",
+        "failed": 156,
+        "trx": 870,
+        "sukses_pct": 82.1
+      },
+      {
+        "module": "IP: CSK-MO3-H2H",
+        "failed": 114,
+        "trx": 650,
+        "sukses_pct": 82.5
+      }
+    ]
+  },
+  "OKIPAY": {
+    "top_failed_modules": [
+      {
+        "module": "IP: AMC",
+        "failed": 1829,
+        "trx": 6342,
+        "sukses_pct": 71.2
+      },
+      {
+        "module": "IP: MARKAZ",
+        "failed": 552,
+        "trx": 1861,
+        "sukses_pct": 70.3
+      },
+      {
+        "module": "IP: METRO",
+        "failed": 175,
+        "trx": 2787,
+        "sukses_pct": 93.7
+      },
+      {
+        "module": "IP: CEBONG",
+        "failed": 76,
+        "trx": 1512,
+        "sukses_pct": 95.0
+      },
+      {
+        "module": "IP: DIGIFLAZZ",
+        "failed": 27,
+        "trx": 15107,
+        "sukses_pct": 99.8
+      }
+    ]
+  }
+}

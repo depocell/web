@@ -116,7 +116,7 @@ Bot telah didaftarkan dengan menu resmi Telegram (`setMyCommands`) yang muncul p
 | :--- | :--- | :--- |
 | `tele_bot.py` | `c:\WEB REPORT\tele_bot.py` & `/var/www/webreport/` | Script utama Telegram Bot, routing menu, image sender & integrasi Gemini AI |
 | `.env` | Root folder (Lokal & VPS) | File rahasia berisi API key dan Bot token |
-| `pages/analisa/top_bottom_agen.json` | `pages/analisa/` (Lokal & VPS) | Cache data top drop agen dan audit modul supplier gagal |
+| `pages/analisa/supplier_modules.json` | `pages/analisa/` (Lokal & VPS) | Audit performa modul/terminal supplier dan ranking transaksi gagal |
 | `Daily_Report_ASTAGA_2026-10.png` | Root folder (Lokal & VPS) | Visual HD infografis harian My Astaga |
 | `Daily_Report_OKIPAY_2026-10.png` | Root folder (Lokal & VPS) | Visual HD infografis harian OKIPAY |
 | `Laporan_SCO_2026-10-21.png` | Root folder (Lokal & VPS) | Visual HD potret rekap sales cabang SCO siap forward WA |

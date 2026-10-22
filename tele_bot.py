@@ -378,20 +378,22 @@ def get_live_context_snapshot(prompt: str = "") -> str:
         except Exception as e:
             logger.error(f"Error reading tren_agen from data_sco.json: {e}")
 
-    # 4. Data Modul Supplier Gagal dari top_bottom_agen.json
-    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
-    if os.path.exists(tb_path):
+    # 4. Data Modul Supplier Gagal dari supplier_modules.json
+    supp_path = os.path.join(BASE_DIR, "pages", "analisa", "supplier_modules.json")
+    if not os.path.exists(supp_path):
+        supp_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
+    if os.path.exists(supp_path):
         try:
-            with open(tb_path, "r", encoding="utf-8") as f:
-                tb_data = json.load(f)
+            with open(supp_path, "r", encoding="utf-8") as f:
+                supp_data = json.load(f)
             for brand in ["ASTAGA", "OKIPAY"]:
-                binfo = tb_data.get(brand, {})
+                binfo = supp_data.get(brand, {})
                 fails = binfo.get("top_failed_modules", [])
                 if fails:
                     fail_str = ", ".join([f"{x['module']}: {x['failed']} gagal" for x in fails[:5]])
                     lines.append(f"[{brand} AUDIT SUPPLIER] Modul Paling Banyak Gagal (MTD Oktober 2026): {fail_str}")
         except Exception as e:
-            logger.error(f"Error reading top_failed_modules: {e}")
+            logger.error(f"Error reading supplier_modules.json: {e}")
 
     return "\n".join(lines)
 
@@ -639,13 +641,15 @@ def handle_command_cabang(chat_id: int):
 
 def handle_command_supplier(chat_id: int):
     send_chat_action(chat_id, "typing")
-    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
-    if not os.path.exists(tb_path):
+    supp_path = os.path.join(BASE_DIR, "pages", "analisa", "supplier_modules.json")
+    if not os.path.exists(supp_path):
+        supp_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
+    if not os.path.exists(supp_path):
         send_telegram_message(chat_id, "Mohon maaf Bossque, data modul supplier belum tersedia.")
         return
 
     try:
-        with open(tb_path, "r", encoding="utf-8") as f:
+        with open(supp_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         lines = ["⚠️ <b>AUDIT MODUL SUPPLIER PALING BANYAK GAGAL (MTD OKTOBER 2026):</b>\n"]
@@ -665,26 +669,36 @@ def handle_command_supplier(chat_id: int):
 
 def handle_command_drop(chat_id: int):
     send_chat_action(chat_id, "typing")
-    tb_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
-    if not os.path.exists(tb_path):
+    sco_path = os.path.join(BASE_DIR, "pages", "sco", "data_sco.json")
+    if not os.path.exists(sco_path):
         send_telegram_message(chat_id, "Mohon maaf Bossque, data agen drop belum tersedia.")
         return
 
     try:
-        with open(tb_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        with open(sco_path, "r", encoding="utf-8") as f:
+            sco_data = json.load(f)
 
-        top_drop = data.get("ASTAGA", {}).get("top_drop", [])
+        tren_all = sco_data.get("tren_agen", [])
+        tren = [x for x in tren_all if x.get("avg_prev", 0) >= 5 or x.get("avg_curr", 0) >= 5]
+        top_drop = sorted(tren, key=lambda x: x.get("diff", 0))[:10]
+
         if not top_drop:
             send_telegram_message(chat_id, "Data agen drop belum terdata.")
             return
 
-        lines = ["📉 <b>10 AGEN DENGAN PENURUNAN HARIAN TERBESAR (ASTAGA MTD OKTOBER):</b>\n"]
-        for i, a in enumerate(top_drop[:10], 1):
+        lines = ["📉 <b>10 AGEN DENGAN PENURUNAN HARIAN TERBESAR (OKTOBER 2026 VS SEPTEMBER):</b>\n"]
+        for i, a in enumerate(top_drop, 1):
+            aid = a.get("aid", "-")
+            name = a.get("name", "-")
+            cb = a.get("cabang", "-")
+            p = a.get("avg_prev", 0)
+            c = a.get("avg_curr", 0)
+            diff = round(a.get("diff", 0), 1)
+            pct = round(a.get("growth", 0) * 100, 1)
             lines.append(
-                f"{i}. <b>[{a['agen_id']}] {a['name']}</b> ({a['cabang']})\n"
-                f"   • Run-rate: {a['daily_prev']:.1f} ➔ {a['daily_curr']:.1f} trx/hari\n"
-                f"   • Penurunan: {a['drop_daily']:.1f}/hari ({a['drop_pct']}%) | Total MTD: {a['mtd_trx']:,} trx"
+                f"{i}. <b>[{aid}] {name}</b> ({cb})\n"
+                f"   • Run-rate: {p:.1f} ➔ {c:.1f} trx/hari\n"
+                f"   • Penurunan: {diff:.1f}/hari ({pct}%)"
             )
 
         send_telegram_message(chat_id, "\n".join(lines))
