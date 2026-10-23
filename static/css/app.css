@@ -2,7 +2,7 @@
 :root {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   /* Light Theme (Clean Crisp Enterprise) */
   --bg: #f8fafc;
   --surface: #ffffff;
@@ -29,8 +29,8 @@
   --negative: #e11d48;
   --negative-bg: #fff1f2;
   --badge-bg: #f1f5f9;
-  --card-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
-  --card-shadow-hover: 0 6px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --card-shadow: none;
+  --card-shadow-hover: none;
   --sidebar-width: 250px;
   --sidebar-collapsed-width: 68px;
 }
@@ -62,8 +62,8 @@
     --negative: #f43f5e;
     --negative-bg: rgba(244, 63, 94, 0.12);
     --badge-bg: #1e293b;
-    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
-    --card-shadow-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.5);
+    --card-shadow: none;
+    --card-shadow-hover: none;
   }
 }
 
@@ -93,8 +93,8 @@ html[data-theme="dark"] {
   --negative: #f43f5e;
   --negative-bg: rgba(244, 63, 94, 0.12);
   --badge-bg: #1e293b;
-  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
-  --card-shadow-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.5);
+  --card-shadow: none;
+  --card-shadow-hover: none;
 }
 
 html[data-theme="light"] {
@@ -123,8 +123,8 @@ html[data-theme="light"] {
   --negative: #e11d48;
   --negative-bg: #fff1f2;
   --badge-bg: #f1f5f9;
-  --card-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
-  --card-shadow-hover: 0 6px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --card-shadow: none;
+  --card-shadow-hover: none;
 }
 
 * {

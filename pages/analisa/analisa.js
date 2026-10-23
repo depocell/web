@@ -1737,11 +1737,11 @@ function renderDistribusiTab(data) {
   const elTitle = document.getElementById("dist-trend-title");
   if (elTitle) {
     if (isDaily) {
-      elTitle.textContent = `Tren Harian: Volume Transaksi vs Customer Aktif (${summary.granularity_label})`;
+      elTitle.textContent = `Tren Harian: Daily Trx vs Customer Aktif (${summary.granularity_label})`;
     } else if (isYearly) {
-      elTitle.textContent = `Tren Daily Trx Tahunan: Trx / Hari vs Customer Aktif (2023 - 2026)`;
+      elTitle.textContent = `Tren Tahunan: Daily Trx vs Customer Aktif (2023 - 2026)`;
     } else {
-      elTitle.textContent = `Tren Daily Trx Bulanan: Total Trx / Hari Cut-off (Tahun ${data.year})`;
+      elTitle.textContent = `Daily Trx vs Customer Aktif (${data.year})`;
     }
   }
 
