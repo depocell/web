@@ -3138,6 +3138,9 @@ function updateStreamUrls() {
   const elParquet = document.getElementById("stream-url-parquet");
   if (elParquet) elParquet.value = `${domain}/api/export/transactions.parquet?brand=${brand}&year=${year}&month=${monthParam}&key=depas2026`;
 
+  const elAgents = document.getElementById("stream-url-agents");
+  if (elAgents) elAgents.value = `${domain}/api/export/agents.csv?brand=${brand}&key=depas2026`;
+
   const elCust = document.getElementById("stream-url-customers");
   if (elCust) elCust.value = `${domain}/api/export/customers.csv?brand=${brand}&key=depas2026`;
 
