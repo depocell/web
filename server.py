@@ -1027,7 +1027,7 @@ async def api_export_transactions_parquet(request):
             s_tgl = df["tgl_entry"].astype(str)
             df_m = df[s_tgl.str.startswith(month)]
             temp_path = monthly_parquet_path + f".tmp_{os.getpid()}"
-            df_m.to_parquet(temp_path, index=False, compression="snappy")
+            df_m.to_parquet(temp_path, index=False, compression="snappy", coerce_timestamps="ms", allow_truncated_timestamps=True)
             if os.path.exists(temp_path):
                 import shutil
                 shutil.move(temp_path, monthly_parquet_path)
@@ -1104,7 +1104,7 @@ async def api_export_transactions_csv(request):
             cols = [c for c in ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"] if c in df.columns]
 
             temp_path = cache_path + f".tmp_{os.getpid()}"
-            df[cols].to_csv(temp_path, index=False)
+            df[cols].to_csv(temp_path, index=False, date_format="%Y-%m-%d %H:%M:%S")
             if os.path.exists(temp_path):
                 import shutil
                 shutil.move(temp_path, cache_path)
