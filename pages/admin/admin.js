@@ -3084,8 +3084,11 @@ function updateStreamUrls() {
     ? window.location.origin
     : "https://depas.my.id";
 
+  const monthSelect = document.getElementById("stream-month-select");
+  const month = monthSelect ? monthSelect.value : "2026-10";
+
   const elCsv = document.getElementById("stream-url-csv");
-  if (elCsv) elCsv.value = `${domain}/api/export/transactions.csv?brand=${brand}&month=2026-10&key=depas2026`;
+  if (elCsv) elCsv.value = `${domain}/api/export/transactions.csv?brand=${brand}&month=${month}&key=depas2026`;
 
   const elParquet = document.getElementById("stream-url-parquet");
   if (elParquet) elParquet.value = `${domain}/api/export/transactions.parquet?brand=${brand}&year=2026&key=depas2026`;
