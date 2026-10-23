@@ -582,16 +582,27 @@ def execute_pivot(
                 else:
                     piv = piv / float(active_days)
 
-        # Sort baris berdasarkan TOTAL (kecuali row TOTAL tetap di bawah)
+        # Sort baris: jika dimensi waktu (bulan/tanggal), urutkan kronologis; selain itu urutkan berdasarkan TOTAL descending
         if "TOTAL" in piv.index:
             total_row_s = piv.loc["TOTAL"].copy()
             piv_data = piv.drop(index="TOTAL")
-            piv_data = piv_data.sort_values(by="TOTAL", ascending=False).head(top_limit)
+            if row_dim in ("bulan", "tanggal"):
+                piv_data = piv_data.sort_index(ascending=True)
+            else:
+                piv_data = piv_data.sort_values(by="TOTAL", ascending=False).head(top_limit)
         else:
             total_row_s = pd.Series(dtype=float)
-            piv_data = piv.sort_values(by=piv.columns[0], ascending=False).head(top_limit)
+            if row_dim in ("bulan", "tanggal"):
+                piv_data = piv_data.sort_index(ascending=True)
+            else:
+                piv_data = piv_data.sort_values(by=piv.columns[0], ascending=False).head(top_limit)
 
         col_headers = [str(c) for c in piv_data.columns]
+        if col_dim in ("bulan", "tanggal") and "TOTAL" in col_headers:
+            data_cols = [c for c in col_headers if c != "TOTAL"]
+            data_cols.sort()
+            col_headers = data_cols + ["TOTAL"]
+            piv_data = piv_data[col_headers]
         rows_data = []
 
         for idx_val, r_s in piv_data.iterrows():
@@ -655,8 +666,11 @@ def execute_pivot(
                 grp["daily_jual"] = grp["jual_sum"] / float(active_days)
                 grp["daily_margin"] = grp["margin_sum"] / float(active_days)
 
-        sort_col = metric if metric in grp.columns else "trx_count"
-        grp = grp.sort_values(by=sort_col, ascending=False).head(top_limit)
+        if row_dim in ("bulan", "tanggal"):
+            grp = grp.sort_index(ascending=True)
+        else:
+            sort_col = metric if metric in grp.columns else "trx_count"
+            grp = grp.sort_values(by=sort_col, ascending=False).head(top_limit)
 
         rows_data = []
         if is_financial:

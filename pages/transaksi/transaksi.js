@@ -223,6 +223,7 @@ async function runPivot() {
 
     const data = json.data;
     lastPivotData = data;
+    _pivSortCol = null; // Reset client sort to default server order
 
     // Update Summary Strip if present
     if (data.summary) {
@@ -250,6 +251,44 @@ async function runPivot() {
   }
 }
 
+let _pivSortCol = null;
+let _pivSortAsc = true;
+
+function sortPivotClient(colKey) {
+  if (!lastPivotData || !lastPivotData.rows || lastPivotData.rows.length === 0) return;
+  if (_pivSortCol === colKey) {
+    _pivSortAsc = !_pivSortAsc;
+  } else {
+    _pivSortCol = colKey;
+    _pivSortAsc = (colKey === "_row_label");
+  }
+
+  lastPivotData.rows.sort((a, b) => {
+    let va = a[colKey];
+    let vb = b[colKey];
+    if (va === undefined || va === null) va = 0;
+    if (vb === undefined || vb === null) vb = 0;
+    if (typeof va === "string" || typeof vb === "string") {
+      return _pivSortAsc
+        ? String(va).localeCompare(String(vb), undefined, { numeric: true })
+        : String(vb).localeCompare(String(va), undefined, { numeric: true });
+    }
+    return _pivSortAsc ? (Number(va) - Number(vb)) : (Number(vb) - Number(va));
+  });
+
+  const metric = document.getElementById("piv-metric")?.value || "trx_count";
+  renderPivotTable(lastPivotData, metric);
+}
+
+function getSortSvg(colKey) {
+  if (_pivSortCol !== colKey) {
+    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.25; vertical-align: middle; margin-left: 4px;"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>`;
+  }
+  return _pivSortAsc
+    ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-left: 4px; color: var(--primary);"><path d="M18 15l-6-6-6 6"/></svg>`
+    : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-left: 4px; color: var(--primary);"><path d="M6 9l6 6 6-6"/></svg>`;
+}
+
 function renderPivotTable(data, metric) {
   const thead = document.getElementById("piv-thead");
   const tbody = document.getElementById("piv-tbody");
@@ -260,9 +299,9 @@ function renderPivotTable(data, metric) {
 
   if (data.is_2d) {
     // 2D Pivot Table Render
-    let headHtml = `<tr><th>${rowLabelText}</th>`;
+    let headHtml = `<tr><th onclick="sortPivotClient('_row_label')" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">${rowLabelText} ${getSortSvg('_row_label')}</th>`;
     data.columns.forEach(col => {
-      headHtml += `<th class="text-right">${col}</th>`;
+      headHtml += `<th onclick="sortPivotClient('${col}')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">${col} ${getSortSvg(col)}</th>`;
     });
     headHtml += `</tr>`;
     thead.innerHTML = headHtml;
@@ -315,10 +354,10 @@ function renderPivotTable(data, metric) {
     // 1D Breakdown Table Render (Strictly Operational Metrics)
     const headHtml = `
       <tr>
-        <th>${rowLabelText}</th>
-        <th class="text-right">Total Trx</th>
-        <th class="text-right" style="color: #2563eb;">Daily Trx</th>
-        <th class="text-right">% Sukses</th>
+        <th onclick="sortPivotClient('_row_label')" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">${rowLabelText} ${getSortSvg('_row_label')}</th>
+        <th onclick="sortPivotClient('trx_count')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Total Trx ${getSortSvg('trx_count')}</th>
+        <th onclick="sortPivotClient('daily_trx')" class="text-right" style="color: #2563eb; cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Daily Trx ${getSortSvg('daily_trx')}</th>
+        <th onclick="sortPivotClient('sukses_pct')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">% Sukses ${getSortSvg('sukses_pct')}</th>
       </tr>
     `;
     thead.innerHTML = headHtml;

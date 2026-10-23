@@ -577,6 +577,7 @@ async function runAdminFinancialPivot() {
     }
 
     _lastAdminPivotData = json.data;
+    _finPivSortCol = null;
     renderAdminFinancialPivotTable(json.data);
   } catch (err) {
     console.error("Error executing financial pivot:", err);
@@ -586,140 +587,289 @@ async function runAdminFinancialPivot() {
   }
 }
 
+let _finPivSortCol = null;
+let _finPivSortAsc = true;
+
+function sortAdminFinancialPivotClient(colKey) {
+  if (!_lastAdminPivotData || !_lastAdminPivotData.rows || _lastAdminPivotData.rows.length === 0) return;
+  if (_finPivSortCol === colKey) {
+    _finPivSortAsc = !_finPivSortAsc;
+  } else {
+    _finPivSortCol = colKey;
+    _finPivSortAsc = (colKey === "_row_label");
+  }
+
+  _lastAdminPivotData.rows.sort((a, b) => {
+    let va = a[colKey];
+    let vb = b[colKey];
+    if (va === undefined || va === null) va = 0;
+    if (vb === undefined || vb === null) vb = 0;
+    if (typeof va === "string" || typeof vb === "string") {
+      return _finPivSortAsc
+        ? String(va).localeCompare(String(vb), undefined, { numeric: true })
+        : String(vb).localeCompare(String(va), undefined, { numeric: true });
+    }
+    return _finPivSortAsc ? (Number(va) - Number(vb)) : (Number(vb) - Number(va));
+  });
+
+  renderAdminFinancialPivotTable(_lastAdminPivotData);
+}
+
+function getFinSortSvg(colKey) {
+  if (_finPivSortCol !== colKey) {
+    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.25; vertical-align: middle; margin-left: 4px;"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>`;
+  }
+  return _finPivSortAsc
+    ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-left: 4px; color: #059669;"><path d="M18 15l-6-6-6 6"/></svg>`
+    : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-left: 4px; color: #059669;"><path d="M6 9l6 6 6-6"/></svg>`;
+}
+
 function renderAdminFinancialPivotTable(data) {
   const container = document.getElementById("fin-piv-table-container");
   const summaryStrip = document.getElementById("fin-piv-summary-strip");
   if (!container) return;
 
-  const meta = data.meta || {};
-  const isCurrency = meta.is_currency;
-  const isPercent = meta.is_percent;
-  const isRate = meta.is_rate;
+  const rowOption = document.getElementById("fin-piv-row-dim")?.selectedOptions?.[0];
+  const rowLabelText = rowOption ? rowOption.text : "Baris";
 
-  const formatVal = (v) => {
-    if (v === null || v === undefined) return "-";
-    if (isPercent) return Number(v).toFixed(2) + "%";
-    if (isCurrency) return finFormatRp(v);
-    if (isRate) return Number(v).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const metric = document.getElementById("fin-piv-metric")?.value || "margin_sum";
+  const metricOption = document.getElementById("fin-piv-metric")?.selectedOptions?.[0];
+  const metricLabelText = metricOption ? metricOption.text : "Net Profit Server";
+
+  const formatVal = (mId, v) => {
+    if (v === null || v === undefined || isNaN(v)) return "-";
+    if (mId.includes("pct")) return Number(v).toFixed(2) + "%";
+    if (mId.includes("sum") || mId.includes("price") || mId.includes("arpu") || mId.includes("margin") || mId.includes("jual") || mId.includes("beli")) {
+      return finFormatRp(v);
+    }
+    if (mId === "daily_trx") return finFormatNum(Math.round(v));
     return finFormatNum(v);
   };
 
   // 1. Update Summary Strip
   if (summaryStrip) {
     const totalRows = (data.rows || []).length;
-    const grandTotalVal = formatVal(meta.grand_total);
-    const duration = meta.execution_sec ? `${meta.execution_sec.toFixed(2)} detik` : "";
+    const durStr = data.elapsed_ms ? `Selesai dalam ${data.elapsed_ms} ms` : "";
+    let grandTotalHtml = "";
+    if (data.is_2d && data.total_row) {
+      grandTotalHtml = `Grand Total: <strong style="color: #059669; font-family: var(--font-mono); font-size: 13.5px;">${formatVal(metric, data.total_row["TOTAL"])}</strong>`;
+    } else if (!data.is_2d && data.total_row) {
+      grandTotalHtml = `Total Net Profit: <strong style="color: #059669; font-family: var(--font-mono); font-size: 13.5px;">${finFormatRp(data.total_row.margin_sum || 0)}</strong>`;
+    }
     summaryStrip.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--text-muted);">
-        <div>
-          Menampilkan <strong>${finFormatNum(totalRows)}</strong> baris (${finEscapeHtml(meta.row_label || "")}) 
-          • Metrik: <strong style="color: #059669;">${finEscapeHtml(meta.metric_label || "")}</strong>
-          ${duration ? `• Dihitung dalam <em>${duration}</em>` : ""}
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--text-muted); padding: 10px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span>Menampilkan <strong>${finFormatNum(totalRows)}</strong> baris (${finEscapeHtml(rowLabelText)})</span>
+          <span>•</span>
+          <span>Metrik: <strong style="color: #059669;">${finEscapeHtml(metricLabelText)}</strong></span>
+          ${durStr ? `<span>•</span><em>${durStr}</em>` : ""}
         </div>
-        <div style="background: var(--surface-card); border: 1px solid var(--surface-border); padding: 4px 14px; border-radius: 6px; font-size: 13px;">
-          Grand Total: <strong style="color: #059669; font-family: var(--font-mono); font-size: 14px;">${grandTotalVal}</strong>
-        </div>
+        ${grandTotalHtml ? `
+          <div style="background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.2); color: #059669; padding: 4px 12px; border-radius: 6px; font-size: 13px;">
+            ${grandTotalHtml}
+          </div>
+        ` : ""}
       </div>
     `;
   }
 
   // 2. Build Table
-  const rows = data.rows || [];
-  const cols = data.cols || [];
-  const rowDimLabel = meta.row_label || "Dimensi Baris";
+  let html = "";
 
-  let html = `
-    <div style="overflow-x: auto; max-height: 600px; border: 1px solid var(--surface-border); border-radius: 8px;">
-      <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; text-align: left;">
-        <thead style="background: var(--surface-card); position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-          <tr>
-            <th style="padding: 10px 14px; font-weight: 700; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface-card); z-index: 3;">
-              ${finEscapeHtml(rowDimLabel)}
-            </th>
-  `;
-
-  cols.forEach(c => {
-    html += `
-      <th style="padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap;">
-        ${finEscapeHtml(c.label)}
-      </th>
+  if (data.is_2d) {
+    // 2D Matrix Pivot
+    const cols = data.columns || [];
+    html = `
+      <div style="overflow-x: auto; max-height: 600px; border: 1px solid var(--surface-border); border-radius: 8px;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; text-align: left;">
+          <thead style="background: var(--surface-card); position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <tr>
+              <th onclick="sortAdminFinancialPivotClient('_row_label')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface-card); z-index: 3;" title="Klik untuk mengurutkan">
+                ${finEscapeHtml(rowLabelText)} ${getFinSortSvg('_row_label')}
+              </th>
     `;
-  });
-
-  html += `
-            <th style="padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); background: var(--surface-card); white-space: nowrap; color: #059669;">
-              Total
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-
-  if (rows.length === 0) {
-    const colspan = cols.length + 2;
-    html += `
-      <tr>
-        <td colspan="${colspan}" style="text-align: center; padding: 32px; color: var(--text-muted);">
-          Tidak ada data transaksi yang cocok dengan kombinasi filter ini.
-        </td>
-      </tr>
-    `;
-  } else {
-    rows.forEach(r => {
+    cols.forEach(c => {
+      const isTot = (c === "TOTAL");
       html += `
-        <tr style="border-bottom: 1px solid var(--surface-border);">
-          <td style="padding: 8px 14px; font-weight: 600; color: var(--text-main); border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface); z-index: 1; white-space: nowrap;">
-            ${finEscapeHtml(r.row_name)}
-          </td>
+        <th onclick="sortAdminFinancialPivotClient('${c}')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; ${isTot ? 'color: #059669;' : ''}" title="Klik untuk mengurutkan">
+          ${finEscapeHtml(c)} ${getFinSortSvg(c)}
+        </th>
       `;
+    });
+    html += `
+            </tr>
+          </thead>
+          <tbody>
+    `;
 
-      cols.forEach(c => {
-        const val = r.values ? r.values[c.id] : null;
-        html += `
-          <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
-            ${formatVal(val)}
-          </td>
-        `;
-      });
-
+    if (!data.rows || data.rows.length === 0) {
       html += `
-          <td style="padding: 8px 14px; text-align: right; font-weight: 700; border-bottom: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; color: #059669;">
-            ${formatVal(r.total)}
+        <tr>
+          <td colspan="${cols.length + 1}" style="text-align: center; padding: 32px; color: var(--text-muted);">
+            Tidak ada data transaksi yang cocok dengan kombinasi filter ini.
           </td>
         </tr>
       `;
-    });
+    } else {
+      data.rows.forEach(r => {
+        html += `
+          <tr style="border-bottom: 1px solid var(--surface-border);">
+            <td style="padding: 8px 14px; font-weight: 600; color: var(--text-main); border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface); z-index: 1; white-space: nowrap;">
+              ${finEscapeHtml(r._row_label)}
+            </td>
+        `;
+        cols.forEach(c => {
+          const val = r[c] !== undefined ? r[c] : 0;
+          const isTot = (c === "TOTAL");
+          html += `
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; ${isTot ? 'font-weight: 700; color: #059669;' : ''}">
+              ${formatVal(metric, val)}
+            </td>
+          `;
+        });
+        html += `</tr>`;
+      });
 
-    // Grand Total Row
+      if (data.total_row) {
+        html += `
+          <tr style="background: var(--surface-card); font-weight: 700; position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -1px 2px rgba(0,0,0,0.05);">
+            <td style="padding: 10px 14px; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface-card); z-index: 3;">
+              TOTAL
+            </td>
+        `;
+        cols.forEach(c => {
+          const totVal = data.total_row[c] !== undefined ? data.total_row[c] : 0;
+          html += `
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; color: #059669;">
+              ${formatVal(metric, totVal)}
+            </td>
+          `;
+        });
+        html += `</tr>`;
+      }
+    }
+
     html += `
-      <tr style="background: var(--surface-card); font-weight: 700; position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -1px 2px rgba(0,0,0,0.05);">
-        <td style="padding: 10px 14px; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface-card); z-index: 3;">
-          GRAND TOTAL
-        </td>
+          </tbody>
+        </table>
+      </div>
     `;
 
-    cols.forEach(c => {
-      const colTot = data.col_totals ? data.col_totals[c.id] : null;
+  } else {
+    // 1D Comprehensive Financial Breakdown Table
+    html = `
+      <div style="overflow-x: auto; max-height: 600px; border: 1px solid var(--surface-border); border-radius: 8px;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; text-align: left;">
+          <thead style="background: var(--surface-card); position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <tr>
+              <th onclick="sortAdminFinancialPivotClient('_row_label')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface-card); z-index: 3;" title="Klik untuk mengurutkan">
+                ${finEscapeHtml(rowLabelText)} ${getFinSortSvg('_row_label')}
+              </th>
+              <th onclick="sortAdminFinancialPivotClient('trx_count')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap;" title="Klik untuk mengurutkan">Total Trx ${getFinSortSvg('trx_count')}</th>
+              <th onclick="sortAdminFinancialPivotClient('daily_trx')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; color: #2563eb;" title="Klik untuk mengurutkan">Daily Trx ${getFinSortSvg('daily_trx')}</th>
+              <th onclick="sortAdminFinancialPivotClient('jual_sum')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap;" title="Klik untuk mengurutkan">Omzet Jual Kotor ${getFinSortSvg('jual_sum')}</th>
+              <th onclick="sortAdminFinancialPivotClient('base_price_sum')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap;" title="Klik untuk mengurutkan">Harga Dasar Server ${getFinSortSvg('base_price_sum')}</th>
+              <th onclick="sortAdminFinancialPivotClient('beli_sum')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap;" title="Klik untuk mengurutkan">Modal Beli ${getFinSortSvg('beli_sum')}</th>
+              <th onclick="sortAdminFinancialPivotClient('margin_sum')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; color: #059669;" title="Klik untuk mengurutkan">Net Profit Server ${getFinSortSvg('margin_sum')}</th>
+              <th onclick="sortAdminFinancialPivotClient('margin_pct')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap;" title="Klik untuk mengurutkan">Net Margin % ${getFinSortSvg('margin_pct')}</th>
+              <th onclick="sortAdminFinancialPivotClient('net_arpu')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap;" title="Klik untuk mengurutkan">Net ARPU ${getFinSortSvg('net_arpu')}</th>
+              <th onclick="sortAdminFinancialPivotClient('sukses_pct')" style="cursor: pointer; user-select: none; padding: 10px 14px; font-weight: 700; text-align: right; border-bottom: 2px solid var(--surface-border); white-space: nowrap;" title="Klik untuk mengurutkan">% Sukses ${getFinSortSvg('sukses_pct')}</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    if (!data.rows || data.rows.length === 0) {
       html += `
-        <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
-          ${formatVal(colTot)}
-        </td>
+        <tr>
+          <td colspan="10" style="text-align: center; padding: 32px; color: var(--text-muted);">
+            Tidak ada data transaksi yang cocok dengan kombinasi filter ini.
+          </td>
+        </tr>
       `;
-    });
+    } else {
+      data.rows.forEach(r => {
+        html += `
+          <tr style="border-bottom: 1px solid var(--surface-border);">
+            <td style="padding: 8px 14px; font-weight: 600; color: var(--text-main); border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface); z-index: 1; white-space: nowrap;">
+              ${finEscapeHtml(r._row_label)}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatNum(r.trx_count)}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; color: #2563eb; font-weight: 600;">
+              ${finFormatNum(Math.round(r.daily_trx || 0))}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(r.jual_sum)}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(r.base_price_sum)}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(r.beli_sum)}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #059669;">
+              ${finFormatRp(r.margin_sum)}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; font-weight: 600;">
+              ${(r.margin_pct || 0).toFixed(2)}%
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(r.net_arpu)}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; font-weight: 600;">
+              ${(r.sukses_pct || 0).toFixed(1)}%
+            </td>
+          </tr>
+        `;
+      });
+
+      if (data.total_row) {
+        const tot = data.total_row;
+        html += `
+          <tr style="background: var(--surface-card); font-weight: 700; position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -1px 2px rgba(0,0,0,0.05);">
+            <td style="padding: 10px 14px; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); position: sticky; left: 0; background: var(--surface-card); z-index: 3;">
+              TOTAL
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatNum(tot.trx_count)}
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; color: #2563eb; font-weight: 700;">
+              ${finFormatNum(Math.round(tot.daily_trx || 0))}
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(tot.jual_sum)}
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(tot.base_price_sum)}
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(tot.beli_sum)}
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: #059669;">
+              ${finFormatRp(tot.margin_sum)}
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; font-weight: 700;">
+              ${(tot.margin_pct || 0).toFixed(2)}%
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); border-right: 1px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px;">
+              ${finFormatRp(tot.net_arpu)}
+            </td>
+            <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; font-weight: 700;">
+              ${(tot.sukses_pct || 0).toFixed(1)}%
+            </td>
+          </tr>
+        `;
+      }
+    }
 
     html += `
-        <td style="padding: 10px 14px; text-align: right; border-top: 2px solid var(--surface-border); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; color: #059669;">
-          ${formatVal(meta.grand_total)}
-        </td>
-      </tr>
+          </tbody>
+        </table>
+      </div>
     `;
   }
-
-  html += `
-        </tbody>
-      </table>
-    </div>
-  `;
 
   container.innerHTML = html;
 }
@@ -735,38 +885,63 @@ function exportAdminFinancialPivotExcel() {
   }
 
   const d = _lastAdminPivotData;
-  const meta = d.meta || {};
-  const rows = d.rows || [];
-  const cols = d.cols || [];
+  const rowOption = document.getElementById("fin-piv-row-dim")?.selectedOptions?.[0];
+  const rowLabelText = rowOption ? rowOption.text : "Baris";
+  const brand = adminFinState.brand || "ASTAGA";
+  const metric = document.getElementById("fin-piv-metric")?.value || "margin_sum";
+  const dateStr = new Date().toISOString().slice(0, 10);
 
-  const headers = [meta.row_label || "Dimensi Baris"];
-  cols.forEach(c => headers.push(c.label));
-  headers.push("Total");
+  let tableData = [];
 
-  const tableData = [headers];
-
-  rows.forEach(r => {
-    const rowArr = [r.row_name];
-    cols.forEach(c => {
-      rowArr.push(r.values ? r.values[c.id] || 0 : 0);
+  if (d.is_2d) {
+    const cols = d.columns || [];
+    tableData.push([rowLabelText, ...cols]);
+    (d.rows || []).forEach(r => {
+      const rowArr = [r._row_label];
+      cols.forEach(c => rowArr.push(r[c] !== undefined ? r[c] : 0));
+      tableData.push(rowArr);
     });
-    rowArr.push(r.total || 0);
-    tableData.push(rowArr);
-  });
-
-  // Grand Total row
-  const totalArr = ["GRAND TOTAL"];
-  cols.forEach(c => {
-    totalArr.push(d.col_totals ? d.col_totals[c.id] || 0 : 0);
-  });
-  totalArr.push(meta.grand_total || 0);
-  tableData.push(totalArr);
+    if (d.total_row) {
+      const totArr = ["TOTAL"];
+      cols.forEach(c => totArr.push(d.total_row[c] !== undefined ? d.total_row[c] : 0));
+      tableData.push(totArr);
+    }
+  } else {
+    const headers = [rowLabelText, "Total Trx", "Daily Trx", "Omzet Jual Kotor", "Revenue Bersih Server", "Modal Beli", "Net Profit Server", "Net Margin %", "Net ARPU", "% Sukses"];
+    tableData.push(headers);
+    (d.rows || []).forEach(r => {
+      tableData.push([
+        r._row_label,
+        r.trx_count || 0,
+        r.daily_trx || 0,
+        r.jual_sum || 0,
+        r.base_price_sum || 0,
+        r.beli_sum || 0,
+        r.margin_sum || 0,
+        r.margin_pct || 0,
+        r.net_arpu || 0,
+        r.sukses_pct || 0
+      ]);
+    });
+    if (d.total_row) {
+      const tot = d.total_row;
+      tableData.push([
+        "TOTAL",
+        tot.trx_count || 0,
+        tot.daily_trx || 0,
+        tot.jual_sum || 0,
+        tot.base_price_sum || 0,
+        tot.beli_sum || 0,
+        tot.margin_sum || 0,
+        tot.margin_pct || 0,
+        tot.net_arpu || 0,
+        tot.sukses_pct || 0
+      ]);
+    }
+  }
 
   const ws = XLSX.utils.aoa_to_sheet(tableData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Financial_Pivot");
-
-  const brand = adminFinState.brand || "ASTAGA";
-  const dateStr = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `Financial_Pivot_${brand}_${meta.metric_id || 'profit'}_${dateStr}.xlsx`);
+  XLSX.writeFile(wb, `Financial_Pivot_${brand}_${metric}_${dateStr}.xlsx`);
 }
