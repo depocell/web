@@ -63,16 +63,16 @@ UNIFIED_COLS = ["trx_id", "tgl_entry", "product_id", "qty",
                 "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
 
 COLUMN_ALIASES = {
-    "trx_id": {"TRX_ID", "TRX ID", "TRXID", "ID", "NO TRX", "NO_TRX"},
-    "tgl_entry": {"TGL.ENTRY", "TGL ENTRY", "TGL ENTRI", "TGL", "TGL_ENTRY", "DATE", "TANGGAL"},
+    "trx_id": {"TRX_ID", "TRX ID", "TRXID", "ID", "NO TRX", "NO_TRX", "TRX.ID", "TX ID", "TX_ID", "ID_TRX", "ID TRX"},
+    "tgl_entry": {"TGL.ENTRY", "TGL ENTRY", "TGL ENTRI", "TGL", "TGL_ENTRY", "DATE", "TANGGAL", "ENTRI", "TGL. ENTRI", "TGL_"},
     "product_id": {"PRODUCT_ID", "KODE PRODUK", "PRODUCT", "PRODUK", "PROD", "PROD_ID", "PRODUK_ID", "KODE_PRODUK"},
     "qty": {"QTY", "JUMLAH"},
-    "ar_id": {"AR_ID", "KODE RESELLER", "AR ID", "ARID", "KODE_RESELLER", "RESELLER_ID"},
+    "ar_id": {"AR_ID", "KODE RESELLER", "AR ID", "ARID", "KODE_RESELLER", "RESELLER_ID", "KODE RS", "RS ID", "RS_ID", "KODE_RS"},
     "modul_id": {"MODUL_ID", "MODUL", "KODE MODUL"},
     "status": {"STATUS", "STAT", "STATUS TRX"},
     "tgl_stat": {"TGL.STAT", "TGL STAT", "TGL_STAT"},
-    "beli": {"BELI", "HARGA BELI", "HRG BELI", "HARGA_BELI"},
-    "jual": {"JUAL", "HARGA JUAL", "HRG JUAL", "HARGA_JUAL", "RP"},
+    "beli": {"BELI", "HARGA BELI", "HRG BELI", "HARGA_BELI", "HRG. BELI", "HTG. BELI"},
+    "jual": {"JUAL", "HARGA JUAL", "HRG JUAL", "HARGA_JUAL", "HRG. JUAL", "RP"},
 }
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -185,16 +185,26 @@ def _read_gross_fast(xlsx_path: str, col_map: dict = None) -> pd.DataFrame:
 # ─── Public API ──────────────────────────────────────────────────────────────
 
 def get_available_years(brand: str) -> list[str]:
-    """Kembalikan list tahun yang tersedia di folder RAW DATA brand."""
-    cfg  = BRAND_CONFIG[brand.upper()]
-    base = os.path.join(RAW_DATA_ROOT, cfg["subfolder"])
-    if not os.path.isdir(base):
-        return []
-    years = [
-        d for d in os.listdir(base)
-        if os.path.isdir(os.path.join(base, d)) and d.isdigit() and len(d) == 4
-    ]
-    return sorted(years, reverse=True)
+    """Kembalikan list tahun yang tersedia (dari Parquet cache atau folder RAW DATA)."""
+    years = set()
+    prefix = f"trx_{brand.lower()}_"
+    if os.path.isdir(CACHE_DIR):
+        for f in os.listdir(CACHE_DIR):
+            if f.startswith(prefix) and f.endswith(".parquet"):
+                y_str = f[len(prefix):-8]
+                if y_str.isdigit() and len(y_str) == 4:
+                    years.add(y_str)
+
+    cfg = BRAND_CONFIG.get(brand.upper(), {})
+    sub = cfg.get("subfolder")
+    if sub:
+        base = os.path.join(RAW_DATA_ROOT, sub)
+        if os.path.isdir(base):
+            for d in os.listdir(base):
+                if os.path.isdir(os.path.join(base, d)) and d.isdigit() and len(d) == 4:
+                    years.add(d)
+
+    return sorted(list(years), reverse=True)
 
 
 def _mini_cache_path(brand: str, year: str, xlsx_basename: str) -> str:
