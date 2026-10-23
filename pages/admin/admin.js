@@ -54,6 +54,7 @@ function switchAdminGlobalBrand(brand) {
   // Sinkronkan ke modul aktif
   masterState.brand = brand;
   productState.brand = brand;
+  updateStreamUrls();
 
   if (activeAdminTab === "financial") {
     if (typeof onAdminFinancialBrandChanged === "function") {
@@ -115,6 +116,7 @@ let productState = {
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 function loadAdmin() {
+  updateStreamUrls();
   const hash = window.location.hash || "";
   if (hash.includes("tab=users")) {
     switchAdminTab("users");
@@ -3057,6 +3059,44 @@ async function executeDirectTsvUpsert() {
   }
 }
 
+
+function downloadStreamUrl(elementId) {
+  const el = document.getElementById(elementId);
+  if (!el || !el.value) return;
+  let url = el.value.trim();
+  try {
+    const u = new URL(url);
+    url = `${window.location.origin}${u.pathname}${u.search}`;
+  } catch (e) {}
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.setAttribute("download", "");
+  a.target = "_blank";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function updateStreamUrls() {
+  const brand = adminActiveBrand || "ASTAGA";
+  const domain = (window.location.origin && !window.location.origin.includes("localhost") && !window.location.origin.includes("127.0.0.1"))
+    ? window.location.origin
+    : "https://depas.my.id";
+
+  const elCsv = document.getElementById("stream-url-csv");
+  if (elCsv) elCsv.value = `${domain}/api/export/transactions.csv?brand=${brand}&month=2026-10&key=depas2026`;
+
+  const elParquet = document.getElementById("stream-url-parquet");
+  if (elParquet) elParquet.value = `${domain}/api/export/transactions.parquet?brand=${brand}&year=2026&key=depas2026`;
+
+  const elCust = document.getElementById("stream-url-customers");
+  if (elCust) elCust.value = `${domain}/api/export/customers.csv?brand=${brand}&key=depas2026`;
+
+  const elProd = document.getElementById("stream-url-products");
+  if (elProd) elProd.value = `${domain}/api/export/products.csv?brand=${brand}&key=depas2026`;
+}
+
 function copyStreamUrl(elementId) {
   const el = document.getElementById(elementId);
   if (!el) return;
@@ -3074,6 +3114,8 @@ window.handleDirectTsvFileSelect = handleDirectTsvFileSelect;
 window.setDirectTsvFile = setDirectTsvFile;
 window.executeDirectTsvUpsert = executeDirectTsvUpsert;
 window.copyStreamUrl = copyStreamUrl;
+window.downloadStreamUrl = downloadStreamUrl;
+window.updateStreamUrls = updateStreamUrls;
 
 
 
