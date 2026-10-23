@@ -1240,6 +1240,32 @@ async def api_export_products_csv(request):
         return PlainTextResponse(f"Error generating products CSV: {str(e)}", status_code=500)
 
 
+async def api_export_finance_rekap(request):
+    """Menyediakan file Excel Rekap Bulanan Finance (2 Sheet: Transaksi Bersih & Transaksi All)
+    Query Params:
+    - brand: ASTAGA / OKIPAY (default: ASTAGA)
+    - year: 2026 (default: 2026)
+    - month: format YYYY-MM (misal: 2026-10) atau ALL (default: latest)
+    - key: depas2026
+    """
+    try:
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+        year = request.query_params.get("year", "2026")
+        month = request.query_params.get("month", "").strip()
+
+        file_path = await asyncio.to_thread(admin_engine.generate_finance_monthly_excel, brand, year, month)
+        filename = os.path.basename(file_path)
+        return FileResponse(
+            file_path,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return PlainTextResponse(f"Error generating Finance Excel: {str(e)}", status_code=500)
+
+
 async def api_admin_agents(request):
     """Query daftar agen, statistik, dan opsi filter."""
     try:
@@ -1539,6 +1565,7 @@ routes = [
     Route("/api/export/customers.csv",    api_export_customers_csv),
     Route("/api/export/agents.csv",       api_export_agents_csv),
     Route("/api/export/products.csv",     api_export_products_csv),
+    Route("/api/export/finance-rekap.xlsx", api_export_finance_rekap),
     Route("/api/admin/agents",          api_admin_agents),
     Route("/api/admin/agents/detail",    api_admin_agent_detail),
     Route("/api/admin/agents/save",      api_admin_agent_save, methods=["POST"]),

@@ -767,3 +767,122 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
         "max_date": str(df_final["tgl_entry"].max()),
         "elapsed_sec": elapsed
     }
+
+
+def generate_finance_monthly_excel(brand: str, year: str, month: str) -> str:
+    """
+    Meng-generate file Excel 2 Sheet khusus laporan bulanan tim Finance:
+    Sheet 1: 'Transaksi bersih [bulan]' -> Hanya transaksi berstatus 'Sukses' (exclude AR internal ASTAGA)
+    Sheet 2: 'Transaksi All [bulan]'    -> Rekap seluruh reseller yang bertransaksi bulan ini:
+                                           kode_reseller, nama_reseller, grup, kode_upline, cabang, Total Trx, Daily Trx
+    Menggunakan disk cache di .cache/export/ agar request berikutnya instan (0.05s).
+    """
+    brand = brand.upper()
+    parquet_path = trx_engine._cache_path(brand, year)
+    if not os.path.exists(parquet_path):
+        raise FileNotFoundError(f"File Parquet transaksi {brand} {year} belum tersedia di server.")
+
+    # Jika month = ALL atau kosong, ambil bulan terbaru yang tersedia
+    if not month or month.upper() == "ALL":
+        df_tmp = trx_engine.load(brand, year)
+        if df_tmp is not None and len(df_tmp) > 0:
+            month = str(df_tmp["tgl_entry"].max())[:7]
+        else:
+            month = f"{year}-10"
+
+    export_dir = os.path.join(BASE_DIR, ".cache", "export")
+    os.makedirs(export_dir, exist_ok=True)
+    out_file = os.path.join(export_dir, f"rekap_finance_{brand.lower()}_{month}.xlsx")
+
+    # Cek freshness cache
+    if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+        if os.path.getmtime(out_file) >= os.path.getmtime(parquet_path):
+            return out_file
+
+    MONTH_NAMES = {
+        "01": "Januari", "02": "Februari", "03": "Maret", "04": "April",
+        "05": "Mei", "06": "Juni", "07": "Juli", "08": "Agustus",
+        "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+    }
+    m_num = month.split("-")[1] if "-" in month else month
+    m_name = MONTH_NAMES.get(m_num, m_num)
+
+    df = trx_engine.load(brand, year)
+    if df is None or len(df) == 0:
+        raise ValueError(f"Tidak ada data transaksi untuk {brand} {year}.")
+
+    # Filter bulan
+    s_tgl = df["tgl_entry"].astype(str)
+    df_m = df[s_tgl.str.startswith(month)].copy()
+    if len(df_m) == 0:
+        raise ValueError(f"Tidak ada transaksi ditemukan pada periode {month}.")
+
+    # 1. Filter status Sukses
+    df_sukses = df_m[df_m["status"].astype(str).str.lower().str.strip() == "sukses"].copy()
+
+    # Hukum Filter Akun Internal ASTAGA
+    if brand == "ASTAGA":
+        df_sukses = df_sukses[~df_sukses["ar_id"].astype(str).str.upper().isin(["AR00037", "AR00009", "AR20408"])]
+
+    # Siapkan Sheet 1: Transaksi Bersih
+    sheet1_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
+    present_cols = [c for c in sheet1_cols if c in df_sukses.columns]
+    df_sheet1 = df_sukses[present_cols].copy()
+    col_headers = {
+        "trx_id": "TRX_ID",
+        "tgl_entry": "TGL.ENTRY",
+        "product_id": "PRODUCT_ID",
+        "qty": "QTY",
+        "ar_id": "AR_ID",
+        "modul_id": "MODUL_ID",
+        "status": "STATUS",
+        "tgl_stat": "TGL.STAT",
+        "beli": "BELI",
+        "jual": "JUAL"
+    }
+    df_sheet1 = df_sheet1.rename(columns=col_headers)
+
+    # Siapkan Sheet 2: Transaksi All Reseller
+    import engines.metrics_engine as me
+    days_active = me.get_active_days(df_sukses)
+    if days_active <= 0:
+        days_active = 1
+
+    agg = df_sukses.groupby("ar_id").size().reset_index(name="Total Trx")
+    agg["Daily Trx"] = (agg["Total Trx"] / days_active).round(2)
+
+    import sqlite3
+    db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+    resellers_df = pd.DataFrame(columns=["kode_reseller", "nama_reseller", "grup", "kode_upline", "cabang"])
+    if os.path.exists(db_path):
+        conn = sqlite3.connect(db_path)
+        try:
+            resellers_df = pd.read_sql_query(
+                "SELECT kode_reseller, nama_reseller, grup, kode_upline, cabang FROM resellers WHERE brand = ?",
+                conn,
+                params=(brand,)
+            )
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
+    merged = pd.merge(resellers_df, agg, left_on="kode_reseller", right_on="ar_id", how="right")
+    merged["kode_reseller"] = merged["kode_reseller"].fillna(merged["ar_id"])
+    merged["nama_reseller"] = merged["nama_reseller"].fillna(merged["ar_id"])
+    merged["grup"] = merged["grup"].fillna("-")
+    merged["kode_upline"] = merged["kode_upline"].fillna("-")
+    merged["cabang"] = merged["cabang"].fillna("UNKNOWN")
+    merged = merged.drop(columns=["ar_id"])
+    merged = merged.sort_values(by="Total Trx", ascending=False).reset_index(drop=True)
+
+    sheet1_name = f"Transaksi bersih {m_name}"[:31]
+    sheet2_name = f"Transaksi All {m_name}"[:31]
+
+    temp_excel = out_file.replace(".xlsx", f".tmp_{os.getpid()}.xlsx")
+    with pd.ExcelWriter(temp_excel, engine="xlsxwriter", engine_kwargs={"options": {"constant_memory": True}}) as writer:
+        df_sheet1.to_excel(writer, sheet_name=sheet1_name, index=False)
+        merged.to_excel(writer, sheet_name=sheet2_name, index=False)
+
+    shutil.move(temp_excel, out_file)
+    return out_file

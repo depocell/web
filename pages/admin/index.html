@@ -296,6 +296,7 @@
         <input type="hidden" id="stream-url-parquet" value="https://depas.my.id/api/export/transactions.parquet?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
         <input type="hidden" id="stream-url-customers" value="https://depas.my.id/api/export/customers.csv?brand=ASTAGA&key=depas2026" />
         <input type="hidden" id="stream-url-products" value="https://depas.my.id/api/export/products.csv?brand=ASTAGA&key=depas2026" />
+        <input type="hidden" id="stream-url-finance" value="https://depas.my.id/api/export/finance-rekap.xlsx?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
 
         <!-- 1. EXCEL POWER QUERY (CSV STREAM) -->
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
@@ -405,6 +406,35 @@
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
               <span>Download CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. REKAP BULANAN TIM FINANCE (EXCEL WORKBOOK 2 SHEET) -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(16, 124, 65, 0.03); border: 1px solid rgba(16, 124, 65, 0.2); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 700; color: #107c41;">5. Rekap Bulanan Tim Finance (Excel .xlsx)</span>
+              <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
+              <span class="badge" style="background: rgba(16, 124, 65, 0.1); color: #107c41; border: 1px solid rgba(16, 124, 65, 0.25); font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">2 Sheet Workbook</span>
+            </div>
+            <span style="font-size: 11.5px; color: var(--text-muted);">Sheet 1 'Transaksi bersih [bulan]' (hanya status Sukses) &amp; Sheet 2 'Transaksi All [bulan]' (rekap reseller: Total Trx &amp; Daily Trx).</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="copyStreamUrl('stream-url-finance')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin Link</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-finance')" class="btn-system-refresh" style="padding: 6px 14px; font-size: 11.5px; background: #107c41; color: #fff; border: 1px solid #107c41; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download Excel (.xlsx)</span>
             </button>
           </div>
         </div>

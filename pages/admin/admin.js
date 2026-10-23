@@ -3143,6 +3143,9 @@ function updateStreamUrls() {
 
   const elProd = document.getElementById("stream-url-products");
   if (elProd) elProd.value = `${domain}/api/export/products.csv?brand=${brand}&key=depas2026`;
+
+  const elFinance = document.getElementById("stream-url-finance");
+  if (elFinance) elFinance.value = `${domain}/api/export/finance-rekap.xlsx?brand=${brand}&year=${year}&month=${monthParam}&key=depas2026`;
 }
 
 function copyStreamUrl(elementId) {
