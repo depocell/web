@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse, HTMLResponse, FileResponse, Redire
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
@@ -997,6 +998,8 @@ async def api_export_transactions_parquet(request):
 
 async def api_export_transactions_csv(request):
     """Menyediakan data transaksi dalam format CSV Stream untuk Excel Power Query (From Web / CSV).
+    Menyimpan file CSV terkompilasi di disk (.cache/export/) agar respon instan (0.01 detik)
+    dan Power Query tidak pernah timeout.
     Query Params:
     - brand: ASTAGA / OKIPAY (default: ASTAGA)
     - year: 2026 (default: 2026)
@@ -1010,25 +1013,59 @@ async def api_export_transactions_csv(request):
         month = request.query_params.get("month", "").strip()
         status_filter = request.query_params.get("status", "ALL").strip().lower()
 
-        df = await asyncio.to_thread(trx_engine.load, brand, year)
-        if df is None or len(df) == 0:
-            return PlainTextResponse("trx_id,tgl_entry,product_id,qty,ar_id,modul_id,status,tgl_stat,beli,jual\n", media_type="text/csv")
+        cache_dir = os.path.join(BASE_DIR, ".cache", "export")
+        os.makedirs(cache_dir, exist_ok=True)
 
-        if month and month.upper() != "ALL":
-            s_tgl = df["tgl_entry"].astype(str)
-            df = df[s_tgl.str.startswith(month)]
+        m_tag = month.lower() if month and month.upper() != "ALL" else "all"
+        cache_filename = f"trx_{brand.lower()}_{year}_{m_tag}_{status_filter}.csv"
+        cache_path = os.path.join(cache_dir, cache_filename)
+        out_filename = f"trx_{brand.lower()}_{month if month and month.upper() != 'ALL' else year}.csv"
 
-        if status_filter and status_filter != "all":
-            df = df[df["status"].astype(str).str.lower() == status_filter]
+        parquet_path = trx_engine._cache_path(brand, year)
 
-        cols = [c for c in ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"] if c in df.columns]
-        csv_data = df[cols].to_csv(index=False)
+        # Cek apakah file CSV di disk sudah ada dan valid (tidak lebih lawas dari parquet)
+        is_fresh = False
+        if os.path.exists(cache_path) and os.path.exists(parquet_path):
+            if os.path.getmtime(cache_path) >= os.path.getmtime(parquet_path) and os.path.getsize(cache_path) > 0:
+                is_fresh = True
 
-        filename = f"trx_{brand.lower()}_{month if month and month.upper() != 'ALL' else year}.csv"
-        return Response(
-            csv_data,
+        if is_fresh:
+            return FileResponse(
+                cache_path,
+                media_type="text/csv",
+                filename=out_filename
+            )
+
+        # Jika belum ada atau usang karena baru di-upsert, buat file CSV di disk
+        def _build_csv():
+            df = trx_engine.load(brand, year)
+            if df is None or len(df) == 0:
+                with open(cache_path, "w", encoding="utf-8") as f:
+                    f.write("trx_id,tgl_entry,product_id,qty,ar_id,modul_id,status,tgl_stat,beli,jual\n")
+                return cache_path
+
+            if month and month.upper() != "ALL":
+                s_tgl = df["tgl_entry"].astype(str)
+                df = df[s_tgl.str.startswith(month)]
+
+            if status_filter and status_filter != "all":
+                df = df[df["status"].astype(str).str.lower() == status_filter]
+
+            cols = [c for c in ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"] if c in df.columns]
+
+            temp_path = cache_path + f".tmp_{os.getpid()}"
+            df[cols].to_csv(temp_path, index=False)
+            if os.path.exists(temp_path):
+                import shutil
+                shutil.move(temp_path, cache_path)
+            return cache_path
+
+        await asyncio.to_thread(_build_csv)
+
+        return FileResponse(
+            cache_path,
             media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            filename=out_filename
         )
     except Exception as e:
         import traceback
@@ -1486,6 +1523,7 @@ routes = [
 
 app = Starlette(debug=True, routes=routes)
 app.add_middleware(AuthMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # ─── Prewarm ─────────────────────────────────────────────────────────────────
 
