@@ -54,6 +54,7 @@ function switchAdminGlobalBrand(brand) {
   // Sinkronkan ke modul aktif
   masterState.brand = brand;
   productState.brand = brand;
+  setStreamBrand(brand, false);
   updateStreamUrls();
 
   if (activeAdminTab === "financial") {
@@ -116,6 +117,9 @@ let productState = {
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 function loadAdmin() {
+  if (typeof setStreamBrand === "function") {
+    setStreamBrand(adminActiveBrand || "ASTAGA", false);
+  }
   updateStreamUrls();
   const hash = window.location.hash || "";
   if (hash.includes("tab=users")) {
@@ -3078,8 +3082,45 @@ function downloadStreamUrl(elementId) {
   document.body.removeChild(a);
 }
 
+let streamActiveBrand = "ASTAGA";
+
+function setStreamBrand(brand, triggerUpdate = true) {
+  streamActiveBrand = brand || "ASTAGA";
+
+  const btnAstaga = document.getElementById("stream-brand-btn-astaga");
+  const btnOkipay = document.getElementById("stream-brand-btn-okipay");
+  if (btnAstaga && btnOkipay) {
+    if (streamActiveBrand === "ASTAGA") {
+      btnAstaga.classList.add("active");
+      btnOkipay.classList.remove("active");
+    } else {
+      btnOkipay.classList.add("active");
+      btnAstaga.classList.remove("active");
+    }
+  }
+
+  // Update dynamic brand badges on each download row
+  const badges = document.querySelectorAll(".stream-brand-badge");
+  badges.forEach((b) => {
+    b.textContent = streamActiveBrand;
+    if (streamActiveBrand === "OKIPAY") {
+      b.style.background = "#fef2f2";
+      b.style.color = "#dc2626";
+      b.style.borderColor = "#fecaca";
+    } else {
+      b.style.background = "#eff6ff";
+      b.style.color = "#2563eb";
+      b.style.borderColor = "#bfdbfe";
+    }
+  });
+
+  if (triggerUpdate) {
+    updateStreamUrls();
+  }
+}
+
 function updateStreamUrls() {
-  const brand = adminActiveBrand || "ASTAGA";
+  const brand = streamActiveBrand || adminActiveBrand || "ASTAGA";
   const domain = (window.location.origin && !window.location.origin.includes("localhost") && !window.location.origin.includes("127.0.0.1"))
     ? window.location.origin
     : "https://depas.my.id";
@@ -3106,20 +3147,40 @@ function updateStreamUrls() {
 
 function copyStreamUrl(elementId) {
   const el = document.getElementById(elementId);
-  if (!el) return;
-  el.select();
-  el.setSelectionRange(0, 99999);
-  navigator.clipboard.writeText(el.value).then(() => {
-    alert("URL Data Stream berhasil disalin ke clipboard!");
-  }).catch(() => {
+  if (!el || !el.value) return;
+  const url = el.value.trim();
+  const brand = streamActiveBrand || "ASTAGA";
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      alert(`Link Web ${brand} berhasil disalin ke clipboard!`);
+    }).catch(() => {
+      fallbackCopyStream(url, brand);
+    });
+  } else {
+    fallbackCopyStream(url, brand);
+  }
+}
+
+function fallbackCopyStream(text, brand) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
     document.execCommand("copy");
-    alert("URL Data Stream berhasil disalin ke clipboard!");
-  });
+    alert(`Link Web ${brand} berhasil disalin ke clipboard!`);
+  } catch (e) {
+    prompt(`Salin link ${brand} berikut:`, text);
+  }
+  document.body.removeChild(ta);
 }
 
 window.handleDirectTsvFileSelect = handleDirectTsvFileSelect;
 window.setDirectTsvFile = setDirectTsvFile;
 window.executeDirectTsvUpsert = executeDirectTsvUpsert;
+window.setStreamBrand = setStreamBrand;
 window.copyStreamUrl = copyStreamUrl;
 window.downloadStreamUrl = downloadStreamUrl;
 window.updateStreamUrls = updateStreamUrls;
