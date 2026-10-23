@@ -120,47 +120,6 @@
   <!-- ========================================================================= -->
   <div id="view-admin-ingestion" style="display: flex; flex-direction: column; gap: 20px;">
 
-    <!-- ATURAN CONDITIONAL UPSERT BANNER -->
-    <div class="card-box"
-      style="padding: 16px 20px; background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid var(--primary);">
-      <div style="display: flex; align-items: flex-start; gap: 12px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-        <div style="font-size: 13px; line-height: 1.5; flex: 1;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <strong style="color: var(--text-main);">Aturan Conditional Upsert Terpasang:</strong>
-            <button type="button" onclick="loadAdminStatus(true)" class="btn-system-refresh"
-              title="Pindai ulang folder C:\RAW DATA untuk file TSV baru">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <polyline points="1 20 1 14 7 14"></polyline>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-              </svg>
-              <span>Pindai Radar TSV</span>
-            </button>
-          </div>
-          <div
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin-top: 8px;">
-            <div>
-              <strong style="color: #2563eb;">A. ASTAGA:</strong>
-              <span style="color: var(--text-muted);">Eliminasi Harga Jual 0, Eliminasi Akun Internal / Takeout (AR00037, AR00009, AR20408), Eliminasi Status
-                (Saldo Tidak Cukup, Diluar Wilayah, Tujuan Salah).</span>
-            </div>
-            <div>
-              <strong style="color: #0891b2;">B. OKIPAY:</strong>
-              <span style="color: var(--text-muted);">Eliminasi Harga Jual 0, Eliminasi Harga Jual 1, Eliminasi Status
-                (Saldo Tidak Cukup, Diluar Wilayah, Tujuan Salah).</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- DIRECT TSV UPLOADER & DATA STREAM HUB (FASE 2) -->
     <div style="display: flex; flex-direction: column; gap: 20px;">
       
