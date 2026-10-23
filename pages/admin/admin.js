@@ -3084,14 +3084,18 @@ function updateStreamUrls() {
     ? window.location.origin
     : "https://depas.my.id";
 
+  const yearSelect = document.getElementById("stream-year-select");
+  const year = yearSelect ? yearSelect.value : "2026";
+
   const monthSelect = document.getElementById("stream-month-select");
-  const month = monthSelect ? monthSelect.value : "2026-10";
+  const monthVal = monthSelect ? monthSelect.value : "10";
+  const monthParam = (monthVal === "ALL") ? "ALL" : `${year}-${monthVal}`;
 
   const elCsv = document.getElementById("stream-url-csv");
-  if (elCsv) elCsv.value = `${domain}/api/export/transactions.csv?brand=${brand}&month=${month}&key=depas2026`;
+  if (elCsv) elCsv.value = `${domain}/api/export/transactions.csv?brand=${brand}&year=${year}&month=${monthParam}&key=depas2026`;
 
   const elParquet = document.getElementById("stream-url-parquet");
-  if (elParquet) elParquet.value = `${domain}/api/export/transactions.parquet?brand=${brand}&month=${month}&year=2026&key=depas2026`;
+  if (elParquet) elParquet.value = `${domain}/api/export/transactions.parquet?brand=${brand}&year=${year}&month=${monthParam}&key=depas2026`;
 
   const elCust = document.getElementById("stream-url-customers");
   if (elCust) elCust.value = `${domain}/api/export/customers.csv?brand=${brand}&key=depas2026`;
