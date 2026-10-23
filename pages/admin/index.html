@@ -292,10 +292,10 @@
         </div>
 
         <!-- HIDDEN INPUTS MENYIMPAN URL UNTUK ACTION SALIN & DOWNLOAD (URL TIDAK DITAMPILKAN DI LAYAR) -->
-        <input type="hidden" id="stream-url-csv" value="" />
-        <input type="hidden" id="stream-url-parquet" value="" />
-        <input type="hidden" id="stream-url-customers" value="" />
-        <input type="hidden" id="stream-url-products" value="" />
+        <input type="hidden" id="stream-url-csv" value="https://depas.my.id/api/export/transactions.csv?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
+        <input type="hidden" id="stream-url-parquet" value="https://depas.my.id/api/export/transactions.parquet?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
+        <input type="hidden" id="stream-url-customers" value="https://depas.my.id/api/export/customers.csv?brand=ASTAGA&key=depas2026" />
+        <input type="hidden" id="stream-url-products" value="https://depas.my.id/api/export/products.csv?brand=ASTAGA&key=depas2026" />
 
         <!-- 1. EXCEL POWER QUERY (CSV STREAM) -->
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
@@ -353,14 +353,14 @@
           </div>
         </div>
 
-        <!-- 3. MASTER CUSTOMER & RESELLER -->
+        <!-- 3. MASTER AGEN & RESELLER -->
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; flex-direction: column; gap: 3px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">3. Master Customer &amp; Reseller (Dim_Customer)</span>
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">3. Master Data Agen &amp; Reseller (Dim_Customer)</span>
               <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
             </div>
-            <span style="font-size: 11.5px; color: var(--text-muted);">Tabel dimensi agen, nama toko, cabang, dan tipe toko (relasi ke trx.ar_id).</span>
+            <span style="font-size: 11.5px; color: var(--text-muted);">Tabel dimensi profil toko, cabang, tipe agen (Prima/Limit), SCO, dan limit saldo (relasi ke trx.ar_id).</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <button type="button" onclick="copyStreamUrl('stream-url-customers')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
