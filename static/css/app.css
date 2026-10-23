@@ -3,16 +3,19 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", 'Inter', Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", 'Inter', Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  /* Light Theme (Clean Crisp Enterprise) */
+  /* Light Theme (Clean Crisp Enterprise - Sharp High Contrast) */
   --bg: #f8fafc;
   --surface: #ffffff;
   --surface-card: #ffffff;
   --surface-bg: #f1f5f9;
   --surface-border: #e2e8f0;
   --surface-border-subtle: #f1f5f9;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  --text-main: #090d16;
+  --text-muted: #334155;
+  --text-subtle: #475569;
+  --sidebar-text: #0f172a;
+  --sidebar-label: #334155;
+  --sidebar-sub: #1e293b;
   --primary: #4f46e5;
   --primary-hover: #4338ca;
   --primary-light: #eef2ff;
@@ -50,6 +53,9 @@
     --primary-hover: #818cf8;
     --primary-light: rgba(99, 102, 241, 0.12);
     --primary-border: rgba(99, 102, 241, 0.3);
+    --sidebar-text: #e2e8f0;
+    --sidebar-label: #94a3b8;
+    --sidebar-sub: #cbd5e1;
     --sidebar-bg: #090d16;
     --sidebar-border: #1e293b;
     --sidebar-active: rgba(99, 102, 241, 0.15);
@@ -81,6 +87,9 @@ html[data-theme="dark"] {
   --primary-hover: #818cf8;
   --primary-light: rgba(99, 102, 241, 0.12);
   --primary-border: rgba(99, 102, 241, 0.3);
+  --sidebar-text: #e2e8f0;
+  --sidebar-label: #94a3b8;
+  --sidebar-sub: #cbd5e1;
   --sidebar-bg: #090d16;
   --sidebar-border: #1e293b;
   --sidebar-active: rgba(99, 102, 241, 0.15);
@@ -104,9 +113,12 @@ html[data-theme="light"] {
   --surface-bg: #f1f5f9;
   --surface-border: #e2e8f0;
   --surface-border-subtle: #f1f5f9;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  --text-main: #090d16;
+  --text-muted: #334155;
+  --text-subtle: #475569;
+  --sidebar-text: #0f172a;
+  --sidebar-label: #334155;
+  --sidebar-sub: #1e293b;
   --primary: #4f46e5;
   --primary-hover: #4338ca;
   --primary-light: #eef2ff;
@@ -255,15 +267,17 @@ img.brand-icon {
 
 .brand-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.2px;
+  color: var(--text-main);
 }
 
 .brand-subtitle {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--sidebar-label);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .nav-menu {
@@ -275,8 +289,8 @@ img.brand-icon {
 
 .nav-label {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: var(--sidebar-label);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 8px 12px 6px 12px;
@@ -292,10 +306,10 @@ img.brand-icon {
   gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  color: var(--text-muted);
+  color: var(--sidebar-text);
   text-decoration: none;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.15s ease;
 }
 
@@ -314,7 +328,7 @@ img.brand-icon {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  opacity: 0.8;
+  opacity: 0.95;
 }
 
 .nav-link.active svg {
@@ -336,7 +350,7 @@ img.brand-icon {
   gap: 8px;
   padding: 6px 10px;
   border-radius: 6px;
-  color: var(--text-muted);
+  color: var(--sidebar-sub);
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
@@ -425,8 +439,8 @@ html[data-theme="light"] .theme-toggle-icon {
 
 .theme-toggle-text {
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-main);
+  font-weight: 600;
+  color: var(--sidebar-text);
   letter-spacing: -0.2px;
   white-space: nowrap;
 }
@@ -495,7 +509,8 @@ html[data-theme="light"] .theme-toggle-icon {
   padding: 12px 16px;
   border-top: 1px solid var(--sidebar-border);
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--sidebar-label);
+  font-weight: 500;
   display: flex;
   justify-content: space-between;
   align-items: center;
