@@ -879,10 +879,36 @@ def generate_finance_monthly_excel(brand: str, year: str, month: str) -> str:
     sheet1_name = f"Transaksi bersih {m_name}"[:31]
     sheet2_name = f"Transaksi All {m_name}"[:31]
 
+    import xlsxwriter
     temp_excel = out_file.replace(".xlsx", f".tmp_{os.getpid()}.xlsx")
-    with pd.ExcelWriter(temp_excel, engine="xlsxwriter", engine_kwargs={"options": {"constant_memory": True}}) as writer:
-        df_sheet1.to_excel(writer, sheet_name=sheet1_name, index=False)
-        merged.to_excel(writer, sheet_name=sheet2_name, index=False)
+    wb = xlsxwriter.Workbook(temp_excel, {"constant_memory": True})
 
+    # Sheet 1: Transaksi Bersih (hanya status Sukses)
+    ws1 = wb.add_worksheet(sheet1_name)
+    for c_idx, col in enumerate(df_sheet1.columns):
+        ws1.write(0, c_idx, str(col))
+    for r_idx, row in enumerate(df_sheet1.itertuples(index=False), start=1):
+        for c_idx, val in enumerate(row):
+            if pd.isna(val):
+                ws1.write(r_idx, c_idx, "")
+            elif isinstance(val, (int, float)):
+                ws1.write_number(r_idx, c_idx, val)
+            else:
+                ws1.write(r_idx, c_idx, str(val))
+
+    # Sheet 2: Transaksi All Reseller
+    ws2 = wb.add_worksheet(sheet2_name)
+    for c_idx, col in enumerate(merged.columns):
+        ws2.write(0, c_idx, str(col))
+    for r_idx, row in enumerate(merged.itertuples(index=False), start=1):
+        for c_idx, val in enumerate(row):
+            if pd.isna(val):
+                ws2.write(r_idx, c_idx, "")
+            elif isinstance(val, (int, float)):
+                ws2.write_number(r_idx, c_idx, val)
+            else:
+                ws2.write(r_idx, c_idx, str(val))
+
+    wb.close()
     shutil.move(temp_excel, out_file)
     return out_file
