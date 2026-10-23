@@ -979,20 +979,70 @@ async def api_admin_upload_reseller_tsv(request):
 
 
 async def api_export_transactions_parquet(request):
-    """Menyediakan file Parquet mentah teroptimasi untuk konsumsi Power BI Desktop (From Web / Parquet)."""
+    """Menyediakan file Parquet mentah teroptimasi untuk konsumsi Power BI Desktop (From Web / Parquet).
+    Mendukung unduhan Full 1 Tahun atau Spesifik Bulanan (misal: 2026-10).
+    Query Params:
+    - brand: ASTAGA / OKIPAY (default: ASTAGA)
+    - year: 2026 (default: 2026)
+    - month: format YYYY-MM (misal: 2026-10) atau ALL (default: ALL)
+    - key: depas2026
+    """
     try:
         brand = request.query_params.get("brand", "ASTAGA").upper()
         year = request.query_params.get("year", "2026")
+        month = request.query_params.get("month", "").strip()
+
         parquet_path = trx_engine._cache_path(brand, year)
         if not os.path.exists(parquet_path):
             return JSONResponse({"ok": False, "error": f"File Parquet untuk {brand} {year} belum tersedia di server."}, status_code=404)
 
+        if not month or month.upper() == "ALL":
+            return FileResponse(
+                parquet_path,
+                media_type="application/octet-stream",
+                filename=f"trx_{brand.lower()}_{year}.parquet"
+            )
+
+        cache_dir = os.path.join(BASE_DIR, ".cache", "export")
+        os.makedirs(cache_dir, exist_ok=True)
+        monthly_parquet_path = os.path.join(cache_dir, f"trx_{brand.lower()}_{month}.parquet")
+        out_filename = f"trx_{brand.lower()}_{month}.parquet"
+
+        is_fresh = False
+        if os.path.exists(monthly_parquet_path):
+            if os.path.getmtime(monthly_parquet_path) >= os.path.getmtime(parquet_path) and os.path.getsize(monthly_parquet_path) > 0:
+                is_fresh = True
+
+        if is_fresh:
+            return FileResponse(
+                monthly_parquet_path,
+                media_type="application/octet-stream",
+                filename=out_filename
+            )
+
+        def _build_monthly_parquet():
+            df = trx_engine.load(brand, year)
+            if df is None or len(df) == 0:
+                return parquet_path
+            s_tgl = df["tgl_entry"].astype(str)
+            df_m = df[s_tgl.str.startswith(month)]
+            temp_path = monthly_parquet_path + f".tmp_{os.getpid()}"
+            df_m.to_parquet(temp_path, index=False, compression="snappy")
+            if os.path.exists(temp_path):
+                import shutil
+                shutil.move(temp_path, monthly_parquet_path)
+            return monthly_parquet_path
+
+        await asyncio.to_thread(_build_monthly_parquet)
+
         return FileResponse(
-            parquet_path,
+            monthly_parquet_path,
             media_type="application/octet-stream",
-            filename=f"trx_{brand.lower()}_{year}.parquet"
+            filename=out_filename
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 

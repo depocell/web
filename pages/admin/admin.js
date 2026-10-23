@@ -3091,7 +3091,7 @@ function updateStreamUrls() {
   if (elCsv) elCsv.value = `${domain}/api/export/transactions.csv?brand=${brand}&month=${month}&key=depas2026`;
 
   const elParquet = document.getElementById("stream-url-parquet");
-  if (elParquet) elParquet.value = `${domain}/api/export/transactions.parquet?brand=${brand}&year=2026&key=depas2026`;
+  if (elParquet) elParquet.value = `${domain}/api/export/transactions.parquet?brand=${brand}&month=${month}&year=2026&key=depas2026`;
 
   const elCust = document.getElementById("stream-url-customers");
   if (elCust) elCust.value = `${domain}/api/export/customers.csv?brand=${brand}&key=depas2026`;
