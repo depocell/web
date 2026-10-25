@@ -2869,7 +2869,13 @@ function renderFraudTable() {
       ? r.registered_phone
       : '-';
 
-    const pctEwVal = Number(r.pct_ewallet || 0).toFixed(1) + '%';
+    const pctEwNum = Number(r.pct_ewallet || 0);
+    const isHighEw = pctEwNum > 50;
+    const pctEwVal = pctEwNum.toFixed(1) + '%';
+    const pctEwStyle = isHighEw
+      ? 'color: #dc2626; font-weight: 700;'
+      : 'color: var(--text-main); font-weight: 500;';
+
     const selfHitsVal = Number(r.self_hits || 0).toLocaleString('id-ID');
     const selfNominalVal = 'Rp ' + Number(r.self_nominal || 0).toLocaleString('id-ID');
     const selfPctVal = Number(r.self_pct || 0).toFixed(1) + '%';
@@ -2891,7 +2897,7 @@ function renderFraudTable() {
         </td>
         <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main);">${phoneText}</td>
         <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${Number(r.total_ew_hits || 0).toLocaleString('id-ID')}</td>
-        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${pctEwVal}</td>
+        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; ${pctEwStyle}">${pctEwVal}</td>
         <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfHitsVal}</td>
         <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfNominalVal}</td>
         <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfPctVal}</td>
