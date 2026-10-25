@@ -1648,9 +1648,84 @@ async function exportActiveTabExcel() {
     exportResellerExcel();
   } else if (currentTab === 'tren') {
     exportTrenExcel();
+  } else if (currentTab === 'fraud') {
+    exportFraudExcel();
   }
 }
 window.exportActiveTabExcel = exportActiveTabExcel;
+
+function exportFraudExcel() {
+  const rows = agenUnifiedState.fraud.filteredRows || [];
+  if (rows.length === 0) {
+    alert('Tidak ada data analisa fraud untuk diekspor.');
+    return;
+  }
+
+  const period = agenUnifiedState.selectedMonth || '2026';
+  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+  const cabang = agenUnifiedState.fraud.cabang === 'ALL' ? 'Semua_Cabang' : agenUnifiedState.fraud.cabang;
+
+  const headers = [
+    'No', 'Kode Reseller', 'Nama Reseller', 'Cabang', 'Tim SCO', 'Toko Induk', 'Tipe Agen', 'Plafon Limit (Rp)',
+    'No HP Terdaftar', 'Total Trx Toko', 'Total Trx EW', '% EWALLET', 'Hits Self-Trx', 'Nominal Self-Trx (Rp)', '% Self-Trx'
+  ];
+
+  const sheetData = [headers];
+  rows.forEach((r, idx) => {
+    sheetData.push([
+      idx + 1,
+      r.kode_reseller || '',
+      r.nama_reseller || '',
+      r.cabang || '',
+      r.sco || '-',
+      r.nama_agen || '-',
+      r.agent_type || 'Non Limit',
+      Number(r.limit_saldo || 0),
+      r.registered_phone || '-',
+      Number(r.total_all_hits || 0),
+      Number(r.total_ew_hits || 0),
+      Number(r.pct_ewallet ? (r.pct_ewallet / 100).toFixed(3) : 0),
+      Number(r.self_hits || 0),
+      Number(r.self_nominal || 0),
+      Number(r.self_pct ? (r.self_pct / 100).toFixed(3) : 0)
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+  for (let r = 1; r < sheetData.length; r++) {
+    const c7 = XLSX.utils.encode_cell({ r: r, c: 7 }); // Plafon Limit
+    if (ws[c7]) ws[c7].z = '#,##0';
+    const c9 = XLSX.utils.encode_cell({ r: r, c: 9 }); // Total Trx Toko
+    if (ws[c9]) ws[c9].z = '#,##0';
+    const c10 = XLSX.utils.encode_cell({ r: r, c: 10 }); // Total Trx EW
+    if (ws[c10]) ws[c10].z = '#,##0';
+    const c11 = XLSX.utils.encode_cell({ r: r, c: 11 }); // % EWALLET
+    if (ws[c11]) ws[c11].z = '0.0%';
+    const c12 = XLSX.utils.encode_cell({ r: r, c: 12 }); // Hits Self-Trx
+    if (ws[c12]) ws[c12].z = '#,##0';
+    const c13 = XLSX.utils.encode_cell({ r: r, c: 13 }); // Nominal Self-Trx
+    if (ws[c13]) ws[c13].z = '#,##0';
+    const c14 = XLSX.utils.encode_cell({ r: r, c: 14 }); // % Self-Trx
+    if (ws[c14]) ws[c14].z = '0.0%';
+  }
+
+  const colWidths = headers.map((h, colIdx) => {
+    let maxLen = h.length;
+    sheetData.forEach(row => {
+      const val = row[colIdx] != null ? String(row[colIdx]) : '';
+      if (val.length > maxLen) maxLen = val.length;
+    });
+    return { wch: Math.min(Math.max(maxLen + 3, 10), 45) };
+  });
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Analisa Fraud');
+  XLSX.writeFile(wb, `Analisa_Fraud_SelfTrx_${brand}_${period}_${cabang}.xlsx`);
+}
+window.exportFraudExcel = exportFraudExcel;
+
 
 function exportRingkasanExcel() {
   const rows = agenUnifiedState.ringkasan.filteredRows || [];
