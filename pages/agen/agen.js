@@ -931,14 +931,15 @@ function renderIndukTable() {
     }
 
     // % EWALLET
-    const pctEw = r.pct_ewallet || 0;
+    const pctEw = Number(r.pct_ewallet || 0);
+    const isHighEw = pctEw > 50;
     let ewBadge = '';
     if (isChurn) {
-      ewBadge = `<span style="color: var(--text-muted);">-</span>`;
-    } else if (pctEw >= 50) {
-      ewBadge = `<span class="pill" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700;">${formatPct(pctEw)}</span>`;
+      ewBadge = `<span style="color: var(--text-muted); font-size: 12.5px;">-</span>`;
+    } else if (isHighEw) {
+      ewBadge = `<span style="color: #dc2626; font-weight: 700; font-family: var(--font-mono, monospace); font-size: 13px;">${formatPct(pctEw)}</span>`;
     } else {
-      ewBadge = `<span class="pill" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-weight: 600;">${formatPct(pctEw)}</span>`;
+      ewBadge = `<span style="color: var(--text-main); font-weight: 500; font-family: var(--font-mono, monospace); font-size: 13px;">${formatPct(pctEw)}</span>`;
     }
 
     // Downline utilization
@@ -1307,14 +1308,15 @@ function renderResellerTable() {
     }
 
     // % EWALLET
-    const pctEw = r.pct_ewallet || 0;
+    const pctEw = Number(r.pct_ewallet || 0);
+    const isHighEw = pctEw > 50;
     let ewBadge = '';
     if (isChurn) {
-      ewBadge = `<span style="color: var(--text-muted);">-</span>`;
-    } else if (pctEw >= 50) {
-      ewBadge = `<span class="pill" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700;">${formatPct(pctEw)}</span>`;
+      ewBadge = `<span style="color: var(--text-muted); font-size: 12.5px;">-</span>`;
+    } else if (isHighEw) {
+      ewBadge = `<span style="color: #dc2626; font-weight: 700; font-family: var(--font-mono, monospace); font-size: 13px;">${formatPct(pctEw)}</span>`;
     } else {
-      ewBadge = `<span class="pill" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-weight: 600;">${formatPct(pctEw)}</span>`;
+      ewBadge = `<span style="color: var(--text-main); font-weight: 500; font-family: var(--font-mono, monospace); font-size: 13px;">${formatPct(pctEw)}</span>`;
     }
 
     // Mini Product Composition Bars
