@@ -2861,68 +2861,40 @@ function renderFraudTable() {
 
   const html = pageRows.map((r, i) => {
     const no = startIdx + i + 1;
-    const isFraud = (r.self_hits || 0) > 0;
-    const fraudBadge = isFraud
-      ? `<span class="badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 700;">${r.self_hits}x Self-Trx</span>`
-      : `<span style="color: var(--text-muted); font-size: 12px;">0</span>`;
+    const limitText = r.limit_saldo > 0
+      ? `Limit Rp ${Number(r.limit_saldo).toLocaleString('id-ID')}`
+      : 'Non Limit';
 
-    const limitDisplay = r.limit_saldo > 0
-      ? `<span class="badge" style="background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.25); font-size: 11px;">Limit Rp ${Number(r.limit_saldo).toLocaleString('id-ID')}</span>`
-      : `<span class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">Non Limit</span>`;
+    const phoneText = r.registered_phone && r.registered_phone !== '-'
+      ? r.registered_phone
+      : '-';
 
-    const pctDisplay = isFraud
-      ? `<div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
-          <span style="font-weight: 700; color: #dc2626; font-size: 12.5px;">${r.self_pct.toFixed(1)}%</span>
-          <div style="width: 45px; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
-            <div style="width: ${Math.min(100, r.self_pct)}%; height: 100%; background: #dc2626;"></div>
-          </div>
-        </div>`
-      : `<span style="color: var(--text-muted); font-size: 12px;">0.0%</span>`;
-
-    const nominalDisplay = isFraud
-      ? `<span style="font-weight: 700; color: #dc2626; font-family: var(--font-mono);">Rp ${Number(r.self_nominal).toLocaleString('id-ID')}</span>`
-      : `<span style="color: var(--text-muted); font-size: 12px;">-</span>`;
-
-    const phoneDisplay = r.registered_phone && r.registered_phone !== '-'
-      ? `<span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); font-weight: 600;">${r.registered_phone}</span>`
-      : `<span style="color: var(--text-muted); font-size: 12px;">-</span>`;
-
-    const pctEw = Number(r.pct_ewallet || 0);
-    const ewBadge = pctEw >= 50
-      ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11.5px;" title="Trx EW: ${r.total_ew_hits || 0} / Total Trx Toko: ${r.total_all_hits || 0}">${pctEw.toFixed(1)}%</span>`
-      : (pctEw > 0
-        ? `<span class="badge" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-weight: 600; font-size: 11.5px;" title="Trx EW: ${r.total_ew_hits || 0} / Total Trx Toko: ${r.total_all_hits || 0}">${pctEw.toFixed(1)}%</span>`
-        : `<span style="color: var(--text-muted); font-size: 11.5px;">0%</span>`);
+    const pctEwVal = Number(r.pct_ewallet || 0).toFixed(1) + '%';
+    const selfHitsVal = Number(r.self_hits || 0).toLocaleString('id-ID');
+    const selfNominalVal = 'Rp ' + Number(r.self_nominal || 0).toLocaleString('id-ID');
+    const selfPctVal = Number(r.self_pct || 0).toFixed(1) + '%';
 
     return `
-      <tr style="cursor: pointer; transition: background 0.15s ease;" onclick="openFraudDetailModal('${r.kode_reseller}')">
+      <tr style="cursor: pointer;" onclick="openFraudDetailModal('${r.kode_reseller}')">
         <td style="text-align: center; color: var(--text-muted); font-size: 12px;">${no}</td>
         <td>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="badge" style="background: var(--table-header); color: var(--text-muted); font-family: var(--font-mono); font-size: 11px;">${r.kode_reseller}</span>
-            <span style="font-weight: 700; color: var(--text-main);">${escapeHtml(r.nama_reseller)}</span>
-          </div>
+          <div style="font-weight: 600; color: var(--text-main); font-size: 13px;">${escapeHtml(r.nama_reseller)}</div>
+          <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">${r.kode_reseller}</div>
         </td>
         <td>
-          <div style="display: flex; flex-direction: column; gap: 2px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span class="badge" style="background: rgba(59,130,246,0.1); color: #2563eb; border: 1px solid rgba(59,130,246,0.2); font-size: 10.5px;">${r.cabang}</span>
-              <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">${escapeHtml(r.sco)}</span>
-            </div>
-          </div>
+          <div style="font-weight: 500; color: var(--text-main); font-size: 12.5px;">${r.cabang}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(r.sco)}</div>
         </td>
         <td>
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <span style="font-size: 12.5px; font-weight: 600; color: var(--text-main);">${escapeHtml(r.nama_agen)}</span>
-            <div>${limitDisplay}</div>
-          </div>
+          <div style="font-weight: 500; color: var(--text-main); font-size: 12.5px;">${escapeHtml(r.nama_agen)}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">${limitText}</div>
         </td>
-        <td>${phoneDisplay}</td>
-        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px;">${Number(r.total_ew_hits || 0).toLocaleString('id-ID')}</td>
-        <td class="text-right">${ewBadge}</td>
-        <td class="text-right">${fraudBadge}</td>
-        <td class="text-right">${nominalDisplay}</td>
-        <td class="text-right">${pctDisplay}</td>
+        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main);">${phoneText}</td>
+        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${Number(r.total_ew_hits || 0).toLocaleString('id-ID')}</td>
+        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${pctEwVal}</td>
+        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfHitsVal}</td>
+        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfNominalVal}</td>
+        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfPctVal}</td>
         <td class="text-center" onclick="event.stopPropagation();">
           <button type="button" onclick="openFraudDetailModal('${r.kode_reseller}')" class="btn-table-action" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; cursor: pointer;">
             Detail
