@@ -101,7 +101,7 @@ function showTabLoader(tabName) {
     if (tb) tb.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 40px; color: var(--text-muted);"><div class="loader">Memuat data Reseller Downline...</div></td></tr>`;
   } else if (tabName === 'tren') {
     const tb = document.getElementById('tren-table-tbody');
-    if (tb) tb.innerHTML = `<tr><td colspan="16" class="text-center" style="padding: 40px; color: var(--text-muted);"><div class="loader">Memuat data Tren Trx Agen (1 Tahun)...</div></td></tr>`;
+    if (tb) tb.innerHTML = `<tr><td colspan="15" class="text-center" style="padding: 40px; color: var(--text-muted);"><div class="loader">Memuat data Tren Trx Agen (1 Tahun)...</div></td></tr>`;
   }
 }
 
@@ -1900,7 +1900,7 @@ async function fetchTrenData() {
   const brand = agenUnifiedState.currentBrand || 'ASTAGA';
   const tbody = document.getElementById('tren-table-tbody');
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="16" class="text-center" style="padding: 40px; color: var(--text-muted);"><div class="loader">Mengambil data Tren Trx Agen (1 Tahun)...</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" class="text-center" style="padding: 40px; color: var(--text-muted);"><div class="loader">Mengambil data Tren Trx Agen (1 Tahun)...</div></td></tr>`;
   }
 
   try {
@@ -1913,7 +1913,7 @@ async function fetchTrenData() {
   } catch (err) {
     console.error('Error fetchTrenData:', err);
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="16" class="text-center" style="padding: 30px; color: var(--negative);">Terjadi kesalahan memuat data tren agen: ${escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="15" class="text-center" style="padding: 30px; color: var(--negative);">Terjadi kesalahan memuat data tren agen: ${escapeHtml(err.message)}</td></tr>`;
     }
   }
 }
@@ -2018,7 +2018,7 @@ function renderTrenTableRows(agents) {
   if (!agents || agents.length === 0) {
     return `
       <tr>
-        <td colspan="16" class="text-center" style="padding: 40px 20px; color: var(--text-muted);">
+        <td colspan="15" class="text-center" style="padding: 40px 20px; color: var(--text-muted);">
           <div style="font-size: 28px; opacity: 0.5; margin-bottom: 8px; display: inline-flex; align-items: center; justify-content: center;">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path><path d="M9 9h1"></path><path d="M9 13h1"></path><path d="M9 17h1"></path><path d="M14 9h1"></path><path d="M14 13h1"></path><path d="M14 17h1"></path></svg>
           </div>
@@ -2072,14 +2072,6 @@ function renderTrenTableRows(agents) {
             </span>
             <span style="font-size:10px; color:var(--text-muted);">Base: ${formatDailyRate(a.yoy_base)} (Okt 25)</span>
           </div>
-        </td>
-        <td class="text-center">
-          <button class="btn-copy-mini" title="Salin ID Agen" onclick="copyAgenId('${escapeHtml(a.aid)}')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-          </button>
         </td>
       </tr>`;
   }).join('');
