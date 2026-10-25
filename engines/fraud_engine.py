@@ -314,15 +314,15 @@ def calculate_fraud_analysis(
     df_ew = df_target_trx[is_ew].copy()
 
     # Cek ketersediaan kolom tujuan dari parquet, atau join dari tabel SQLite trx_tujuan!
-    has_tujuan = "tujuan" in df_ew.columns and df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()
+    has_tujuan = bool("tujuan" in df_ew.columns and bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()))
     if not df_ew.empty:
-        tujuan_missing = (not has_tujuan) or ("tujuan" not in df_ew.columns) or (not df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any())
+        tujuan_missing = (not has_tujuan) or ("tujuan" not in df_ew.columns) or (not bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()))
         if tujuan_missing:
             ew_ids = [int(x) for x in df_ew["trx_id"].dropna().unique().tolist()]
             t_map = load_tujuan_map_for_trx_ids(ew_ids, brand)
             if t_map:
                 df_ew["tujuan"] = df_ew["trx_id"].map(t_map)
-                has_tujuan = df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()
+                has_tujuan = bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any())
 
     # Agregasi total transaksi ewallet per reseller target
     ew_summary = {}
@@ -368,7 +368,8 @@ def calculate_fraud_analysis(
                 target_phones = sorted(list(match_rows["clean_tujuan"].dropna().unique()))
 
                 # Top produk ewallet yang ditembak
-                top_prods = match_rows["product_id"].value_counts().head(3).to_dict()
+                top_prods_raw = match_rows["product_id"].value_counts().head(3).to_dict()
+                top_prods = {str(k): int(v) for k, v in top_prods_raw.items()}
 
                 total_self_hits_all += self_hits
                 total_self_nominal_all += self_nominal
@@ -444,22 +445,22 @@ def calculate_fraud_analysis(
         filtered_results.sort(key=lambda x: (x["total_ew_jual"], x["total_ew_hits"]), reverse=True)
 
     # Summary
-    total_fraud_count = len([r for r in filtered_results if r["self_hits"] > 0])
-    avg_pct = round(sum(r["self_pct"] for r in filtered_results if r["self_hits"] > 0) / max(1, total_fraud_count), 1)
+    total_fraud_count = int(len([r for r in filtered_results if r["self_hits"] > 0]))
+    avg_pct = float(round(sum(r["self_pct"] for r in filtered_results if r["self_hits"] > 0) / max(1, total_fraud_count), 1))
 
     return {
         "ok": True,
         "brand": brand,
         "year": year,
-        "month": month_code,
-        "available_months": available_months,
-        "has_tujuan_data": has_tujuan,
-        "total_targets": len(target_resellers),
+        "month": str(month_code),
+        "available_months": [str(m) for m in available_months],
+        "has_tujuan_data": bool(has_tujuan),
+        "total_targets": int(len(target_resellers)),
         "summary": {
-            "total_fraud_resellers": total_fraud_count,
-            "total_self_hits": total_self_hits_all,
-            "total_self_nominal": total_self_nominal_all,
-            "avg_self_pct": avg_pct
+            "total_fraud_resellers": int(total_fraud_count),
+            "total_self_hits": int(total_self_hits_all),
+            "total_self_nominal": int(total_self_nominal_all),
+            "avg_self_pct": float(avg_pct)
         },
         "rows": filtered_results
     }
@@ -538,11 +539,15 @@ def get_reseller_fraud_detail(
                 "status": str(row.get("status", "Sukses"))
             })
 
+    reseller_clean = {k: v for k, v in rs_meta.items() if k != "candidate_phones_set"}
+    reseller_clean["candidate_phones"] = [str(x) for x in reseller_clean.get("candidate_phones", [])]
+    reseller_clean["limit_saldo"] = int(reseller_clean.get("limit_saldo", 0))
+
     return {
         "ok": True,
-        "reseller": rs_meta,
-        "month": month_code,
-        "total_self_hits": len(items),
-        "total_self_nominal": sum(x["harga_jual"] for x in items),
+        "reseller": reseller_clean,
+        "month": str(month_code),
+        "total_self_hits": int(len(items)),
+        "total_self_nominal": int(sum(x["harga_jual"] for x in items)),
         "items": items
     }
