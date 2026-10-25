@@ -40,17 +40,29 @@ function applyAuthUI() {
   const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
   const isAdmin = isLocal || currentAuthUser.role === "admin";
 
+  // Sembunyikan / Tampilkan seluruh item di bawah Admin & Setting jika bukan admin
+  document.querySelectorAll(".nav-label-admin, .nav-item-admin").forEach(el => {
+    el.style.display = isAdmin ? "block" : "none";
+  });
+
+  document.querySelectorAll(".nav-label").forEach(el => {
+    if (el.textContent.includes("Admin & Setting") || el.textContent.includes("Dapur") || el.textContent.includes("Administrasi")) {
+      el.style.display = isAdmin ? "block" : "none";
+    }
+  });
+
   const adminNav = document.getElementById("nav-admin-data");
   if (adminNav && adminNav.closest("li")) {
     adminNav.closest("li").style.display = isAdmin ? "block" : "none";
   }
-
-  // Label Dapur Administrasi
-  document.querySelectorAll(".nav-label").forEach(el => {
-    if (el.textContent.includes("Dapur") || el.textContent.includes("Administrasi")) {
-      el.style.display = isAdmin ? "block" : "none";
-    }
-  });
+  const dailyNav = document.getElementById("nav-daily");
+  if (dailyNav && dailyNav.closest("li")) {
+    dailyNav.closest("li").style.display = isAdmin ? "block" : "none";
+  }
+  const scoNav = document.getElementById("nav-sco");
+  if (scoNav && scoNav.closest("li")) {
+    scoNav.closest("li").style.display = isAdmin ? "block" : "none";
+  }
 
   // User Section di Sidebar
   const userSec = document.getElementById("sidebar-user-section");
@@ -233,11 +245,13 @@ async function navigate() {
     return;
   }
 
-  // Proteksi Menu Admin: Hanya dapat diakses oleh Administrator
+  // Proteksi Menu Admin & Setting: Hanya dapat diakses oleh Administrator
   const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
   const isAdmin = isLocal || currentAuthUser.role === "admin";
-  if (hash === "#admin" && !isAdmin) {
-    alert("Akses ditolak: Menu Admin & Olah Data hanya dapat diakses oleh Administrator.");
+  const adminOnlyRoutes = ["#admin", "#daily", "#sco"];
+  const isTargetAdminOnly = adminOnlyRoutes.some(r => hash === r || hash.startsWith(r + "?") || hash.startsWith(r + "/"));
+  if (isTargetAdminOnly && !isAdmin) {
+    alert("Akses ditolak: Menu di bawah Admin & Setting hanya dapat diakses oleh Administrator.");
     window.location.replace("#overview");
     return;
   }

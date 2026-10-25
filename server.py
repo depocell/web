@@ -1529,7 +1529,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
             # 3a. Role-Based Access Control (RBAC):
             # Jika user adalah 'tamu' (non-admin), blokir akses ke dapur admin & finansial
             if role != "admin":
-                if path.startswith("/api/admin/") or path.startswith("/pages/admin"):
+                if (
+                    path.startswith("/api/admin/") or 
+                    path.startswith("/pages/admin") or
+                    path.startswith("/pages/daily") or
+                    path.startswith("/pages/sco")
+                ):
                     if path.startswith("/api/"):
                         return JSONResponse(
                             {"ok": False, "error": "Akses ditolak. Fitur ini khusus Administrator."},
