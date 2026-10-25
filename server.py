@@ -36,6 +36,7 @@ import engines.master_data_engine as master_data_engine
 import engines.master_product_engine as master_product_engine
 import engines.harga_engine as harga_engine
 import engines.survey_engine as survey_engine
+import engines.fraud_engine as fraud_engine
 
 PAGES_DIR = os.path.join(BASE_DIR, "pages")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -524,6 +525,45 @@ async def api_reseller(request):
     try:
         data = await asyncio.to_thread(reseller_engine.calculate_reseller_dashboard, brand=brand, month_code=month, year=year)
         return JSONResponse({"ok": True, "data": data})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_fraud_analysis(request):
+    """Data analisa fraud & self-transaction reseller (top-up e-wallet ke nomor sendiri)."""
+    brand = request.query_params.get("brand", "ASTAGA").upper()
+    month = request.query_params.get("month")
+    year = request.query_params.get("year", "2026")
+    sco = request.query_params.get("sco")
+    cabang = request.query_params.get("cabang")
+    q = request.query_params.get("q")
+    try:
+        data = await asyncio.to_thread(
+            fraud_engine.calculate_fraud_analysis,
+            brand=brand, year=year, month_code=month,
+            sco_filter=sco, cabang_filter=cabang, search_q=q
+        )
+        return JSONResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_fraud_detail(request):
+    """Detail transaksi individual self-transaction reseller untuk modal drilldown."""
+    brand = request.query_params.get("brand", "ASTAGA").upper()
+    month = request.query_params.get("month")
+    year = request.query_params.get("year", "2026")
+    kode_reseller = request.query_params.get("kode_reseller")
+    try:
+        data = await asyncio.to_thread(
+            fraud_engine.get_reseller_fraud_detail,
+            brand=brand, year=year, month_code=month, kode_reseller=kode_reseller
+        )
+        return JSONResponse(data)
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1537,6 +1577,8 @@ routes = [
     Route("/api/pivot/options", api_pivot_options),
     Route("/api/pivot/query",   api_pivot_query, methods=["GET", "POST"]),
     Route("/api/reseller",      api_reseller),
+    Route("/api/reseller/fraud",        api_fraud_analysis),
+    Route("/api/reseller/fraud/detail", api_fraud_detail),
     Route("/api/agen/tren",     api_agen_tren),
     Route("/api/agen",          api_agen),
     Route("/api/survey/candidates", api_survey_candidates),

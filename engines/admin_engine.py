@@ -716,9 +716,17 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
     clean_df["tgl_stat"] = pd.to_datetime(clean_df["tgl_stat"])
     clean_df["beli"] = clean_df["beli"].fillna(0).astype("int64")
     clean_df["jual"] = clean_df["jual"].fillna(0).astype("int64")
+    # Deteksi kolom tujuan fleksibel
+    tujuan_aliases = ["TUJUAN", "NOMOR_TUJUAN", "NOMOR TUJUAN", "NO_TUJUAN", "NO TUJUAN", "MSISDN", "TARGET", "NO HP", "NO_HP"]
+    clean_df["tujuan"] = None
+    for c in clean_df.columns:
+        if str(c).strip().upper() in tujuan_aliases:
+            clean_df["tujuan"] = clean_df[c].astype(str)
+            break
+
     clean_df["_source_file"] = os.path.basename(tsv_file_path)
 
-    needed_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual", "_source_file"]
+    needed_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual", "tujuan", "_source_file"]
     clean_df = clean_df[needed_cols]
 
     parquet_file = os.path.join(BASE_DIR, ".cache", f"trx_{brand.lower()}_{year}.parquet")

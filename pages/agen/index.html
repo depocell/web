@@ -74,6 +74,16 @@
           </svg>
           <span>TREN TRX AGEN</span>
         </button>
+        <!-- Tab 5: Analisa Fraud (Self-Trx E-Wallet) -->
+        <button type="button" id="tab-btn-fraud" onclick="switchAgenTab('fraud')" class="agen-subtab-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>ANALISA FRAUD</span>
+        </button>
       </div>
     </div>
   </div>
@@ -643,6 +653,290 @@
   </div>
 
 </div>
+
+  <!-- ========================================================================= -->
+  <!-- SECTION 5: ANALISA FRAUD SELF-TRANSACTION RESELLER (E-WALLET GESTUN)      -->
+  <!-- ========================================================================= -->
+  <div id="section-agen-fraud" style="display: none; flex-direction: column; gap: 16px;">
+
+    <!-- Status Banner / Notice -->
+    <div id="fraud-status-banner" class="card" style="padding: 14px 18px; border-left: 4px solid #3b82f6; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <div>
+          <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main);" id="fraud-banner-title">
+            Perimeter Analisa Fraud: Reseller Fisik Under SCO &amp; Non-Prima
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" id="fraud-banner-desc">
+            Mendeteksi indikasi penarikan saldo limit kredit (gestun) melalui transaksi top-up e-wallet ke nomor HP sendiri.
+          </div>
+        </div>
+      </div>
+      <span id="fraud-tujuan-badge" class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb; border: 1px solid rgba(37,99,235,0.25); font-weight: 700; font-size: 11px;">
+        Radar Aktif
+      </span>
+    </div>
+
+    <!-- 4 KPI Summary Cards -->
+    <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+      <!-- KPI 1: Reseller Terindikasi Fraud -->
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px;">
+          Reseller Terindikasi Fraud
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div id="fraud-kpi-count" style="font-size: 26px; font-weight: 800; font-family: var(--font-heading); color: #e11d48;">
+            0
+          </div>
+          <span class="badge" style="background: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; font-weight: 700;">
+            Akun Terindikasi
+          </span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="fraud-kpi-count-sub">
+          Target toko binaan SCO non-Prima
+        </div>
+      </div>
+
+      <!-- KPI 2: Total Hits Self-Trx -->
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px;">
+          Frekuensi Self-Trx (Hits)
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div id="fraud-kpi-hits" style="font-size: 26px; font-weight: 800; font-family: var(--font-heading); color: #d97706;">
+            0
+          </div>
+          <span class="badge" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-weight: 700;">
+            Frekuensi
+          </span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+          Top-up ke nomor HP sendiri
+        </div>
+      </div>
+
+      <!-- KPI 3: Total Saldo Berisiko (Rp) -->
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px;">
+          Total Saldo Berisiko (Rp)
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div id="fraud-kpi-nominal" style="font-size: 24px; font-weight: 800; font-family: var(--font-heading); color: #dc2626;">
+            Rp 0
+          </div>
+          <span class="badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 700;">
+            Nominal Gestun
+          </span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+          Total rupiah penarikan e-wallet
+        </div>
+      </div>
+
+      <!-- KPI 4: Rata-rata % Self-Trx -->
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px;">
+          Rata-rata Rasio Self-Trx
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div id="fraud-kpi-pct" style="font-size: 26px; font-weight: 800; font-family: var(--font-heading); color: #6366f1;">
+            0.0%
+          </div>
+          <span class="badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-weight: 700;">
+            Rasio E-wallet
+          </span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+          Porsi self-trx vs total e-wallet
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="card agen-filter-card">
+      <div class="agen-controls-row">
+        <!-- Filter Mode: Semua Target vs Hanya Terindikasi -->
+        <div class="custom-select-box" style="min-width: 220px;">
+          <select id="fraud-mode-select" onchange="applyFraudFilters()" class="modern-select">
+            <option value="all">Semua Target Perimeter</option>
+            <option value="fraud_only">Hanya Terindikasi Self-Trx</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <!-- Filter Cabang -->
+        <div class="custom-select-box filter-cabang-box" style="min-width: 170px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <select id="fraud-cabang-select" onchange="applyFraudFilters()" class="modern-select has-icon-left">
+            <option value="ALL">Semua Cabang</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <!-- Filter SCO -->
+        <div class="custom-select-box" style="min-width: 190px;">
+          <select id="fraud-sco-select" onchange="applyFraudFilters()" class="modern-select">
+            <option value="ALL">Semua Tim SCO</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+
+        <!-- Search Box -->
+        <div class="modern-search-box" style="flex: 1; min-width: 250px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="fraud-search-input" oninput="applyFraudFilters()" placeholder="Cari Reseller, Toko Induk, No HP..." class="modern-input has-icon-left">
+          <button type="button" onclick="clearFraudSearch()" class="clear-search-btn" title="Hapus pencarian">&times;</button>
+        </div>
+
+        <!-- Export CSV Button -->
+        <button type="button" onclick="exportFraudCSV()" class="btn-export-flat" style="height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Data Table Fraud -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card-header" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0;">Tabel Monitoring Fraud &amp; Self-Transaction</h3>
+          <span id="fraud-table-row-count" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 baris</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Klik baris toko untuk melihat rincian riwayat transaksi yang ditembak ke nomor sendiri
+        </div>
+      </div>
+
+      <div class="table-container" style="max-height: 650px; overflow-y: auto;">
+        <table class="table" id="fraud-table">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th>Reseller</th>
+              <th>Cabang &amp; SCO</th>
+              <th>Toko Induk &amp; Plafon</th>
+              <th>No. HP Terdaftar</th>
+              <th class="text-right">Total Trx EW</th>
+              <th class="text-right">Hits Self-Trx</th>
+              <th class="text-right">Total Nominal Self-Trx</th>
+              <th class="text-right">% Self-Trx</th>
+              <th class="text-center" style="width: 90px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="fraud-tbody">
+            <tr>
+              <td colspan="10" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                <div class="loader">Memuat data Analisa Fraud...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Fraud -->
+      <div style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
+        <div id="fraud-table-page-info">Menampilkan 0 dari 0 data</div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button type="button" id="btn-fraud-page-prev" onclick="prevFraudPage()" class="reseller-btn-page" disabled>&laquo; Sebelumnya</button>
+          <span id="fraud-page-current-num" style="font-weight: 600; padding: 0 8px; color: var(--text-main);">1</span>
+          <button type="button" id="btn-fraud-page-next" onclick="nextFraudPage()" class="reseller-btn-page" disabled>Selanjutnya &raquo;</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL DETAIL TRANSAKSI SELF-TOPUP FRAUD -->
+  <div id="fraud-detail-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 90%; max-width: 860px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease;">
+      <!-- Modal Header -->
+      <div style="padding: 18px 24px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h3 id="fraud-modal-name" style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main);">-</h3>
+            <span id="fraud-modal-id" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 12px; font-weight: 700;">-</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;" id="fraud-modal-meta">
+            -
+          </div>
+        </div>
+        <button type="button" onclick="closeFraudDetailModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 4px;" title="Tutup">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+        <!-- Modal KPI Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+          <div class="card" style="padding: 14px; background: var(--surface);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Hits Self-Trx</div>
+            <div id="fraud-modal-hits" style="font-size: 22px; font-weight: 800; color: #d97706; margin-top: 4px;">0</div>
+          </div>
+          <div class="card" style="padding: 14px; background: var(--surface);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Nominal Self-Trx</div>
+            <div id="fraud-modal-nominal" style="font-size: 22px; font-weight: 800; color: #dc2626; margin-top: 4px;">Rp 0</div>
+          </div>
+          <div class="card" style="padding: 14px; background: var(--surface);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nomor HP Terdaftar Reseller</div>
+            <div id="fraud-modal-phone" style="font-size: 14px; font-weight: 700; font-family: var(--font-mono); color: var(--text-main); margin-top: 6px;">-</div>
+          </div>
+        </div>
+
+        <!-- Detail Table -->
+        <div style="border: 1px solid var(--surface-border); border-radius: 8px; overflow: hidden;">
+          <div style="max-height: 380px; overflow-y: auto;">
+            <table class="table" style="margin: 0;">
+              <thead style="position: sticky; top: 0; background: var(--table-header); z-index: 5;">
+                <tr>
+                  <th>Waktu Entri</th>
+                  <th>TrxID</th>
+                  <th>Produk</th>
+                  <th>Nomor Tujuan (Ditembak)</th>
+                  <th class="text-right">Harga Jual</th>
+                  <th class="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="fraud-modal-tbody">
+                <tr>
+                  <td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);">
+                    Tidak ada transaksi self-topup yang ditemukan.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 14px 24px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; background: var(--surface);">
+        <button type="button" onclick="closeFraudDetailModal()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; cursor: pointer;">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
 
 <!-- ========================================================================= -->
 <!-- MODAL DETAIL TOKO INDUK AGEN & RESELLER DOWNLINE                          -->

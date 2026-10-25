@@ -219,8 +219,9 @@ async function navigate() {
     window.location.replace("#analisa?tab=distribusi");
     return;
   }
-  if (hash === "#reseller") {
-    window.location.replace("#agen?tab=reseller");
+  if (hash === "#reseller" || hash.startsWith("#reseller?")) {
+    const qPart = hash.includes("?") ? hash.substring(hash.indexOf("?")) : "?tab=reseller";
+    window.location.replace("#agen" + (qPart.includes("tab=") ? qPart : "?tab=reseller"));
     return;
   }
   if (hash === "#harga") {

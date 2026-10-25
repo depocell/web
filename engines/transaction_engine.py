@@ -60,7 +60,7 @@ BRAND_CONFIG = {
 }
 
 UNIFIED_COLS = ["trx_id", "tgl_entry", "product_id", "qty",
-                "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
+                "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual", "tujuan"]
 
 COLUMN_ALIASES = {
     "trx_id": {"TRX_ID", "TRX ID", "TRXID", "ID", "NO TRX", "NO_TRX", "TRX.ID", "TX ID", "TX_ID", "ID_TRX", "ID TRX"},
@@ -73,6 +73,7 @@ COLUMN_ALIASES = {
     "tgl_stat": {"TGL.STAT", "TGL STAT", "TGL_STAT"},
     "beli": {"BELI", "HARGA BELI", "HRG BELI", "HARGA_BELI", "HRG. BELI", "HTG. BELI"},
     "jual": {"JUAL", "HARGA JUAL", "HRG JUAL", "HARGA_JUAL", "HRG. JUAL", "RP"},
+    "tujuan": {"TUJUAN", "NOMOR_TUJUAN", "NOMOR TUJUAN", "NO_TUJUAN", "NO TUJUAN", "MSISDN", "NO HP", "NO_HP", "DESTINATION", "TARGET"},
 }
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────

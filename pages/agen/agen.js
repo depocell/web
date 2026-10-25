@@ -10,6 +10,16 @@ const agenUnifiedState = {
   agenRaw: null,      // cache /api/agen
   resellerRaw: null,  // cache /api/reseller
   trenRaw: null,      // cache /api/agen/tren
+  fraudRaw: null,     // cache /api/reseller/fraud
+  fraud: {
+    cabang: 'ALL',
+    sco: 'ALL',
+    mode: 'all',
+    search: '',
+    page: 1,
+    pageSize: 50,
+    filteredRows: []
+  },
   
   // Tab 1: Ringkasan Agen State
   ringkasan: {
@@ -141,6 +151,8 @@ async function switchAgenBrand(brand) {
   // Invalidate cache for new brand
   agenUnifiedState.agenRaw = null;
   agenUnifiedState.resellerRaw = null;
+  agenUnifiedState.fraudRaw = null;
+  agenUnifiedState.fraud.page = 1;
   agenUnifiedState.trenRaw = null;
   agenUnifiedState.selectedMonth = null;
 
@@ -212,7 +224,7 @@ async function switchAgenTab(tabName) {
   } catch (e) {}
 
   // Update visual sub-tab buttons
-  ['ringkasan', 'induk', 'reseller', 'tren'].forEach(t => {
+  ['ringkasan', 'induk', 'reseller', 'tren', 'fraud'].forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const sec = document.getElementById(`section-agen-${t}`);
     if (btn) {
@@ -238,6 +250,8 @@ async function switchAgenTab(tabName) {
       subEl.textContent = 'Tracking keaktifan seluruh customer reseller downline individual berbasis Daily Trx.';
     } else if (tabName === 'tren') {
       subEl.textContent = 'Profil histori & tren Daily Trx 1 tahun terakhir (12 bulan) serta evaluasi pertumbuhan YoY (Year-over-Year).';
+    } else if (tabName === 'fraud') {
+      subEl.textContent = 'Analisa self-transaction top-up e-wallet pada reseller fisik under SCO untuk pencegahan gestun/withdrawal saldo.';
     }
   }
 
@@ -268,6 +282,10 @@ async function switchAgenTab(tabName) {
   } else if (tabName === 'tren') {
     renderTrenControls();
     applyTrenFilters();
+  } else if (tabName === 'fraud') {
+    renderFraudKPI();
+    renderFraudControls();
+    applyFraudFilters();
   }
 }
 window.switchAgenTab = switchAgenTab;
@@ -287,6 +305,10 @@ async function ensureTabDataLoaded(tabName) {
   } else if (tabName === 'tren') {
     if (!agenUnifiedState.trenRaw) {
       await fetchTrenData();
+    }
+  } else if (tabName === 'fraud') {
+    if (!agenUnifiedState.fraudRaw) {
+      await fetchFraudData(currentMonth);
     }
   }
 }
@@ -375,6 +397,8 @@ async function onAgenMonthChange(monthCode) {
   // Reset cache agar data terupdate
   agenUnifiedState.agenRaw = null;
   agenUnifiedState.resellerRaw = null;
+  agenUnifiedState.fraudRaw = null;
+  agenUnifiedState.fraud.page = 1;
 
   // Reset pagination ke page 1
   agenUnifiedState.induk.page = 1;
@@ -417,6 +441,8 @@ async function loadAgen() {
       initialTab = 'ringkasan';
     } else if (tabParam === 'tren') {
       initialTab = 'tren';
+    } else if (tabParam === 'fraud') {
+      initialTab = 'fraud';
     }
 
     const brandParam = (params.get('brand') || '').toUpperCase();
@@ -2653,3 +2679,404 @@ async function submitBatchSurveyAction() {
   }, 1000);
 }
 window.submitBatchSurveyAction = submitBatchSurveyAction;
+
+
+// =============================================================================
+// TAB 5: ANALISA FRAUD SELF-TRANSACTION RESELLER (E-WALLET GESTUN)
+// =============================================================================
+
+async function fetchFraudData(monthCode = null) {
+  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+  let url = `/api/reseller/fraud?brand=${brand}`;
+  if (monthCode) url += `&month=${monthCode}`;
+
+  try {
+    const res = await fetch(url + '&t=' + Date.now());
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'Gagal mengambil data Analisa Fraud');
+
+    agenUnifiedState.fraudRaw = json;
+    if (!agenUnifiedState.selectedMonth) {
+      agenUnifiedState.selectedMonth = json.month;
+    }
+  } catch (err) {
+    console.error('Error fetchFraudData:', err);
+    const tbody = document.getElementById('fraud-tbody');
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 30px; color: var(--negative);">Terjadi kesalahan: ${err.message}</td></tr>`;
+    }
+  }
+}
+
+function renderFraudKPI() {
+  const data = agenUnifiedState.fraudRaw;
+  if (!data) return;
+
+  const summary = data.summary || { total_fraud_resellers: 0, total_self_hits: 0, total_self_nominal: 0, avg_self_pct: 0.0 };
+
+  const countEl = document.getElementById('fraud-kpi-count');
+  if (countEl) countEl.textContent = Number(summary.total_fraud_resellers || 0).toLocaleString('id-ID');
+
+  const countSubEl = document.getElementById('fraud-kpi-count-sub');
+  if (countSubEl && data.total_targets) {
+    countSubEl.textContent = `Dari ${Number(data.total_targets).toLocaleString('id-ID')} target toko binaan SCO`;
+  }
+
+  const hitsEl = document.getElementById('fraud-kpi-hits');
+  if (hitsEl) hitsEl.textContent = Number(summary.total_self_hits || 0).toLocaleString('id-ID');
+
+  const nominalEl = document.getElementById('fraud-kpi-nominal');
+  if (nominalEl) nominalEl.textContent = 'Rp ' + Number(summary.total_self_nominal || 0).toLocaleString('id-ID');
+
+  const pctEl = document.getElementById('fraud-kpi-pct');
+  if (pctEl) pctEl.textContent = (summary.avg_self_pct || 0).toFixed(1) + '%';
+
+  // Status banner update
+  const bannerDesc = document.getElementById('fraud-banner-desc');
+  const badgeEl = document.getElementById('fraud-tujuan-badge');
+  if (data.has_tujuan_data) {
+    if (bannerDesc) bannerDesc.textContent = 'Sinkronisasi Aktif: Sistem otomatis mencocokkan nomor tujuan top-up e-wallet dengan database nomor HP reseller.';
+    if (badgeEl) {
+      badgeEl.style.background = 'rgba(16,185,129,0.1)';
+      badgeEl.style.color = '#059669';
+      badgeEl.style.borderColor = 'rgba(16,185,129,0.25)';
+      badgeEl.textContent = 'Data Tujuan Aktif';
+    }
+  } else {
+    if (bannerDesc) bannerDesc.textContent = 'Menunggu Data Tujuan: Menampilkan perimeter target reseller fisik under SCO (non-Prima) dengan histori e-wallet. Segera setelah file TSV baru dari OtomaX yang memuat kolom Tujuan diunggah, pencocokan self-trx langsung aktif.';
+    if (badgeEl) {
+      badgeEl.style.background = 'rgba(245,158,11,0.1)';
+      badgeEl.style.color = '#d97706';
+      badgeEl.style.borderColor = 'rgba(245,158,11,0.25)';
+      badgeEl.textContent = 'Menunggu TSV Tujuan';
+    }
+  }
+}
+
+function renderFraudControls() {
+  const data = agenUnifiedState.fraudRaw;
+  if (!data || !data.rows) return;
+
+  // Cabang dropdown
+  const cabangSel = document.getElementById('fraud-cabang-select');
+  if (cabangSel) {
+    const curVal = agenUnifiedState.fraud.cabang || 'ALL';
+    const cabangs = Array.from(new Set(data.rows.map(r => r.cabang).filter(Boolean))).sort();
+    cabangSel.innerHTML = '<option value="ALL">Semua Cabang</option>' +
+      cabangs.map(c => `<option value="${c}" ${c === curVal ? 'selected' : ''}>Cabang ${c}</option>`).join('');
+  }
+
+  // SCO dropdown
+  const scoSel = document.getElementById('fraud-sco-select');
+  if (scoSel) {
+    const curVal = agenUnifiedState.fraud.sco || 'ALL';
+    const scos = Array.from(new Set(data.rows.map(r => r.sco).filter(Boolean))).sort();
+    scoSel.innerHTML = '<option value="ALL">Semua Tim SCO</option>' +
+      scos.map(s => `<option value="${s}" ${s === curVal ? 'selected' : ''}>SCO ${s}</option>`).join('');
+  }
+}
+
+function applyFraudFilters() {
+  const data = agenUnifiedState.fraudRaw;
+  if (!data || !data.rows) return;
+
+  const modeSel = document.getElementById('fraud-mode-select');
+  const cabangSel = document.getElementById('fraud-cabang-select');
+  const scoSel = document.getElementById('fraud-sco-select');
+  const searchInput = document.getElementById('fraud-search-input');
+
+  const mode = modeSel ? modeSel.value : 'all';
+  const cabang = cabangSel ? cabangSel.value : 'ALL';
+  const sco = scoSel ? scoSel.value : 'ALL';
+  const search = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+  agenUnifiedState.fraud.mode = mode;
+  agenUnifiedState.fraud.cabang = cabang;
+  agenUnifiedState.fraud.sco = sco;
+  agenUnifiedState.fraud.search = search;
+
+  let filtered = data.rows.slice();
+
+  if (mode === 'fraud_only') {
+    filtered = filtered.filter(r => (r.self_hits || 0) > 0);
+  }
+
+  if (cabang !== 'ALL') {
+    filtered = filtered.filter(r => (r.cabang || '').toUpperCase() === cabang.toUpperCase());
+  }
+
+  if (sco !== 'ALL') {
+    filtered = filtered.filter(r => (r.sco || '').toUpperCase() === sco.toUpperCase());
+  }
+
+  if (search) {
+    filtered = filtered.filter(r => {
+      const kd = (r.kode_reseller || '').toLowerCase();
+      const nm = (r.nama_reseller || '').toLowerCase();
+      const ag = (r.nama_agen || '').toLowerCase();
+      const ph = (r.registered_phone || '').toLowerCase();
+      const sc = (r.sco || '').toLowerCase();
+      const tp = (r.target_phones || []).map(x => String(x).toLowerCase()).join(' ');
+      return kd.includes(search) || nm.includes(search) || ag.includes(search) || ph.includes(search) || sc.includes(search) || tp.includes(search);
+    });
+  }
+
+  agenUnifiedState.fraud.filteredRows = filtered;
+  agenUnifiedState.fraud.page = 1;
+
+  renderFraudTable();
+}
+
+function renderFraudTable() {
+  const filtered = agenUnifiedState.fraud.filteredRows || [];
+  const tbody = document.getElementById('fraud-tbody');
+  const rowCountBadge = document.getElementById('fraud-table-row-count');
+  const pageInfo = document.getElementById('fraud-table-page-info');
+  const btnPrev = document.getElementById('btn-fraud-page-prev');
+  const btnNext = document.getElementById('btn-fraud-page-next');
+  const pageNum = document.getElementById('fraud-page-current-num');
+
+  if (rowCountBadge) {
+    rowCountBadge.textContent = `${filtered.length.toLocaleString('id-ID')} baris`;
+  }
+
+  if (!filtered.length) {
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 40px; color: var(--text-muted);">Tidak ada data reseller yang cocok dengan filter.</td></tr>`;
+    }
+    if (pageInfo) pageInfo.textContent = 'Menampilkan 0 dari 0 data';
+    if (btnPrev) btnPrev.disabled = true;
+    if (btnNext) btnNext.disabled = true;
+    if (pageNum) pageNum.textContent = '1';
+    return;
+  }
+
+  const page = agenUnifiedState.fraud.page || 1;
+  const pageSize = agenUnifiedState.fraud.pageSize || 50;
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const startIdx = (page - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, filtered.length);
+  const pageRows = filtered.slice(startIdx, endIdx);
+
+  if (pageInfo) {
+    pageInfo.textContent = `Menampilkan ${startIdx + 1}–${endIdx} dari ${filtered.length.toLocaleString('id-ID')} data`;
+  }
+  if (pageNum) pageNum.textContent = `${page} / ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = page <= 1;
+  if (btnNext) btnNext.disabled = page >= totalPages;
+
+  if (!tbody) return;
+
+  const html = pageRows.map((r, i) => {
+    const no = startIdx + i + 1;
+    const isFraud = (r.self_hits || 0) > 0;
+    const fraudBadge = isFraud
+      ? `<span class="badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 700;">${r.self_hits}x Self-Trx</span>`
+      : `<span style="color: var(--text-muted); font-size: 12px;">0</span>`;
+
+    const limitDisplay = r.limit_saldo > 0
+      ? `<span class="badge" style="background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.25); font-size: 11px;">Limit Rp ${Number(r.limit_saldo).toLocaleString('id-ID')}</span>`
+      : `<span class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">Non Limit</span>`;
+
+    const pctDisplay = isFraud
+      ? `<div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+          <span style="font-weight: 700; color: #dc2626; font-size: 12.5px;">${r.self_pct.toFixed(1)}%</span>
+          <div style="width: 45px; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
+            <div style="width: ${Math.min(100, r.self_pct)}%; height: 100%; background: #dc2626;"></div>
+          </div>
+        </div>`
+      : `<span style="color: var(--text-muted); font-size: 12px;">0.0%</span>`;
+
+    const nominalDisplay = isFraud
+      ? `<span style="font-weight: 700; color: #dc2626; font-family: var(--font-mono);">Rp ${Number(r.self_nominal).toLocaleString('id-ID')}</span>`
+      : `<span style="color: var(--text-muted); font-size: 12px;">-</span>`;
+
+    const phoneDisplay = r.registered_phone && r.registered_phone !== '-'
+      ? `<span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); font-weight: 600;">${r.registered_phone}</span>`
+      : `<span style="color: var(--text-muted); font-size: 12px;">-</span>`;
+
+    return `
+      <tr style="cursor: pointer; transition: background 0.15s ease;" onclick="openFraudDetailModal('${r.kode_reseller}')">
+        <td style="text-align: center; color: var(--text-muted); font-size: 12px;">${no}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge" style="background: var(--table-header); color: var(--text-muted); font-family: var(--font-mono); font-size: 11px;">${r.kode_reseller}</span>
+            <span style="font-weight: 700; color: var(--text-main);">${escapeHtml(r.nama_reseller)}</span>
+          </div>
+        </td>
+        <td>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="badge" style="background: rgba(59,130,246,0.1); color: #2563eb; border: 1px solid rgba(59,130,246,0.2); font-size: 10.5px;">${r.cabang}</span>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">${escapeHtml(r.sco)}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <span style="font-size: 12.5px; font-weight: 600; color: var(--text-main);">${escapeHtml(r.nama_agen)}</span>
+            <div>${limitDisplay}</div>
+          </div>
+        </td>
+        <td>${phoneDisplay}</td>
+        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px;">${Number(r.total_ew_hits || 0).toLocaleString('id-ID')}</td>
+        <td class="text-right">${fraudBadge}</td>
+        <td class="text-right">${nominalDisplay}</td>
+        <td class="text-right">${pctDisplay}</td>
+        <td class="text-center" onclick="event.stopPropagation();">
+          <button type="button" onclick="openFraudDetailModal('${r.kode_reseller}')" class="btn-table-action" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; cursor: pointer;">
+            Detail
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = html;
+}
+
+function prevFraudPage() {
+  if (agenUnifiedState.fraud.page > 1) {
+    agenUnifiedState.fraud.page--;
+    renderFraudTable();
+  }
+}
+
+function nextFraudPage() {
+  const filtered = agenUnifiedState.fraud.filteredRows || [];
+  const pageSize = agenUnifiedState.fraud.pageSize || 50;
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  if (agenUnifiedState.fraud.page < totalPages) {
+    agenUnifiedState.fraud.page++;
+    renderFraudTable();
+  }
+}
+
+function clearFraudSearch() {
+  const inp = document.getElementById('fraud-search-input');
+  if (inp) {
+    inp.value = '';
+    applyFraudFilters();
+  }
+}
+
+async function openFraudDetailModal(kodeReseller) {
+  if (!kodeReseller) return;
+  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+  const month = agenUnifiedState.selectedMonth;
+
+  const modal = document.getElementById('fraud-detail-modal');
+  if (modal) modal.style.display = 'flex';
+
+  const nameEl = document.getElementById('fraud-modal-name');
+  const idEl = document.getElementById('fraud-modal-id');
+  const metaEl = document.getElementById('fraud-modal-meta');
+  const hitsEl = document.getElementById('fraud-modal-hits');
+  const nominalEl = document.getElementById('fraud-modal-nominal');
+  const phoneEl = document.getElementById('fraud-modal-phone');
+  const tbody = document.getElementById('fraud-modal-tbody');
+
+  if (nameEl) nameEl.textContent = 'Memuat rincian transaksi...';
+  if (idEl) idEl.textContent = kodeReseller;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);"><div class="loader">Memuat transaksi...</div></td></tr>`;
+
+  try {
+    const url = `/api/reseller/fraud/detail?brand=${brand}&kode_reseller=${kodeReseller}&month=${month || ''}&t=${Date.now()}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'Gagal memuat detail fraud');
+
+    const rs = json.reseller || {};
+    if (nameEl) nameEl.textContent = rs.nama_reseller || kodeReseller;
+    if (idEl) idEl.textContent = kodeReseller;
+    if (metaEl) {
+      metaEl.textContent = `Cabang ${rs.cabang || '-'} • Tim SCO: ${rs.sco || '-'} • Toko Induk: ${rs.nama_agen || '-'} (${rs.agent_type || 'Non Limit'})`;
+    }
+    if (hitsEl) hitsEl.textContent = Number(json.total_self_hits || 0).toLocaleString('id-ID');
+    if (nominalEl) nominalEl.textContent = 'Rp ' + Number(json.total_self_nominal || 0).toLocaleString('id-ID');
+    if (phoneEl) {
+      const allPhones = (rs.candidate_phones && rs.candidate_phones.length) ? rs.candidate_phones.join(', ') : (rs.registered_phone || '-');
+      phoneEl.textContent = allPhones;
+    }
+
+    const items = json.items || [];
+    if (!items.length) {
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);">Tidak ada transaksi self-topup yang ditemukan pada periode ini.</td></tr>`;
+      }
+      return;
+    }
+
+    if (tbody) {
+      tbody.innerHTML = items.map(it => `
+        <tr>
+          <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">${it.tgl_entry}</td>
+          <td style="font-family: var(--font-mono); font-size: 12px;">#${it.trx_id}</td>
+          <td><span class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb; font-weight: 700; font-size: 11px;">${it.product_id}</span></td>
+          <td style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #dc2626;">${it.nomor_tujuan}</td>
+          <td class="text-right" style="font-family: var(--font-mono); font-weight: 700; font-size: 12.5px;">Rp ${Number(it.harga_jual).toLocaleString('id-ID')}</td>
+          <td class="text-center"><span class="badge" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px;">${it.status}</span></td>
+        </tr>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Error openFraudDetailModal:', err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--negative);">Terjadi kesalahan: ${err.message}</td></tr>`;
+    }
+  }
+}
+
+function closeFraudDetailModal() {
+  const modal = document.getElementById('fraud-detail-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function exportFraudCSV() {
+  const filtered = agenUnifiedState.fraud.filteredRows || [];
+  if (!filtered.length) {
+    alert('Tidak ada data untuk diexport.');
+    return;
+  }
+
+  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
+  const month = agenUnifiedState.selectedMonth || '2026';
+  const headers = ['Kode Reseller', 'Nama Reseller', 'Cabang', 'Tim SCO', 'Agen Induk', 'Tipe Agen', 'Plafon Limit', 'No HP Terdaftar', 'Total Trx EW', 'Hits Self-Trx', 'Nominal Self-Trx (Rp)', '% Self-Trx'];
+
+  const csvRows = [headers.join(',')];
+  filtered.forEach(r => {
+    const row = [
+      `"${r.kode_reseller}"`,
+      `"${(r.nama_reseller || '').replace(/"/g, '""')}"`,
+      `"${r.cabang}"`,
+      `"${(r.sco || '').replace(/"/g, '""')}"`,
+      `"${(r.nama_agen || '').replace(/"/g, '""')}"`,
+      `"${r.agent_type}"`,
+      r.limit_saldo || 0,
+      `"${r.registered_phone || ''}"`,
+      r.total_ew_hits || 0,
+      r.self_hits || 0,
+      r.self_nominal || 0,
+      r.self_pct || 0
+    ];
+    csvRows.push(row.join(','));
+  });
+
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Analisa_Fraud_${brand}_${month}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// Global window exposure
+window.applyFraudFilters = applyFraudFilters;
+window.prevFraudPage = prevFraudPage;
+window.nextFraudPage = nextFraudPage;
+window.clearFraudSearch = clearFraudSearch;
+window.openFraudDetailModal = openFraudDetailModal;
+window.closeFraudDetailModal = closeFraudDetailModal;
+window.exportFraudCSV = exportFraudCSV;
