@@ -128,7 +128,7 @@ const ROUTES = {
     initFn: "loadAgen"
   },
   "#produk": {
-    title: "Produk Fisik",
+    title: "Rekap Fisik",
     pageUrl: "./pages/fisik/index.html",
     scriptUrl: "./pages/fisik/fisik.js",
     initFn: "loadFisik"
