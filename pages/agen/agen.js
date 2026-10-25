@@ -2834,7 +2834,7 @@ function renderFraudTable() {
 
   if (!filtered.length) {
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 40px; color: var(--text-muted);">Tidak ada data reseller yang cocok dengan filter.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding: 40px; color: var(--text-muted);">Tidak ada data reseller yang cocok dengan filter.</td></tr>`;
     }
     if (pageInfo) pageInfo.textContent = 'Menampilkan 0 dari 0 data';
     if (btnPrev) btnPrev.disabled = true;
@@ -2887,6 +2887,13 @@ function renderFraudTable() {
       ? `<span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); font-weight: 600;">${r.registered_phone}</span>`
       : `<span style="color: var(--text-muted); font-size: 12px;">-</span>`;
 
+    const pctEw = Number(r.pct_ewallet || 0);
+    const ewBadge = pctEw >= 50
+      ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11.5px;" title="Trx EW: ${r.total_ew_hits || 0} / Total Trx Toko: ${r.total_all_hits || 0}">${pctEw.toFixed(1)}%</span>`
+      : (pctEw > 0
+        ? `<span class="badge" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-weight: 600; font-size: 11.5px;" title="Trx EW: ${r.total_ew_hits || 0} / Total Trx Toko: ${r.total_all_hits || 0}">${pctEw.toFixed(1)}%</span>`
+        : `<span style="color: var(--text-muted); font-size: 11.5px;">0%</span>`);
+
     return `
       <tr style="cursor: pointer; transition: background 0.15s ease;" onclick="openFraudDetailModal('${r.kode_reseller}')">
         <td style="text-align: center; color: var(--text-muted); font-size: 12px;">${no}</td>
@@ -2912,6 +2919,7 @@ function renderFraudTable() {
         </td>
         <td>${phoneDisplay}</td>
         <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px;">${Number(r.total_ew_hits || 0).toLocaleString('id-ID')}</td>
+        <td class="text-right">${ewBadge}</td>
         <td class="text-right">${fraudBadge}</td>
         <td class="text-right">${nominalDisplay}</td>
         <td class="text-right">${pctDisplay}</td>
@@ -2982,7 +2990,9 @@ async function openFraudDetailModal(kodeReseller) {
     if (nameEl) nameEl.textContent = rs.nama_reseller || kodeReseller;
     if (idEl) idEl.textContent = kodeReseller;
     if (metaEl) {
-      metaEl.textContent = `Cabang ${rs.cabang || '-'} • Tim SCO: ${rs.sco || '-'} • Toko Induk: ${rs.nama_agen || '-'} (${rs.agent_type || 'Non Limit'})`;
+      const limText = rs.limit_saldo > 0 ? `Limit Rp ${Number(rs.limit_saldo).toLocaleString('id-ID')}` : (rs.agent_type || 'Non Limit');
+      const ewRatio = (rs.pct_ewallet !== undefined) ? ` • E-Wallet: ${rs.pct_ewallet}% (${Number(rs.total_ew_hits || 0).toLocaleString('id-ID')} / ${Number(rs.total_all_hits || 0).toLocaleString('id-ID')} trx)` : '';
+      metaEl.textContent = `Cabang ${rs.cabang || '-'} • Tim SCO: ${rs.sco || '-'} • Toko Induk: ${rs.nama_agen || '-'} (${limText})${ewRatio}`;
     }
     if (hitsEl) hitsEl.textContent = Number(json.total_self_hits || 0).toLocaleString('id-ID');
     if (nominalEl) nominalEl.textContent = 'Rp ' + Number(json.total_self_nominal || 0).toLocaleString('id-ID');
@@ -3033,7 +3043,7 @@ function exportFraudCSV() {
 
   const brand = agenUnifiedState.currentBrand || 'ASTAGA';
   const month = agenUnifiedState.selectedMonth || '2026';
-  const headers = ['Kode Reseller', 'Nama Reseller', 'Cabang', 'Tim SCO', 'Agen Induk', 'Tipe Agen', 'Plafon Limit', 'No HP Terdaftar', 'Total Trx EW', 'Hits Self-Trx', 'Nominal Self-Trx (Rp)', '% Self-Trx'];
+  const headers = ['Kode Reseller', 'Nama Reseller', 'Cabang', 'Tim SCO', 'Agen Induk', 'Tipe Agen', 'Plafon Limit', 'No HP Terdaftar', 'Total Trx EW', '% EWALLET', 'Hits Self-Trx', 'Nominal Self-Trx (Rp)', '% Self-Trx'];
 
   const csvRows = [headers.join(',')];
   filtered.forEach(r => {
@@ -3047,6 +3057,7 @@ function exportFraudCSV() {
       r.limit_saldo || 0,
       `"${r.registered_phone || ''}"`,
       r.total_ew_hits || 0,
+      r.pct_ewallet || 0,
       r.self_hits || 0,
       r.self_nominal || 0,
       r.self_pct || 0

@@ -306,8 +306,14 @@ def calculate_fraud_analysis(
     # 3. Filter transaksi khusus EWALLET milik reseller target
     ewallet_codes = get_ewallet_product_codes(brand)
 
-    # Filter transaksi reseller target
+    # Filter transaksi reseller target (seluruh kategori produk)
     df_target_trx = df_month[df_month["ar_id"].astype(str).str.strip().str.upper().isin(target_ar_ids)].copy()
+
+    # Hitung total semua transaksi per reseller target
+    total_all_summary = {}
+    if not df_target_trx.empty:
+        for rid, grp in df_target_trx.groupby("ar_id"):
+            total_all_summary[str(rid).strip().upper()] = len(grp)
 
     # Klasifikasi apakah transaksi bertipe ewallet
     is_ew = df_target_trx["product_id"].astype(str).str.strip().str.upper().isin(ewallet_codes)
@@ -329,14 +335,19 @@ def calculate_fraud_analysis(
 
     has_tujuan = bool("tujuan" in df_ew.columns and bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()))
 
-    # Agregasi total transaksi ewallet per reseller target
+    # Agregasi total transaksi ewallet & % ewallet per reseller target
     ew_summary = {}
     if not df_ew.empty:
         for rid, grp in df_ew.groupby("ar_id"):
             rid_clean = str(rid).strip().upper()
+            all_hits = total_all_summary.get(rid_clean, len(grp))
+            ew_hits = len(grp)
+            pct_ew = round((ew_hits / all_hits * 100), 1) if all_hits > 0 else 0.0
             ew_summary[rid_clean] = {
-                "total_ew_hits": len(grp),
-                "total_ew_jual": int(grp["jual"].sum())
+                "total_all_hits": int(all_hits),
+                "total_ew_hits": int(ew_hits),
+                "total_ew_jual": int(grp["jual"].sum()),
+                "pct_ewallet": float(pct_ew)
             }
 
     # 4. Pencocokan Self-Transaction (Nomor Tujuan vs Candidate Phones)
@@ -365,9 +376,11 @@ def calculate_fraud_analysis(
             self_hits = len(match_rows)
             if self_hits >= min_hits:
                 self_nominal = int(match_rows["jual"].sum())
-                tot_ew_hits = ew_summary.get(rid_clean, {}).get("total_ew_hits", self_hits)
-                tot_ew_jual = ew_summary.get(rid_clean, {}).get("total_ew_jual", self_nominal)
-                self_pct = round((self_hits / tot_ew_hits * 100), 1) if tot_ew_hits > 0 else 0.0
+                tot_ew_hits = int(ew_summary.get(rid_clean, {}).get("total_ew_hits", self_hits))
+                tot_ew_jual = int(ew_summary.get(rid_clean, {}).get("total_ew_jual", self_nominal))
+                tot_all_hits = int(ew_summary.get(rid_clean, {}).get("total_all_hits", tot_ew_hits))
+                pct_ewallet = float(ew_summary.get(rid_clean, {}).get("pct_ewallet", 0.0))
+                self_pct = float(round((self_hits / tot_ew_hits * 100), 1)) if tot_ew_hits > 0 else 0.0
 
                 # Nomor tujuan yang ditembak
                 target_phones = sorted(list(match_rows["clean_tujuan"].dropna().unique()))
@@ -391,8 +404,10 @@ def calculate_fraud_analysis(
                     "limit_saldo": rs_meta["limit_saldo"],
                     "registered_phone": rs_meta["registered_phone"],
                     "candidate_phones": rs_meta["candidate_phones"],
+                    "total_all_hits": tot_all_hits,
                     "total_ew_hits": tot_ew_hits,
                     "total_ew_jual": tot_ew_jual,
+                    "pct_ewallet": pct_ewallet,
                     "self_hits": self_hits,
                     "self_nominal": self_nominal,
                     "self_pct": self_pct,
@@ -417,8 +432,10 @@ def calculate_fraud_analysis(
                     "limit_saldo": meta["limit_saldo"],
                     "registered_phone": meta["registered_phone"],
                     "candidate_phones": meta["candidate_phones"],
-                    "total_ew_hits": stats["total_ew_hits"],
-                    "total_ew_jual": stats["total_ew_jual"],
+                    "total_all_hits": int(stats.get("total_all_hits", stats["total_ew_hits"])),
+                    "total_ew_hits": int(stats["total_ew_hits"]),
+                    "total_ew_jual": int(stats["total_ew_jual"]),
+                    "pct_ewallet": float(stats.get("pct_ewallet", 0.0)),
                     "self_hits": 0,
                     "self_nominal": 0,
                     "self_pct": 0.0,
@@ -554,6 +571,13 @@ def get_reseller_fraud_detail(
     reseller_clean = {k: v for k, v in rs_meta.items() if k != "candidate_phones_set"}
     reseller_clean["candidate_phones"] = [str(x) for x in reseller_clean.get("candidate_phones", [])]
     reseller_clean["limit_saldo"] = int(reseller_clean.get("limit_saldo", 0))
+
+    tot_month_all = len(df_month)
+    tot_month_ew = len(df_ew)
+    pct_ew = round((tot_month_ew / tot_month_all * 100), 1) if tot_month_all > 0 else 0.0
+    reseller_clean["total_all_hits"] = int(tot_month_all)
+    reseller_clean["total_ew_hits"] = int(tot_month_ew)
+    reseller_clean["pct_ewallet"] = float(pct_ew)
 
     return {
         "ok": True,
