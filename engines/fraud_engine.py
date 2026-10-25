@@ -313,16 +313,21 @@ def calculate_fraud_analysis(
     is_ew = df_target_trx["product_id"].astype(str).str.strip().str.upper().isin(ewallet_codes)
     df_ew = df_target_trx[is_ew].copy()
 
-    # Cek ketersediaan kolom tujuan dari parquet, atau join dari tabel SQLite trx_tujuan!
-    has_tujuan = bool("tujuan" in df_ew.columns and bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()))
+    # Cek ketersediaan kolom tujuan dari parquet, dan lengkapi baris yang kosong dari tabel SQLite trx_tujuan!
     if not df_ew.empty:
-        tujuan_missing = (not has_tujuan) or ("tujuan" not in df_ew.columns) or (not bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()))
-        if tujuan_missing:
-            ew_ids = [int(x) for x in df_ew["trx_id"].dropna().unique().tolist()]
-            t_map = load_tujuan_map_for_trx_ids(ew_ids, brand)
-            if t_map:
-                df_ew["tujuan"] = df_ew["trx_id"].map(t_map)
-                has_tujuan = bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any())
+        if "tujuan" not in df_ew.columns:
+            df_ew["tujuan"] = None
+
+        null_mask = df_ew["tujuan"].isna() | (df_ew["tujuan"].astype(str).str.strip() == "") | (df_ew["tujuan"].astype(str).str.lower() == "none")
+        if null_mask.any():
+            missing_ids = [int(x) for x in df_ew.loc[null_mask, "trx_id"].dropna().unique().tolist()]
+            if missing_ids:
+                t_map = load_tujuan_map_for_trx_ids(missing_ids, brand)
+                if t_map:
+                    mapped = df_ew.loc[null_mask, "trx_id"].map(t_map)
+                    df_ew.loc[null_mask, "tujuan"] = mapped.fillna(df_ew.loc[null_mask, "tujuan"])
+
+    has_tujuan = bool("tujuan" in df_ew.columns and bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()))
 
     # Agregasi total transaksi ewallet per reseller target
     ew_summary = {}
@@ -512,13 +517,20 @@ def get_reseller_fraud_detail(
     is_ew = df_month["product_id"].astype(str).str.strip().str.upper().isin(ewallet_codes)
     df_ew = df_month[is_ew].copy()
 
-    has_tujuan = "tujuan" in df_ew.columns and df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()
-    if not has_tujuan and not df_ew.empty:
-        ew_ids = [int(x) for x in df_ew["trx_id"].dropna().unique().tolist()]
-        t_map = load_tujuan_map_for_trx_ids(ew_ids, brand)
-        if t_map:
-            df_ew["tujuan"] = df_ew["trx_id"].map(t_map)
-            has_tujuan = df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()
+    if not df_ew.empty:
+        if "tujuan" not in df_ew.columns:
+            df_ew["tujuan"] = None
+
+        null_mask = df_ew["tujuan"].isna() | (df_ew["tujuan"].astype(str).str.strip() == "") | (df_ew["tujuan"].astype(str).str.lower() == "none")
+        if null_mask.any():
+            missing_ids = [int(x) for x in df_ew.loc[null_mask, "trx_id"].dropna().unique().tolist()]
+            if missing_ids:
+                t_map = load_tujuan_map_for_trx_ids(missing_ids, brand)
+                if t_map:
+                    mapped = df_ew.loc[null_mask, "trx_id"].map(t_map)
+                    df_ew.loc[null_mask, "tujuan"] = mapped.fillna(df_ew.loc[null_mask, "tujuan"])
+
+    has_tujuan = bool("tujuan" in df_ew.columns and bool(df_ew["tujuan"].dropna().astype(str).str.strip().ne("").any()))
 
     items = []
     if has_tujuan and not df_ew.empty:
