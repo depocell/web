@@ -1582,7 +1582,7 @@ html[data-theme="dark"] .server-status-bar {
    ========================================================================== */
 .depas-copilot-widget {
   position: fixed;
-  bottom: 44px;
+  bottom: 20px;
   right: 20px;
   z-index: 1050;
   display: flex;
@@ -1870,7 +1870,7 @@ html[data-theme="dark"] .copilot-card-footer {
 
 @media (max-width: 480px) {
   .depas-copilot-widget {
-    bottom: 38px;
+    bottom: 16px;
     right: 12px;
   }
   .btn-copilot-trigger {

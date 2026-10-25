@@ -11,7 +11,7 @@
   <noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </noscript>
-  <link rel="stylesheet" href="/static/css/app.css?v=17">
+  <link rel="stylesheet" href="/static/css/app.css?v=18">
   <script>
     (function() {
       var savedTheme = localStorage.getItem('theme_preference');
@@ -190,10 +190,7 @@
       </a>
     </div>
 
-    <div class="sidebar-footer">
-      <span>Web Report v2.4</span>
-      <span class="badge">2026</span>
-    </div>
+
   </aside>
 
   <!-- MAIN WRAPPER -->
@@ -237,66 +234,7 @@
       <!-- Dinamis di-load oleh app.js -->
     </main>
 
-    <!-- SERVER TERMINAL DRAWER (POPUP CONSOLE) -->
-    <div id="server-terminal-drawer" class="server-terminal-drawer" style="display: none;">
-      <div class="terminal-drawer-header">
-        <div class="terminal-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="4 17 10 11 4 5"></polyline>
-            <line x1="12" y1="19" x2="20" y2="19"></line>
-          </svg>
-          <span>Server Telemetry &amp; Live Activity Log</span>
-        </div>
-        <div class="terminal-actions">
-          <button id="btn-copy-terminal" class="btn-terminal-action" title="Salin Log Terminal">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <span>Salin</span>
-          </button>
-          <button id="btn-close-terminal" class="btn-terminal-action" title="Tutup Terminal">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div id="terminal-log-stream" class="terminal-log-stream">
-        <!-- Log items diisi otomatis via JS -->
-      </div>
-    </div>
 
-    <!-- SERVER TELEMETRY STATUS BAR (FOOTER) -->
-    <footer id="server-status-bar" class="server-status-bar">
-      <div class="status-bar-left">
-        <div class="status-pulse-wrapper" id="status-pulse-wrapper" title="Status Server">
-          <span class="status-pulse-dot" id="status-pulse-dot"></span>
-          <span class="status-pulse-badge" id="status-pulse-badge">READY</span>
-        </div>
-        <div class="status-ticker-wrapper" id="status-ticker-wrapper" title="Klik untuk membuka log aktivitas">
-          <span class="status-ticker-action" id="status-ticker-action">Server Ready — Parquet &amp; SQLite Sinkron</span>
-          <span class="status-ticker-detail" id="status-ticker-detail">RAM Cache Aktif</span>
-        </div>
-      </div>
-      <div class="status-bar-right">
-        <div class="status-uptime-pill" id="status-uptime-pill" title="Server Uptime">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span id="status-uptime-text">Uptime: 0m</span>
-        </div>
-        <button id="btn-toggle-terminal" class="btn-status-console" title="Buka / Tutup Terminal Console">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="4 17 10 11 4 5"></polyline>
-            <line x1="12" y1="19" x2="20" y2="19"></line>
-          </svg>
-          <span>Live Console</span>
-        </button>
-      </div>
-    </footer>
   </div>
 
   <!-- FLOATING COPILOT WIDGET ("TANYA AI") -->
@@ -389,6 +327,6 @@
     </button>
   </div>
 
-  <script src="/static/js/app.js?v=30"></script>
+  <script src="/static/js/app.js?v=31"></script>
 </body>
 </html>
