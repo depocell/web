@@ -1,0 +1,10 @@
+{
+  "ticket_id": "TKT-20261022-114421",
+  "created_at": "2026-10-22 11:44:21",
+  "chat_id": 6166710846,
+  "user_name": "Bossque",
+  "prompt": "kalo member/reseller baru bulan ini berapa bro?",
+  "requirement": "Tarik data jumlah reseller baru yang mendaftar pada periode Oktober 2026",
+  "status": "RESOLVED",
+  "resolution_note": "Data resmi berhasil diintegrasikan dari engines.reseller_engine ke live context bot."
+}

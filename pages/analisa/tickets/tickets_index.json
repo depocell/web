@@ -1,5 +1,12 @@
 [
   {
+    "ticket_id": "TKT-20261026-062529",
+    "created_at": "2026-10-26 06:25:29",
+    "prompt": "tadi sy sudah updates sd 25, coba cek lokal",
+    "requirement": "Tarik dan sinkronisasi data snapshot terbaru server ASTAGA & OKIPAY per cut-off 25 Oktober 2026",
+    "status": "PENDING"
+  },
+  {
     "ticket_id": "TKT-20261022-094941",
     "created_at": "2026-10-22 09:49:41",
     "prompt": "Coba lakukan analisa 6 bulan terakhir untuk hit transaksi sukses DANA, trend dana bebas nominal vs n",
