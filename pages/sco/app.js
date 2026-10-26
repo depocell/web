@@ -517,8 +517,7 @@
                 <th class="num">${period.prev_name}</th>
                 <th class="num" style="color:var(--primary); font-weight:800;">${period.curr_name}</th>
                 <th class="num">Growth</th>
-                <th class="center" style="width:90px;">Aksi</th>
-              </tr>
+                              </tr>
             </thead>
             <tbody>
               ${indexRows.map((r, i) => {
@@ -551,13 +550,6 @@
                     <td class="num" style="font-weight:800; color:var(--primary);">${fmtNumber(valCurr, 1)}</td>
                     <td class="num" style="color:${isPos ? 'var(--success-text)' : 'var(--danger-text)'}; font-weight:700;">
                       ${isPos ? '+' : ''}${fmtNumber(growth, 1)}
-                    </td>
-                    <td class="center">
-                      ${isPerson ? `
-                        <button class="action-btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="window.filterToAgentDetail('${r.SCO}')">
-                          <i class="fa-solid fa-arrow-right"></i> Agen
-                        </button>
-                      ` : ''}
                     </td>
                   </tr>`;
               }).join('')}
@@ -2533,8 +2525,7 @@
           }
 
           // Sembunyikan elemen navigasi / tombol aksi interaktif pada foto rekap
-          clonedDoc.querySelectorAll('#table-mom-sco th:last-child, #table-mom-sco td:last-child').forEach(el => el.style.display = 'none');
-          clonedDoc.querySelectorAll('button, .action-btn, .sidebar-backdrop, .sub-header-bar').forEach(el => el.style.display = 'none');
+                    clonedDoc.querySelectorAll('button, .action-btn, .sidebar-backdrop, .sub-header-bar').forEach(el => el.style.display = 'none');
 
           // Rapikan tabel #table-mom-sco agar kolom seimbang dan tidak ada ruang kosong melebar
           const table = clonedDoc.getElementById('table-mom-sco');
