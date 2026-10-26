@@ -25,7 +25,52 @@ import openpyxl
 import engines.transaction_engine as trx_engine
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_DATA_ROOT = r"C:\RAW DATA"
+RAW_DATA_ROOT = r"C:\DMS RAW DATA"
+UPSERT_HARIAN_ROOT = r"C:\DMS RAW DATA\UPSERT HARIAN"
+
+def find_incoming_tsv_files(brand: str, year: str = "2026") -> list:
+    r"""Mencari file incoming TSV di C:\DMS RAW DATA\UPSERT HARIAN dan fallback ke folder lainnya."""
+    brand = brand.upper()
+    candidates = []
+
+    # 1. C:\DMS RAW DATA\UPSERT HARIAN
+    if os.path.isdir(UPSERT_HARIAN_ROOT):
+        sub = os.path.join(UPSERT_HARIAN_ROOT, brand)
+        if os.path.isdir(sub):
+            candidates.extend(glob.glob(os.path.join(sub, "*.tsv")))
+        for f in glob.glob(os.path.join(UPSERT_HARIAN_ROOT, "*.tsv")):
+            fname = os.path.basename(f).upper()
+            if brand in fname or (brand == "OKIPAY" and "OKI" in fname):
+                candidates.append(f)
+            elif not any(b in fname for b in ["ASTAGA", "OKIPAY", "OKI"]):
+                candidates.append(f)
+
+    # 2. C:\DMS RAW DATA\<BRAND>\<YEAR>
+    dms_brand = os.path.join(RAW_DATA_ROOT, brand, str(year))
+    if os.path.isdir(dms_brand):
+        candidates.extend(glob.glob(os.path.join(dms_brand, "*.tsv")))
+
+    # 3. C:\RAW DATA\<BRAND>\<YEAR> (legacy)
+    legacy = os.path.join(r"C:\RAW DATA", brand, str(year))
+    if os.path.isdir(legacy):
+        candidates.extend(glob.glob(os.path.join(legacy, "*.tsv")))
+
+    return sorted(list(set(candidates)))
+
+def mirror_parquet_to_dms(brand: str, year: str, source_parquet_path: str):
+    r"""Menyinkronkan file Parquet ke folder C:\DMS RAW DATA\TRANSAKSI\..."""
+    try:
+        brand = brand.upper()
+        if brand == "ASTAGA":
+            dest_dir = r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\TRANSAKSI\PARQUET"
+        else:
+            dest_dir = r"C:\DMS RAW DATA\TRANSAKSI\OKIPAY\TRANSAKSI OKI\PARQUET"
+        if os.path.isdir(dest_dir):
+            dest_file = os.path.join(dest_dir, os.path.basename(source_parquet_path))
+            shutil.copy2(source_parquet_path, dest_file)
+            print(f"[MIRROR] Parquet {brand} berhasil dicopy ke {dest_file}")
+    except Exception as e:
+        print(f"[WARN] Gagal mirror parquet ke DMS RAW DATA: {e}")
 
 # Menyimpan riwayat & status job background
 ADMIN_JOBS = {}
@@ -210,16 +255,10 @@ def get_current_watermark(brand: str, year: str = "2026") -> dict:
 
 def scan_tsv_incoming(brand: str, year: str = "2026") -> dict:
     """
-    Memindai folder C:\\RAW DATA\\<BRAND>\\<YEAR> untuk file .tsv incoming dari OtomaX.
+    Memindai folder C:\\DMS RAW DATA\\UPSERT HARIAN\\ untuk file .tsv incoming dari OtomaX.
     """
     brand = brand.upper()
-    subfolder = "ASTAGA" if brand == "ASTAGA" else "OKIPAY"
-    folder = os.path.join(RAW_DATA_ROOT, subfolder, year)
-
-    if not os.path.exists(folder):
-        return {"found": False, "files": []}
-
-    tsv_files = sorted(glob.glob(os.path.join(folder, "*.tsv")))
+    tsv_files = find_incoming_tsv_files(brand, year)
     if not tsv_files:
         return {"found": False, "files": []}
 
@@ -341,9 +380,9 @@ def execute_upsert_job(job_id: str, brand: str, delete_tsv: bool = True, year: s
         folder = os.path.join(RAW_DATA_ROOT, subfolder, year)
 
         # 1. Cari file TSV
-        tsv_files = sorted(glob.glob(os.path.join(folder, "*.tsv")))
+        tsv_files = find_incoming_tsv_files(brand, year)
         if not tsv_files:
-            log(f"Tidak ada file TSV yang ditemukan di {folder}.")
+            log(f"Tidak ada file TSV yang ditemukan di {UPSERT_HARIAN_ROOT}.")
             job["status"] = "error"
             job["message"] = "File TSV tidak ditemukan."
             return
@@ -399,9 +438,26 @@ def execute_upsert_job(job_id: str, brand: str, delete_tsv: bool = True, year: s
         target_name = "1026.xlsx" if brand == "ASTAGA" else "OP1026.xlsx"
         target_excel = os.path.join(folder, target_name)
         if not os.path.exists(target_excel):
-            log(f"Error: File Excel target {target_excel} tidak ditemukan!")
-            job["status"] = "error"
-            job["message"] = f"File {target_name} tidak ditemukan."
+            log(f"File Excel bulanan ({target_name}) tidak ditemukan.")
+            log("Beralih otomatis ke Super Fast Direct Parquet Upsert...")
+            res = upsert_direct_to_parquet(brand, target_tsv, year)
+            if not res.get("ok"):
+                log(f"Error direct upsert: {res.get('error')}")
+                job["status"] = "error"
+                job["message"] = res.get("error")
+                return
+            log(f"Direct Parquet Upsert Berhasil: {res.get('clean_rows', 0):,} baris bersih ({res.get('inserted', 0):,} baru, {res.get('updated', 0):,} terupdate).")
+            log(f"Total transaksi {brand} {year} saat ini: {res.get('total_rows_now', 0):,} baris.")
+            if delete_tsv:
+                try:
+                    os.remove(target_tsv)
+                    log(f"File TSV incoming {os.path.basename(target_tsv)} berhasil dihapus.")
+                except Exception as e:
+                    log(f"Peringatan: Gagal menghapus file TSV: {e}")
+            job["progress"] = 100
+            job["status"] = "completed"
+            job["message"] = f"Upsert langsung ke Parquet berhasil diselesaikan ({res.get('clean_rows', 0):,} baris)!"
+            job["result"] = res
             return
 
         # 4. Auto Backup
@@ -751,6 +807,9 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
     temp_p = parquet_file + f".tmp_{int(time.time())}"
     df_final.to_parquet(temp_p, index=False, compression="snappy")
     shutil.move(temp_p, parquet_file)
+
+    # Mirror ke C:\DMS RAW DATA\TRANSAKSI
+    mirror_parquet_to_dms(brand, year, parquet_file)
 
     # Invalidate cache memory
     trx_engine.clear_memory_cache(brand, year)

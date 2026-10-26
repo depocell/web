@@ -119,20 +119,23 @@ def import_trx_tujuan_from_file(file_path: str, brand: str = "ASTAGA") -> dict:
 
 
 def auto_import_pending_tujuan_files(brand: str = "ASTAGA") -> list:
-    """Memindai folder C:\\DEPASMYID\\TRANSAKSI\\ untuk file nomor tujuan baru."""
-    folder = r"C:\DEPASMYID\TRANSAKSI"
-    if not os.path.exists(folder):
-        return []
-
+    r"""Memindai folder C:\DMS RAW DATA\UPSERT HARIAN dan TRANSAKSI untuk file nomor tujuan baru."""
+    folders = [
+        r"C:\DMS RAW DATA\UPSERT HARIAN",
+        r"C:\DMS RAW DATA\TRANSAKSI",
+        r"C:\DEPASMYID\TRANSAKSI"
+    ]
     imported_summary = []
-    for fname in os.listdir(folder):
-        fpath = os.path.join(folder, fname)
-        if not os.path.isfile(fpath):
+    for folder in folders:
+        if not os.path.exists(folder):
             continue
-        if any(k in fname.upper() for k in ["TUJUAN", "TARGET", "MSISDN", "PHONE", "NOMOR"]):
-            res = import_trx_tujuan_from_file(fpath, brand)
-            if res.get("ok"):
-                imported_summary.append(res)
+        for root, _, files in os.walk(folder):
+            for fname in files:
+                fpath = os.path.join(root, fname)
+                if any(k in fname.upper() for k in ["TUJUAN", "TARGET", "MSISDN", "PHONE", "NOMOR"]):
+                    res = import_trx_tujuan_from_file(fpath, brand)
+                    if res.get("ok"):
+                        imported_summary.append(res)
     return imported_summary
 
 
