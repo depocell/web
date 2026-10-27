@@ -109,6 +109,12 @@ const ROUTES = {
     scriptUrl: "./pages/home/home.js",
     initFn: "loadOverview"
   },
+    "#yoy": {
+    title: "Year on Year",
+    pageUrl: "./pages/yoy/index.html",
+    scriptUrl: "./pages/yoy/yoy.js",
+    initFn: "loadYoY"
+  },
   "#daily": {
     title: "Daily Summary Report",
     pageUrl: "./pages/daily/index.html",

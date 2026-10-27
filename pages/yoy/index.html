@@ -1,0 +1,279 @@
+<!-- pages/yoy/index.html — Year on Year (12 Bulan Terakhir): Cabang & Produk -->
+<style>
+  .yoy-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* HEADER & BRAND SWITCHER */
+  .yoy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .yoy-title-group h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .yoy-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .yoy-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0284c7;
+  }
+
+  /* TABS NAVIGATION */
+  .yoy-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+  }
+
+  .yoy-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .yoy-tab-btn:hover {
+    color: var(--text-main);
+  }
+
+  .yoy-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  /* CHART PANEL CONTAINER (NO CARDS, PURE BORDER-FIRST CONTAINER) */
+  .chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .chart-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chart-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chart-panel-title-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  .chart-subtoggle {
+    display: inline-flex;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .chart-subtoggle-btn {
+    padding: 4px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .chart-subtoggle-btn.active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .chart-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    height: 340px;
+  }
+
+  .chart-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 6px;
+    border-top: 1px dashed var(--surface-border);
+  }
+</style>
+
+<div class="yoy-container">
+
+  <!-- TOP HEADER -->
+  <div class="yoy-header">
+    <div class="yoy-title-group">
+      <h1>Year on Year (YoY)</h1>
+      <div class="yoy-period-pill">
+        <span class="yoy-period-dot"></span>
+        <span id="yoy-period-label">Memuat rentang 12 bulan...</span>
+      </div>
+    </div>
+
+    <!-- Switch Brand (ASTAGA vs OKIPAY) -->
+    <div class="unified-brand-switcher" id="yoy-brand-switcher">
+      <button type="button" id="btn-yoy-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchYoYBrand('ASTAGA')">
+        <span class="brand-dot"></span>
+        ASTAGA
+      </button>
+      <button type="button" id="btn-yoy-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchYoYBrand('OKIPAY')">
+        <span class="brand-dot" style="background:#dc2626;"></span>
+        OKIPAY
+      </button>
+    </div>
+  </div>
+
+  <!-- TAB NAVIGATION -->
+  <div class="yoy-tabs">
+    <button type="button" class="yoy-tab-btn active" id="tab-btn-cabang" onclick="switchYoYTab('cabang')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Tab 1: Performa Cabang</span>
+    </button>
+    <button type="button" class="yoy-tab-btn" id="tab-btn-produk" onclick="switchYoYTab('produk')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+      <span>Tab 2: Performa Produk &amp; Operator</span>
+    </button>
+  </div>
+
+  <!-- TAB 1: PERFORMA CABANG -->
+  <div id="yoy-content-cabang" style="display: flex; flex-direction: column; gap: 18px;">
+    
+    <!-- CHART 1: DAILY TRX PER CABANG -->
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#0284c7;"></span>
+          Tren Daily Trx per Cabang (Run-rate Transaksi Harian • 12 Bulan Terakhir)
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
+          Satuan: Transaksi / Hari
+        </div>
+      </div>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chart-yoy-cabang-trx"></canvas>
+      </div>
+      <div class="chart-note">
+        <span>Klik nama cabang pada legenda untuk menampilkan/menyembunyikan garis grafik.</span>
+        <span>Nilai angka di atas titik menunjukkan run-rate transaksi harian bulan tersebut.</span>
+      </div>
+    </div>
+
+    <!-- CHART 2: DAILY MBR PER CABANG -->
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#059669;"></span>
+          Tren Daily Member per Cabang (Rata-rata Toko Bertransaksi Harian • 12 Bulan Terakhir)
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
+          Satuan: Member Aktif / Hari
+        </div>
+      </div>
+      <div class="chart-canvas-wrapper">
+        <canvas id="chart-yoy-cabang-mem"></canvas>
+      </div>
+      <div class="chart-note">
+        <span>Klik nama cabang pada legenda untuk memfilter grafik.</span>
+        <span>Nilai angka di atas titik menunjukkan rata-rata toko aktif bertransaksi setiap hari.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB 2: PERFORMA PRODUK & OPERATOR -->
+  <div id="yoy-content-produk" style="display: none; flex-direction: column; gap: 18px;">
+    
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#7c3aed;"></span>
+          <span id="yoy-prod-chart-title">Tren Daily Trx per Kategori Produk (12 Bulan Terakhir)</span>
+        </div>
+        <!-- Subtoggle: Kategori vs Operator -->
+        <div class="chart-subtoggle">
+          <button type="button" class="chart-subtoggle-btn active" id="btn-sub-kategori" onclick="switchYoYProdView('kategori')">
+            Kategori Produk
+          </button>
+          <button type="button" class="chart-subtoggle-btn" id="btn-sub-operator" onclick="switchYoYProdView('operator')">
+            Operator Populer
+          </button>
+        </div>
+      </div>
+      <div class="chart-canvas-wrapper" style="height: 380px;">
+        <canvas id="chart-yoy-produk-trx"></canvas>
+      </div>
+      <div class="chart-note">
+        <span>Klik nama produk/operator pada legenda di atas untuk fokus ke seri tertentu.</span>
+        <span>Run-rate harian dihitung dari total hits sukses dibagi hari aktif server bulan tersebut.</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>

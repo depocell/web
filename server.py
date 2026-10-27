@@ -22,6 +22,7 @@ sys.path.insert(0, BASE_DIR)
 import engines.auth_engine as auth_engine
 import engines.transaction_engine as trx_engine
 import engines.overview_engine as overview_engine
+import engines.yoy_engine as yoy_engine
 import engines.daily_engine as daily_engine
 import engines.pivot_engine as pivot_engine
 import engines.sco_engine as sco_engine
@@ -310,6 +311,21 @@ async def api_overview(request):
     try:
         data = await asyncio.to_thread(overview_engine.calculate_daily_growth, year=year, force=force)
         return JSONResponse({"ok": True, "data": data})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_yoy(request):
+    """Data komputasi Year on Year (12 Bulan Terakhir) untuk Cabang dan Produk/Operator."""
+    import importlib
+    importlib.reload(yoy_engine)
+    brand = request.query_params.get("brand", "ASTAGA").upper()
+    force = request.query_params.get("force", "0") in ("1", "true")
+    try:
+        data = await asyncio.to_thread(yoy_engine.get_yoy_data, brand=brand, force=force)
+        return JSONResponse(data)
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1577,6 +1593,7 @@ routes = [
     Route("/api/auth/status",           api_auth_status),
     Route("/api/auth/change-password",  api_auth_change_password, methods=["POST"]),
     Route("/api/overview",      api_overview),
+    Route("/api/yoy",           api_yoy),
     Route("/api/daily/periods", api_daily_periods),
     Route("/api/daily",         api_daily),
     Route("/api/pivot/options", api_pivot_options),
