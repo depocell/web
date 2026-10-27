@@ -22,7 +22,7 @@ except Exception:
     telemetry = None
 
 # ─── Konfigurasi Path ────────────────────────────────────────────────────────
-RAW_DATA_ROOT = r"C:\RAW DATA"
+RAW_DATA_ROOT = r"C:\DMS RAW DATA"
 CACHE_DIR     = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".cache")
 
 # ─── Mapping kolom per brand ─────────────────────────────────────────────────

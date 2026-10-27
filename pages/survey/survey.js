@@ -106,18 +106,17 @@ function switchSurveyTab(tabName, btnElem) {
 
   document.querySelectorAll('.survey-tab-content').forEach(el => el.style.display = 'none');
   const target = document.getElementById(`survey-tab-${tabName}`);
-  if (target) target.style.display = 'block';
+  if (target) target.style.display = 'flex';
 
-  document.querySelectorAll('.survey-page-wrapper .reseller-tab').forEach(b => {
+  document.querySelectorAll('.survey-tab-btn').forEach(b => {
     b.classList.remove('active');
-    b.style.borderBottom = 'none';
-    b.style.color = 'var(--text-muted)';
   });
 
   if (btnElem) {
     btnElem.classList.add('active');
-    btnElem.style.borderBottom = '2px solid #4f46e5';
-    btnElem.style.color = '#4f46e5';
+  } else {
+    const defaultBtn = document.getElementById(`tab-btn-${tabName}`);
+    if (defaultBtn) defaultBtn.classList.add('active');
   }
 
   if (tabName === 'logs') {
@@ -130,16 +129,14 @@ window.switchSurveyTab = switchSurveyTab;
 
 function setSurveyBrand(brand) {
   surveyState.brand = brand;
-  const bAstaga = document.getElementById('survey-brand-astaga');
-  const bOkipay = document.getElementById('survey-brand-okipay');
 
-  if (brand === 'ASTAGA') {
-    if (bAstaga) { bAstaga.style.background = '#4f46e5'; bAstaga.style.color = '#fff'; }
-    if (bOkipay) { bOkipay.style.background = 'none'; bOkipay.style.color = 'var(--text-muted)'; }
-  } else {
-    if (bOkipay) { bOkipay.style.background = '#4f46e5'; bOkipay.style.color = '#fff'; }
-    if (bAstaga) { bAstaga.style.background = 'none'; bAstaga.style.color = 'var(--text-muted)'; }
-  }
+  document.querySelectorAll('#survey-brand-switcher .unified-brand-btn').forEach(btn => {
+    if (btn.getAttribute('data-brand') === brand) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
 
   loadSurveyCandidates();
   if (surveyState.activeTab === 'logs') loadSurveyLogs();
@@ -374,13 +371,25 @@ function renderCandidatesTable() {
 
     const indukDisplay = c.agen_name && c.agen_name !== '-' ? escapeHtml(c.agen_name) : '<span style="color: var(--text-muted);">-</span>';
 
-    let lastMonthDisplay = '';
-    if (c.last_active_month) {
-      const mParts = c.last_active_month.split('-');
-      const mNames = { '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt' };
-      const mStr = mNames[mParts[1]] || mParts[1];
-      lastMonthDisplay = `<div style="font-size: 10px; font-weight: 600; color: var(--text-muted); margin-top: 2px;">Aktif: ${mStr} (${(c.last_month_trx || 0).toLocaleString('id-ID')})</div>`;
-    }
+    // Format tren Daily Trx 3 bulan (sesuai standar GEMINI.md)
+    const mNames = { '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'Mei', '06': 'Jun', '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt', '11': 'Nov', '12': 'Des' };
+    const winMonths = Array.isArray(c.window_months) ? c.window_months : ['2026-07', '2026-08', '2026-09'];
+
+    const dailyPills = winMonths.map((m, mIdx) => {
+      const mLabel = mNames[m.slice(-2)] || m;
+      const dVal = (c.monthly_daily && c.monthly_daily[m] !== undefined) ? Number(c.monthly_daily[m]) : 0;
+      const hitVal = (c.monthly_breakdown && c.monthly_breakdown[m] !== undefined) ? Number(c.monthly_breakdown[m]) : 0;
+      const isZero = dVal === 0;
+      const pillBg = isZero ? '#f1f5f9' : (mIdx === 0 ? '#eff6ff' : '#f0f9ff');
+      const pillColor = isZero ? '#64748b' : (mIdx === 0 ? '#1e40af' : '#0369a1');
+      return `<span style="display:inline-flex; align-items:center; gap:2px; background:${pillBg}; color:${pillColor}; padding:2px 6px; border-radius:4px; font-weight:700; font-size:11.5px;" title="${mLabel}: ${dVal.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}/hari (${hitVal.toLocaleString('id-ID')} hit)">${dVal.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>`;
+    }).join('<span style="color:var(--text-muted); font-size:10px; margin:0 1px;">→</span>');
+
+    const hitBreakdown = winMonths.map(m => {
+      const mLabel = mNames[m.slice(-2)] || m;
+      const hitVal = (c.monthly_breakdown && c.monthly_breakdown[m] !== undefined) ? Number(c.monthly_breakdown[m]) : 0;
+      return `${mLabel}: ${hitVal.toLocaleString('id-ID')}`;
+    }).join(' • ');
 
     html += `
       <tr style="border-bottom: 1px solid var(--surface-border);">
@@ -397,8 +406,13 @@ function renderCandidatesTable() {
           <div style="font-size: 11px; color: var(--text-muted);">SCO: ${escapeHtml(c.sco_name || '-')}</div>
         </td>
         <td style="padding: 10px 14px; text-align: center;">
-          <div style="font-weight: 800; color: #0284c7; font-size: 13.5px;">${(c.prev_trx || 0).toLocaleString('id-ID')}</div>
-          ${lastMonthDisplay}
+          <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+            ${dailyPills}
+            <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; margin-left: 2px;">/hari</span>
+          </div>
+          <div style="font-size: 10px; font-weight: 500; color: var(--text-muted); margin-top: 3px;">
+            ${hitBreakdown} &bull; <strong style="color: var(--text-main);">${(c.prev_trx || 0).toLocaleString('id-ID')} Trx</strong>
+          </div>
         </td>
         <td style="padding: 10px 14px;">
           ${phone}
@@ -457,7 +471,7 @@ let currentLogStatusFilter = 'ALL';
 
 function filterLogsByStatus(statusFilter, btnElem) {
   currentLogStatusFilter = statusFilter;
-  document.querySelectorAll('#survey-tab-logs .reseller-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#survey-tab-logs .chart-subtoggle-btn').forEach(b => b.classList.remove('active'));
   if (btnElem) btnElem.classList.add('active');
   applyLogsFilterAndSearch();
 }
@@ -789,7 +803,14 @@ async function openSurveyModal(resellerId, resellerName, cabang, sco, prevTrx) {
 
     const lastActiveElem = document.getElementById('survey-modal-last-active');
     if (lastActiveElem) {
-      if (cand.last_active_month) {
+      if (cand.monthly_daily && Object.keys(cand.monthly_daily).length > 0) {
+        const mNames = { '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt' };
+        const dStr = Object.entries(cand.monthly_daily).map(([m, d]) => {
+          const lbl = mNames[m.slice(-2)] || m;
+          return `${lbl}: ${Number(d).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+        }).join(' • ');
+        lastActiveElem.textContent = `Daily: ${dStr} /hari`;
+      } else if (cand.last_active_month) {
         const mParts = cand.last_active_month.split('-');
         const mNames = { '07': 'Juli', '08': 'Agustus', '09': 'September', '10': 'Oktober' };
         const mStr = mNames[mParts[1]] || cand.last_active_month;

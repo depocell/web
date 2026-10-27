@@ -41,3 +41,8 @@ node_modules/
 wa_gateway/node_modules/
 wa_gateway/session/
 MASTER/PENGIRIM/
+
+bin/
+tunnel_url.txt
+*.exe
+*.log

@@ -98,6 +98,7 @@ def get_survey_candidates(
 
     # Reseller aktif di jendela 3 bulan sebelumnya
     df_prev = df_sukses[df_sukses["ym"].isin(prev_window_months)]
+    days_map = {m: me.get_active_days(df_sukses[df_sukses["ym"] == m]) for m in prev_window_months}
     if not df_prev.empty:
         agg_prev = df_prev.groupby(["ar_id", "ym"]).size().unstack(fill_value=0)
         agg_prev["total_trx"] = agg_prev.sum(axis=1)
@@ -155,11 +156,13 @@ def get_survey_candidates(
                     last_m_trx = val
                     break
             monthly_breakdown = {m: int(row_agg.get(m, 0)) if m in agg_prev.columns else 0 for m in prev_window_months}
+            monthly_daily = {m: round(monthly_breakdown[m] / max(1, days_map.get(m, 30)), 1) for m in prev_window_months}
         else:
             tot_trx = 0
             last_m = "-"
             last_m_trx = 0
             monthly_breakdown = {}
+            monthly_daily = {}
 
         r_info = reseller_meta.get(rid, {})
         cname = r_info.get("name", rid)
@@ -202,6 +205,8 @@ def get_survey_candidates(
             "last_active_month": last_m,
             "last_month_trx": last_m_trx,
             "monthly_breakdown": monthly_breakdown,
+            "monthly_daily": monthly_daily,
+            "monthly_days": days_map,
             "window_months": prev_window_months,
             "no_wa": phone,
             "candidate_phones": candidate_phones,

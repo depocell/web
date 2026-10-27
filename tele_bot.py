@@ -17,14 +17,31 @@ import logging
 import subprocess
 import requests
 
+if sys.stdout is not None:
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+if sys.stderr is not None:
+    try:
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(BASE_DIR, "tele_bot.log")
+
+handlers = [logging.FileHandler(log_file, encoding="utf-8")]
+if sys.stdout is not None:
+    handlers.append(logging.StreamHandler(sys.stdout))
+
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s] [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=handlers
 )
 logger = logging.getLogger("depas_telebot")
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ENV_FILE = os.path.join(BASE_DIR, ".env")
 
 # 1. Load Environment Variables
@@ -50,6 +67,21 @@ if not TELEGRAM_BOT_TOKEN:
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
 # 2. Telegram Helper Functions
+def strip_emojis(text: str) -> str:
+    """Menghilangkan karakter icon emoji agar seluruh jawaban berformat Clean Text profesional."""
+    if not text:
+        return ""
+    # Hapus seluruh range emoji unicode umum
+    pattern = re.compile(
+        r'[𐀀-􏿿☀-⛿✀-➿⌀-⏿⭐⭕‍️]'
+    )
+    # Ganti panah unicode tebal jika ada
+    cleaned = pattern.sub('', text)
+    cleaned = cleaned.replace('->', '->').replace('➜', '->')
+    # Rapikan spasi berlebih di awal baris yang ditinggalkan emoji
+    cleaned = re.sub(r'^[ 	]+', '', cleaned, flags=re.MULTILINE)
+    return cleaned
+
 def format_to_telegram_html(text: str) -> str:
     """Mengubah format teks markdown Gemini menjadi HTML Telegram yang aman & bersih tanpa bintang (**) atau simbol liar."""
     if not text:
@@ -78,7 +110,8 @@ def format_to_telegram_html(text: str) -> str:
 
 def send_telegram_message(chat_id: int, text: str, parse_mode: str = "HTML") -> bool:
     url = f"{TELEGRAM_API_URL}/sendMessage"
-    formatted_text = format_to_telegram_html(text) if parse_mode == "HTML" else text
+    clean_text = strip_emojis(text)
+    formatted_text = format_to_telegram_html(clean_text) if parse_mode == "HTML" else clean_text
     payload = {
         "chat_id": chat_id,
         "text": formatted_text,
@@ -110,7 +143,7 @@ def send_telegram_photo(chat_id: int, photo_path: str, caption: str = "") -> boo
     try:
         with open(photo_path, "rb") as f:
             files = {"photo": f}
-            data = {"chat_id": chat_id, "caption": caption}
+            data = {"chat_id": chat_id, "caption": strip_emojis(caption)}
             r = requests.post(url, data=data, files=files, timeout=30)
         return r.status_code == 200
     except Exception as e:
@@ -146,9 +179,10 @@ PRINSIP KOMUNIKASI & PERSONALITAS:
    - Jika Bossque menyapa ("halo", "hai", "pagi"), bercanda, merespon santai, atau mengetes ("masa ah?", "bisa lah?", "wkwk", "siap", "mantap"), balaslah secara cerdas, luwes, santai, dan bersahabat layaknya asisten pribadi yang tanggap.
    - DILARANG bersikap kaku seperti robot birokrasi, dan DILARANG menolak percakapan santai dengan kalimat template error!
 
-4. PENYAJIAN DATA TRANSAKSI:
-   - Jika Bossque meminta data atau laporan tertentu, sajikan datanya secara lugas, rapi, dan mudah dibaca di layar HP.
-   - Gunakan format teks bersih. DILARANG menggunakan tanda bintang ganda (**) atau tripel (***).
+4. PENYAJIAN DATA TRANSAKSI (CLEAN TEXT, ZERO EMOJI):
+   - DILARANG KERAS menggunakan karakter emoji/emotikon visual (seperti 📊, ⚡, 🏢, ⚠️, 📉, 👥, 🚀, 💡, 🔥, 👍, 👋, dll) di dalam jawaban teks.
+   - Jawaban WAJIB berupa teks bersih profesional (Clean Text) yang rapi, lugas, dan nyaman dibaca.
+   - DILARANG menggunakan tanda bintang ganda (**) atau tripel (***). Gunakan tag HTML <b>...</b> jika ingin cetak tebal.
    - Gunakan bullet point strip (-) atau simbol bulat (•).
    - DILARANG membuat tabel markdown pipa (| col |) karena berantakan di layar HP Telegram.
 
@@ -171,10 +205,8 @@ PRINSIP KOMUNIKASI & PERSONALITAS:
      - Mengaudit kegagalan transaksi per modul supplier (AMC, MARKAZ, METRO, PCU, MR, CSK, dll) untuk evaluasi jalur tembak dan re-routing darurat.
    • /drop (Deteksi Dini Churn / Toko Macet):
      - Menyaring 10 toko/agen dengan penurunan transaksi harian terbesar untuk target penyelamatan (*rescue/coaching*) oleh tim sales.
-   • /mitra (Database Basis 9.559 Reseller Aktif):
-     - Memantau aset jaringan toko/agen terdaftar (>= 2023), kontak HP/WA terverifikasi, dan sebaran wilayah.
-   • /server (Infrastruktur VPS & Kesiapan Teknis):
-     - Menjaga stabilitas CPU, RAM, SSD, dan status ketiga background services (FastAPI, WA Gateway, Telebot).
+   • /tiket (Sistem Eskalasi Data Center):
+     - Memantau status tiket penarikan data baru dari database transaksi mentah.
 
    Jika Bossque menanyakan tentang menu, panduan, atau perbandingan antar sektor bisnis di atas, jelaskan secara cerdas, sistematis, dan hubungkan dengan data snapshot yang tersedia!
 
@@ -648,8 +680,8 @@ PETUNJUK EKSEKUSI:
 """
 
     models = [
-        "gemini-flash-latest",
-        "gemini-flash-lite-latest"
+        "gemini-3.5-flash-lite",
+        "gemini-3.8-flash"
     ]
 
     # Ambil riwayat percakapan sesi chat user
@@ -682,7 +714,7 @@ PETUNJUK EKSEKUSI:
                         ticket_need = m.group(1).strip() if m else prompt
                         tkt_id = create_escalation_ticket(chat_id=chat_id, prompt=prompt, requirement=ticket_need)
                         reply = re.sub(r'\[\[ESKALASI_TIKET:\s*.*?\]\]', '', reply).strip()
-                        reply += f"\n\n🎫 <i>Tiket Eskalasi Resmi Diterbitkan: <code>{tkt_id}</code> (Status: PENDING di Data Center)</i>"
+                        reply += f"\n\n<i>Tiket Eskalasi Resmi Diterbitkan: <code>{tkt_id}</code> (Status: PENDING di Data Center)</i>"
 
                     if chat_id:
                         history.append({"role": "model", "parts": [{"text": reply}]})
@@ -709,16 +741,16 @@ def register_telegram_commands():
     """Mendaftarkan menu tombol resmi Telegram [ Menu = ] ke API."""
     url = f"{TELEGRAM_API_URL}/setMyCommands"
     commands = [
-        {"command": "summary", "description": "Laporan Visual & Run-rate My Astaga"},
-        {"command": "okipay", "description": "Laporan Visual & Run-rate OKIPAY"},
-        {"command": "sco", "description": "Laporan Visual Rekap Sales Cabang (SCO)"},
-        {"command": "cabang", "description": "Performa Cabang BSD, ICON, PP, PRG, ONLINE"},
-        {"command": "supplier", "description": "Audit Modul Supplier Paling Banyak Gagal"},
-        {"command": "drop", "description": "10 Agen dengan Penurunan Transaksi Terbesar"},
-        {"command": "mitra", "description": "Total Reseller Aktif & Kontak Terverifikasi"},
-        {"command": "server", "description": "Status Kesehatan VPS (RAM, CPU, Disk)"},
-        {"command": "tiket", "description": "Status Antrean Tiket Eskalasi ke Data Center"},
-        {"command": "help", "description": "Panduan dan Bantuan Penggunaan"}
+        {"command": "overview", "description": "Executive Overview"},
+        {"command": "summary", "description": "Daily Astaga"},
+        {"command": "okipay", "description": "Daily Okipay"},
+        {"command": "sco", "description": "Daily SCO"},
+        {"command": "cabang", "description": "Branch Perform"},
+        {"command": "supplier", "description": "Most Failed Modul"},
+        {"command": "drop", "description": "10 Worst Growth"},
+        {"command": "newmember", "description": "New Active Members"},
+        {"command": "tiket", "description": "Ticket Queue"},
+        {"command": "help", "description": "Help & Guide"}
     ]
     try:
         requests.post(url, json={"commands": commands}, timeout=10)
@@ -728,28 +760,118 @@ def register_telegram_commands():
 
 def handle_command_start(chat_id: int, user_first_name: str):
     welcome_text = (
-        f"Halo Bossque <b>{user_first_name}</b>! 👋\n\n"
+        f"Halo Bossque <b>{user_first_name}</b>!\n\n"
         f"Saya <b>DepAs AI Reader</b> (@depas_ai_bot), asisten data transaksi resmi server Depo Cell (My Astaga! & OKIPAY).\n\n"
-        f"📌 <b>Menu Cepat (Klik Menu di kiri bawah keyboard):</b>\n"
-        f"• /summary - Laporan Visual & Run-rate My Astaga\n"
-        f"• /okipay - Laporan Visual & Run-rate OKIPAY\n• /sco - Laporan Visual Rekap Sales Cabang (SCO)\n"
-        f"• /cabang - Performa Cabang (BSD, ICON, PP, PRG, ONLINE)\n"
-        f"• /supplier - Audit Modul Supplier Paling Banyak Gagal\n"
-        f"• /drop - 10 Agen Penurunan Transaksi Terbesar\n"
-        f"• /mitra - Total Reseller Aktif & Kontak Database\n"
-        f"• /server - Kesehatan Mesin VPS (RAM, CPU, SSD)\n\n"
-        f"💡 Bossque juga bisa langsung tanya bebas apa saja seputar data transaksi server!"
+        f"<b>Menu Cepat (Klik Menu di kiri bawah keyboard):</b>\n"
+        f"• /overview - Executive Overview (#overview)\n"
+        f"• /summary - Daily Astaga\n"
+        f"• /okipay - Daily Okipay\n"
+        f"• /sco - Daily SCO\n"
+        f"• /cabang - Branch Perform\n"
+        f"• /supplier - Most Failed Modul\n"
+        f"• /drop - 10 Worst Growth\n"
+        f"• /newmember - New Active Members (#agen)\n"
+        f"• /tiket - Ticket Queue ke Data Center\n\n"
+        f"Bossque juga bisa langsung tanya bebas apa saja seputar data transaksi server!"
     )
     send_telegram_message(chat_id, welcome_text)
 
 
+
+def handle_command_overview(chat_id: int):
+    """Menampilkan Executive Comparison Matrix (#overview: ASTAGA vs OKIPAY vs TOTAL)."""
+    send_chat_action(chat_id, "typing")
+    try:
+        import engines.overview_engine as oe
+        ov = oe.get_latest_month_summary("2026")
+        if not ov or not ov.get("ok"):
+            send_telegram_message(chat_id, "Mohon maaf Bossque, data overview belum siap.")
+            return
+
+        m_name = ov.get("month", "10")
+        active_days = ov.get("active_days", 26)
+        a = ov.get("astaga", {})
+        o = ov.get("okipay", {})
+        t = ov.get("total", {})
+
+        msg = f"""<b>EXECUTIVE OVERVIEW MATRIX (#overview)</b>
+• Periode: Bulan {m_name} 2026 (Cut-off {active_days} Hari Kalender)
+
+<b>1. PERFORMA RUN-RATE HARIAN:</b>
+• ASTAGA: <b>{a.get('daily_trx', 0):,}</b> trx/hari
+• OKIPAY: <b>{o.get('daily_trx', 0):,}</b> trx/hari
+• <b>GABUNGAN: {t.get('daily_trx', 0):,} trx/hari</b>
+
+<b>2. VOLUME TRANSAKSI & SUKSES RATE:</b>
+• Total Sukses: <b>{t.get('total_sukses', 0):,}</b> trx ({t.get('sukses_str', '0%')})
+  - ASTAGA: {a.get('total_sukses', 0):,} trx ({a.get('sukses_str', '0%')})
+  - OKIPAY: {o.get('total_sukses', 0):,} trx ({o.get('sukses_str', '0%')})
+• Total Masuk: {t.get('total_trx', 0):,} transaksi
+
+<b>3. TELEMETRI SLA SPEED:</b>
+• GABUNGAN: <b>{t.get('speed_str', '00:00')}</b> ({t.get('speed_status', 'Prima')})
+  - ASTAGA: {a.get('speed_str', '00:00')} ({a.get('speed_status', 'Prima')})
+  - OKIPAY: {o.get('speed_str', '00:00')} ({o.get('speed_status', 'Prima')})
+
+<b>4. KESEHATAN BASIS RESELLER (#agen):</b>
+• Reseller Aktif Trx: <b>{t.get('active_cust', 0):,}</b> mitra (ASTAGA: {a.get('active_cust', 0):,} | OKI: {o.get('active_cust', 0):,})
+• Member Baru (+): <b>+{t.get('new_cust', 0):,}</b> toko (ASTAGA: +{a.get('new_cust', 0)} | OKI: +{o.get('new_cust', 0)})
+• Reaktivasi (+): <b>+{t.get('reactivated_cust', 0):,}</b> toko
+• Pasif / Churn (-): <b>-{t.get('churn_cust', 0):,}</b> toko
+• Produktivitas: <b>{t.get('tpm', 0):.2f}</b> trx/reseller/hari
+
+<b>5. SALURAN PENJUALAN:</b>
+• Top Kategori: {t.get('top_category', 'TELCO')} | Porsi E-Wallet: {t.get('ewallet_pct', 0)}%
+• Top Cabang: {a.get('top_branch', 'BSD')} (ASTAGA) | {o.get('top_branch', 'H2H')} (OKIPAY)
+"""
+        send_telegram_message(chat_id, msg)
+    except Exception as e:
+        logger.error(f"Error handling overview: {e}")
+        send_telegram_message(chat_id, f"Gagal memuat overview: {e}")
+
+
+def handle_command_new_member(chat_id: int):
+    """Menampilkan daftar member baru bulan ini dari #agen?tab=reseller."""
+    send_chat_action(chat_id, "typing")
+    try:
+        lines = [
+            "<b>DAFTAR MEMBER BARU BULAN INI</b>\n"
+        ]
+
+        total_new = 0
+        for brand in ["ASTAGA", "OKIPAY"]:
+            r_data = get_cached_reseller_data(brand)
+            rows = r_data.get("rows", [])
+            new_members = [r for r in rows if r.get("activity_status") == "Member Baru"]
+            new_sorted = sorted(new_members, key=lambda x: x.get("total_trx", 0), reverse=True)
+            total_new += len(new_sorted)
+
+            lines.append(f"<b>[{brand}] ({len(new_sorted)} Toko Baru):</b>")
+            if not new_sorted:
+                lines.append("- <i>Belum ada member baru bertransaksi bulan ini.</i>")
+            else:
+                for i, r in enumerate(new_sorted, 1):
+                    arid = r.get("kode", "-")
+                    name = r.get("name", "-")
+                    cab = r.get("cabang", "-")
+                    tot = r.get("total_trx", 0)
+                    lines.append(f"{i}. [{arid} - {name}], [{cab}], total trx: <b>{tot:,}</b>")
+            lines.append("")
+
+        lines.append(f"Total Member Baru Aktif Trx: <b>{total_new}</b> mitra.")
+        send_telegram_message(chat_id, "\n".join(lines).strip())
+    except Exception as e:
+        logger.error(f"Error handling new member: {e}")
+        send_telegram_message(chat_id, f"Gagal memuat daftar member baru: {e}")
+
+
 def handle_command_summary(chat_id: int, text: str = ""):
-    send_chat_action(chat_id, "upload_photo")
     img_path = os.path.join(BASE_DIR, "Daily_Report_ASTAGA_2026-10.png")
     data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
 
-    caption = "📊 Laporan Visual Harian My Astaga! (MTD Oktober 2026)"
+    caption = "Laporan Visual Harian My Astaga! (MTD Oktober 2026)"
     if os.path.exists(img_path):
+        send_chat_action(chat_id, "upload_photo")
         send_telegram_photo(chat_id, img_path, caption=caption)
 
     # Tambahkan rekap teks cepat
@@ -759,30 +881,30 @@ def handle_command_summary(chat_id: int, text: str = ""):
                 d = json.load(f).get("ASTAGA", {}).get("2026-10", {})
             daily_trx = d.get("daily_trx", 0)
             total_sukses = d.get("trx_sukses", 0)
-            days = d.get("days_count", 20)
+            days = d.get("days_count", 26)
             speed = d.get("avg_dur_str", "00:00")
             sukses_pct = d.get("sukses_pct", 0)
             member = d.get("daily_customers", 0)
             msg = (
-                f"⚡ <b>RINGKASAN METRIK MY ASTAGA (OKTOBER 2026 MTD):</b>\n"
-                f"- Cut-off: s/d 20 Oktober 2026 ({days} hari kalender)\n"
-                f"- Run-rate Harian: {daily_trx:,} trx/hari\n"
-                f"- Total Sukses MTD: {total_sukses:,} trx\n"
-                f"- Member Aktif: {member:,} reseller/hari\n"
-                f"- Success Rate: {sukses_pct}% | Avg Speed: {speed}"
+                f"<b>RINGKASAN METRIK MY ASTAGA (OKTOBER 2026 MTD):</b>\n"
+                f"• Cut-off Data: s/d {days} Oktober 2026 ({days} hari kalender)\n"
+                f"• Run-rate Harian: <b>{daily_trx:,}</b> trx/hari\n"
+                f"• Total Sukses MTD: <b>{total_sukses:,}</b> trx\n"
+                f"• Member Aktif: <b>{member:,}</b> reseller/hari\n"
+                f"• Success Rate: <b>{sukses_pct}%</b> | Avg Speed: <b>{speed}</b>"
             )
             send_telegram_message(chat_id, msg)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error summary: {e}")
 
 
 def handle_command_okipay(chat_id: int):
-    send_chat_action(chat_id, "upload_photo")
     img_path = os.path.join(BASE_DIR, "Daily_Report_OKIPAY_2026-10.png")
     data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
 
-    caption = "📊 Laporan Visual Harian OKIPAY (MTD Oktober 2026)"
+    caption = "Laporan Visual Harian OKIPAY (MTD Oktober 2026)"
     if os.path.exists(img_path):
+        send_chat_action(chat_id, "upload_photo")
         send_telegram_photo(chat_id, img_path, caption=caption)
 
     if os.path.exists(data_json_path):
@@ -791,60 +913,71 @@ def handle_command_okipay(chat_id: int):
                 d = json.load(f).get("OKIPAY", {}).get("2026-10", {})
             daily_trx = d.get("daily_trx", 0)
             total_sukses = d.get("trx_sukses", 0)
-            days = d.get("days_count", 19)
+            days = d.get("days_count", 26)
             speed = d.get("avg_dur_str", "00:00")
             sukses_pct = d.get("sukses_pct", 0)
             member = d.get("daily_customers", 0)
             msg = (
-                f"⚡ <b>RINGKASAN METRIK OKIPAY (OKTOBER 2026 MTD):</b>\n"
-                f"- Cut-off: s/d 19 Oktober 2026 ({days} hari kalender)\n"
-                f"- Run-rate Harian: {daily_trx:,} trx/hari\n"
-                f"- Total Sukses MTD: {total_sukses:,} trx\n"
-                f"- Member Aktif: {member:,} reseller/hari\n"
-                f"- Success Rate: {sukses_pct}% | Avg Speed: {speed}"
+                f"<b>RINGKASAN METRIK OKIPAY (OKTOBER 2026 MTD):</b>\n"
+                f"• Cut-off Data: s/d {days} Oktober 2026 ({days} hari kalender)\n"
+                f"• Run-rate Harian: <b>{daily_trx:,}</b> trx/hari\n"
+                f"• Total Sukses MTD: <b>{total_sukses:,}</b> trx\n"
+                f"• Member Aktif: <b>{member:,}</b> reseller/hari\n"
+                f"• Success Rate: <b>{sukses_pct}%</b> | Avg Speed: <b>{speed}</b>"
             )
             send_telegram_message(chat_id, msg)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error okipay: {e}")
 
 
 def handle_command_sco(chat_id: int):
-    send_chat_action(chat_id, "upload_photo")
-    import glob
-    pattern = os.path.join(BASE_DIR, "Laporan_SCO_*.png")
-    sco_files = sorted(glob.glob(pattern), reverse=True)
-    img_path = sco_files[0] if sco_files else os.path.join(BASE_DIR, "Laporan_SCO_2026-10-21.png")
-
-    caption = "📊 Laporan Potret Rekap Kinerja Sales Cabang (SCO)"
-    if os.path.exists(img_path):
-        send_telegram_photo(chat_id, img_path, caption=caption)
-    else:
-        send_telegram_message(chat_id, "Foto laporan SCO belum tersedia di server.")
-
-    # Tambahkan ringkasan SCO
+    send_chat_action(chat_id, "typing")
     data_sco_path = os.path.join(BASE_DIR, "pages", "sco", "data_sco.json")
-    if os.path.exists(data_sco_path):
-        try:
-            with open(data_sco_path, "r", encoding="utf-8") as f:
-                d = json.load(f)
-            cutoff = d.get("cutoff_date", "20-10-2026")
-            p = d.get("periods", {}).get(d.get("latest_period", "1026"), {})
-            idx = p.get("index", [])
-            lines = [f"📋 <b>REKAP SALES CABANG (SCO) - CUTOFF: {cutoff}</b>\n"]
-            for item in idx:
-                s_name = item.get("SCO")
-                if s_name in ["TOTAL SCO", "TOTAL NON SCO", "ONLINE", "Grand Total"]:
-                    curr = item.get("curr", 0)
-                    prev = item.get("prev", 0)
-                    diff = item.get("Growth", 0)
-                    diff_sign = f"+{diff:.1f}" if diff > 0 else f"{diff:.1f}"
-                    pct = item.get("%", 0) * 100
-                    pct_sign = f"+{pct:.1f}%" if pct > 0 else f"{pct:.1f}%"
-                    lines.append(f"• <b>{s_name}</b>: {curr:,.1f}/hari (Sep: {prev:,.1f} | {diff_sign} / {pct_sign})")
-            lines.append("\n<i>Gambar di atas adalah potret jernih HD terbaru (Cutoff: 20-10-2026) siap forward ke WhatsApp.</i>")
-            send_telegram_message(chat_id, "\n".join(lines))
-        except Exception as e:
-            logger.error(f"Error sending sco text summary: {e}")
+    if not os.path.exists(data_sco_path):
+        send_telegram_message(chat_id, "Mohon maaf Bossque, data kinerja SCO belum tersedia.")
+        return
+
+    try:
+        with open(data_sco_path, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        cutoff = d.get("cutoff_date", "26-10-2026")
+        p = d.get("periods", {}).get(d.get("latest_period", "1026"), {})
+        idx = p.get("index", [])
+
+        lines = [
+            f"REKAP EKSEKUTIF SALES CABANG (SCO)",
+            f"Cut-off Real-time: {cutoff}\n",
+            "Ringkasan Kategori (Run-rate /hari):"
+        ]
+
+        summary_keys = ["TOTAL SCO", "TOTAL NON SCO", "ONLINE", "Grand Total"]
+        sales_items = []
+
+        for item in idx:
+            s_name = item.get("SCO", "")
+            curr = item.get("curr", 0)
+            prev = item.get("prev", 0)
+            diff = item.get("Growth", 0)
+            diff_sign = f"+{diff:.1f}" if diff > 0 else f"{diff:.1f}"
+            pct = item.get("%", 0) * 100
+            pct_sign = f"+{pct:.1f}%" if pct > 0 else f"{pct:.1f}%"
+
+            if s_name in summary_keys:
+                badge = "[NAIK]" if diff >= 0 else "[TURUN]"
+                lines.append(f"- {s_name}: {curr:,.1f}/hari (Lalu: {prev:,.1f} | {diff_sign} / {pct_sign}) {badge}")
+            elif s_name and s_name != "NON SCO":
+                sales_items.append((s_name, curr, prev, diff_sign, pct_sign))
+
+        if sales_items:
+            lines.append("\nRincian Performa Tiap SCO:")
+            for name, curr, prev, diff_sign, pct_sign in sales_items:
+                lines.append(f"- {name}: {curr:,.1f}/hari (Lalu: {prev:,.1f} | {diff_sign} / {pct_sign})")
+
+        lines.append(f"\nCatatan: Seluruh data bersumber langsung dari snapshot cut-off {cutoff}.")
+        send_telegram_message(chat_id, "\n".join(lines))
+    except Exception as e:
+        logger.error(f"Error sending sco text summary: {e}")
+        send_telegram_message(chat_id, f"Gagal memuat rekap SCO: {e}")
 
 
 def handle_command_cabang(chat_id: int):
@@ -858,7 +991,7 @@ def handle_command_cabang(chat_id: int):
         with open(data_json_path, "r", encoding="utf-8") as f:
             raw = json.load(f)
 
-        lines = ["🏢 <b>PERFORMA TRANSAKSI CABANG (MTD OKTOBER 2026):</b>\n"]
+        lines = ["<b>PERFORMA TRANSAKSI CABANG (MTD OKTOBER 2026):</b>\n"]
 
         for brand in ["ASTAGA", "OKIPAY"]:
             bdata = raw.get(brand, {}).get("2026-10", {})
@@ -889,7 +1022,7 @@ def handle_command_supplier(chat_id: int):
         with open(supp_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        lines = ["⚠️ <b>AUDIT MODUL SUPPLIER PALING BANYAK GAGAL (MTD OKTOBER 2026):</b>\n"]
+        lines = ["<b>AUDIT MODUL SUPPLIER PALING BANYAK GAGAL (MTD OKTOBER 2026):</b>\n"]
         for brand in ["ASTAGA", "OKIPAY"]:
             fails = data.get(brand, {}).get("top_failed_modules", [])
             if fails:
@@ -923,59 +1056,18 @@ def handle_command_drop(chat_id: int):
             send_telegram_message(chat_id, "Data agen drop belum terdata.")
             return
 
-        lines = ["📉 <b>10 AGEN DENGAN PENURUNAN HARIAN TERBESAR (OKTOBER 2026 VS SEPTEMBER):</b>\n"]
+        lines = ["<b>10 AGEN DENGAN PENURUNAN HARIAN TERBESAR (OKTOBER 2026 VS SEPTEMBER):</b>\n"]
         for i, a in enumerate(top_drop, 1):
-            aid = a.get("aid", "-")
-            name = a.get("name", "-")
+            name = a.get("name") or a.get("aid", "-")
             cb = a.get("cabang", "-")
             p = a.get("avg_prev", 0)
             c = a.get("avg_curr", 0)
             diff = round(a.get("diff", 0), 1)
-            pct = round(a.get("growth", 0) * 100, 1)
-            lines.append(
-                f"{i}. <b>[{aid}] {name}</b> ({cb})\n"
-                f"   • Run-rate: {p:.1f} ➔ {c:.1f} trx/hari\n"
-                f"   • Penurunan: {diff:.1f}/hari ({pct}%)"
-            )
+            lines.append(f"{i}. {name} ({cb}) = {p:.1f} -> {c:.1f}  = {diff:.1f}/hari")
 
         send_telegram_message(chat_id, "\n".join(lines))
     except Exception as e:
         send_telegram_message(chat_id, f"Gagal membaca data drop: {e}")
-
-
-def handle_command_mitra(chat_id: int):
-    send_chat_action(chat_id, "typing")
-    db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
-    if not os.path.exists(db_path):
-        send_telegram_message(chat_id, "Database master belum tersedia.")
-        return
-
-    try:
-        import sqlite3
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        c.execute("SELECT count(*) FROM resellers")
-        total_rs = c.fetchone()[0]
-        c.execute("SELECT count(*) FROM reseller_contacts")
-        total_contacts = c.fetchone()[0]
-
-        # Hitung per cabang
-        c.execute("SELECT cabang, count(*) FROM resellers GROUP BY cabang ORDER BY count(*) DESC")
-        cabang_rows = c.fetchall()
-        conn.close()
-
-        lines = [
-            f"👥 <b>DATABASE MITRA RESELLER AKTIF (>= 2023):</b>\n",
-            f"- Total Mitra Terdaftar: <b>{total_rs:,}</b> akun",
-            f"- Kontak Terverifikasi WA: <b>{total_contacts:,}</b> nomor HP\n",
-            f"<b>Penyebaran Mitra per Cabang:</b>"
-        ]
-        for cb, cnt in cabang_rows:
-            lines.append(f"- {cb}: {cnt:,} reseller")
-
-        send_telegram_message(chat_id, "\n".join(lines))
-    except Exception as e:
-        send_telegram_message(chat_id, f"Gagal membaca data mitra: {e}")
 
 
 def handle_user_chat(chat_id: int, user_text: str):
@@ -992,7 +1084,7 @@ def handle_user_chat(chat_id: int, user_text: str):
             brand = "MY ASTAGA!"
         
         if os.path.exists(img_path):
-            send_telegram_photo(chat_id, img_path, caption=f"📊 Laporan Visual Harian {brand} (Oktober 2026 MTD)")
+            send_telegram_photo(chat_id, img_path, caption=f"Laporan Visual Harian {brand} (Oktober 2026 MTD)")
             return
 
     send_chat_action(chat_id, "typing")
@@ -1004,7 +1096,7 @@ def handle_command_tiket(chat_id: int):
     """Menampilkan daftar tiket eskalasi yang menunggu atau sedang diproses Data Center."""
     index_file = os.path.join(BASE_DIR, "pages", "analisa", "tickets", "tickets_index.json")
     if not os.path.exists(index_file):
-        send_telegram_message(chat_id, "🎫 <b>STATUS DATA CENTER:</b>\n\nBelum ada antrean tiket eskalasi saat ini, Bossque! Seluruh pertanyaan masih ter-cover snapshot resmi.")
+        send_telegram_message(chat_id, "<b>STATUS DATA CENTER:</b>\n\nBelum ada antrean tiket eskalasi saat ini, Bossque! Seluruh pertanyaan masih ter-cover snapshot resmi.")
         return
         
     try:
@@ -1014,14 +1106,14 @@ def handle_command_tiket(chat_id: int):
         tkts = []
         
     if not tkts:
-        send_telegram_message(chat_id, "🎫 <b>STATUS DATA CENTER:</b>\n\nBelum ada antrean tiket eskalasi saat ini, Bossque!")
+        send_telegram_message(chat_id, "<b>STATUS DATA CENTER:</b>\n\nBelum ada antrean tiket eskalasi saat ini, Bossque!")
         return
         
-    lines = ["🎫 <b>ANTREAN TIKET ESKALASI KE DATA CENTER:</b>\n"]
+    lines = ["<b>ANTREAN TIKET ESKALASI KE DATA CENTER:</b>\n"]
     for i, t in enumerate(tkts[:5], 1):
         st = t.get("status", "PENDING")
-        st_icon = "⏳" if st == "PENDING" else "✅"
-        lines.append(f"{i}. <b>[{t.get('ticket_id')}]</b> {st_icon} <b>{st}</b>")
+        st_icon = "[PENDING]" if st == "PENDING" else "[RESOLVED]"
+        lines.append(f"{i}. <b>[{t.get('ticket_id')}]</b> {st_icon}")
         lines.append(f"   - Waktu: <code>{t.get('created_at')}</code>")
         lines.append(f"   - Kebutuhan: <i>{t.get('requirement')}</i>")
         p_val = t.get("prompt", "")
@@ -1084,8 +1176,11 @@ def main():
 
                 # Routing Command
                 cmd = text.split()[0].lower()
+                clean_full = text.lower().strip()
                 if cmd in ("/start", "/help"):
                     handle_command_start(chat_id, first_name)
+                elif cmd in ("/overview", "/matrix"):
+                    handle_command_overview(chat_id)
                 elif cmd in ("/summary", "/astaga", "/laporan"):
                     handle_command_summary(chat_id, text)
                 elif cmd in ("/okipay", "/oki"):
@@ -1098,10 +1193,8 @@ def main():
                     handle_command_supplier(chat_id)
                 elif cmd in ("/drop", "/churn"):
                     handle_command_drop(chat_id)
-                elif cmd in ("/mitra", "/reseller", "/agen"):
-                    handle_command_mitra(chat_id)
-                elif cmd in ("/server", "/status"):
-                    handle_command_server(chat_id)
+                elif cmd in ("/newmember", "/new_member", "/memberbaru", "/member_baru") or clean_full.startswith("/new member") or clean_full in ("new member", "member baru"):
+                    handle_command_new_member(chat_id)
                 elif cmd in ("/tiket", "/ticket", "/helpme"):
                     handle_command_tiket(chat_id)
                 else:

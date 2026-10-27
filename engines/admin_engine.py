@@ -811,6 +811,41 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
     # Mirror ke C:\DMS RAW DATA\TRANSAKSI
     mirror_parquet_to_dms(brand, year, parquet_file)
 
+    # Sinkronkan partisi bulanan di .cache/parts/ untuk bulan berjalan
+    try:
+        now_ym = datetime.now().strftime("%Y-%m")
+        m_code = datetime.now().strftime("%m") + str(year)[-2:]
+        prefix = "OP" if brand.upper() == "OKIPAY" else ""
+        part_file = os.path.join(BASE_DIR, ".cache", "parts", f"{brand.lower()}_{year}_{prefix}{m_code}.parquet")
+        df_m = df_final[df_final["tgl_entry"].dt.strftime("%Y-%m") == now_ym]
+        if not df_m.empty:
+            os.makedirs(os.path.dirname(part_file), exist_ok=True)
+            df_m.to_parquet(part_file, index=False, compression="snappy")
+    except Exception as e:
+        print(f"[WARN] Gagal sync partisi bulanan: {e}")
+
+    # Sinkronkan file CSV bulanan di C:\DMS RAW DATA\TRANSAKSI\...
+    try:
+        now_ym = datetime.now().strftime("%Y-%m")
+        core_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
+        use_cols = [c for c in core_cols if c in df_final.columns]
+        df_csv_m = df_final[df_final["tgl_entry"].dt.strftime("%Y-%m") == now_ym]
+        if not df_csv_m.empty:
+            df_csv_clean = df_csv_m[use_cols].sort_values(by=["tgl_entry", "trx_id"]).reset_index(drop=True)
+            if brand.upper() == "ASTAGA":
+                csv_dir = r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\TRANSAKSI\CSV\BULANAN\2026"
+                csv_file = os.path.join(csv_dir, f"trx_astaga_{now_ym}.csv")
+            else:
+                csv_dir = r"C:\DMS RAW DATA\TRANSAKSI\OKIPAY\TRANSAKSI OKI\CSV\BULANAN\2026"
+                csv_file = os.path.join(csv_dir, f"trx_okipay_{now_ym}.csv")
+            if os.path.isdir(csv_dir):
+                temp_csv = csv_file + f".tmp_{int(time.time())}"
+                df_csv_clean.to_csv(temp_csv, index=False)
+                shutil.move(temp_csv, csv_file)
+                print(f"[CSV-SYNC] File CSV bulanan {brand} berhasil di-update: {csv_file} ({len(df_csv_clean):,} baris)")
+    except Exception as e:
+        print(f"[WARN] Gagal sync file CSV bulanan ke DMS RAW DATA: {e}")
+
     # Invalidate cache memory
     trx_engine.clear_memory_cache(brand, year)
     trx_engine.load(brand, year)

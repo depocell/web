@@ -1,0 +1,720 @@
+<div class="ewallet-container" id="ewallet-page-root">
+  <!-- TOP HEADER (LIKE #YOY) -->
+  <div class="ewallet-header">
+    <div class="ewallet-title-group">
+      <h1>E-Wallet Monitoring</h1>
+      <div class="ewallet-period-pill">
+        <span class="ewallet-period-dot"></span>
+        <span id="ewallet-subtitle-desc">Monitoring Transaksi &amp; Deteksi Fraud E-Wallet (Gestun) - Oktober 2026 MTD</span>
+      </div>
+    </div>
+    <!-- Controls: Export Excel -->
+    <div class="ewallet-header-controls">
+      <!-- Brand Badge ASTAGA -->
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 6px; font-size: 12px; font-weight: 700; color: #0284c7;">
+        <span class="brand-dot" style="background: #0284c7; width: 6px; height: 6px; border-radius: 50%;"></span>
+        ASTAGA
+      </div>
+
+      <!-- Export Excel Button -->
+      <div>
+        <button type="button" onclick="exportEwalletExcel()" class="btn-excel-export" title="Export data E-Wallet aktif ke format Microsoft Excel (.xlsx)">
+          <svg class="excel-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <path d="M8 13h8"></path>
+            <path d="M8 17h8"></path>
+            <polyline points="10 9 8 9"></polyline>
+          </svg>
+          <span>Export Excel</span>
+          <span class="excel-badge">.XLSX</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- TAB NAVIGATION (EXACT STYLE OF #YOY) -->
+  <div class="ewallet-tabs">
+    <button type="button" class="ewallet-tab-btn active" id="tab-btn-fraud" onclick="switchEwalletTab('fraud')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>Tab 1: Analisa Fraud &amp; Gestun</span>
+    </button>
+    <button type="button" class="ewallet-tab-btn" id="tab-btn-tren" onclick="switchEwalletTab('tren')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+        <polyline points="17 6 23 6 23 12"></polyline>
+      </svg>
+      <span>Tab 2: Tren EWallet Agen 2026</span>
+    </button>
+  </div>
+  <!-- ========================================================================= -->
+  <!-- TAB 1 CONTENT: ANALISA FRAUD SELF-TRANSACTION RESELLER (E-WALLET GESTUN)  -->
+  <!-- ========================================================================= -->
+  <div id="section-ewallet-fraud" style="display: flex; flex-direction: column; gap: 16px;">
+    <!-- Top KPI Summary Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+      <!-- Card 1: Total Reseller Terindikasi -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #d97706;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Toko Terindikasi Self-Trx
+        </div>
+        <div id="ewallet-kpi-count" style="font-size: 26px; font-weight: 800; color: #d97706; margin-top: 6px; font-family: var(--font-mono);">
+          0
+        </div>
+        <div id="ewallet-kpi-count-sub" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Dari target toko binaan SCO
+        </div>
+      </div>
+      <!-- Card 2: Total Hits Self-Trx -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #f59e0b;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Total Frekuensi Self-Trx
+        </div>
+        <div id="ewallet-kpi-hits" style="font-size: 26px; font-weight: 800; color: #b45309; margin-top: 6px; font-family: var(--font-mono);">
+          0
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Hit top-up ke nomor HP toko sendiri
+        </div>
+      </div>
+      <!-- Card 3: Total Nominal Self-Trx -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #dc2626;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Total Nominal Gestun / Self-Trx
+        </div>
+        <div id="ewallet-kpi-nominal" style="font-size: 26px; font-weight: 800; color: #dc2626; margin-top: 6px; font-family: var(--font-mono);">
+          Rp 0
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Akumulasi perputaran rupiah
+        </div>
+      </div>
+      <!-- Card 4: Rata-rata Porsi Self-Trx -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #0284c7;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Rata-rata Porsi Self-Trx
+        </div>
+        <div id="ewallet-kpi-pct" style="font-size: 26px; font-weight: 800; color: #0284c7; margin-top: 6px; font-family: var(--font-mono);">
+          0.0%
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Rasio terhadap total transaksi e-wallet toko
+        </div>
+      </div>
+    </div>
+    <!-- Filter & Search Toolbar -->
+    <div class="card agen-filter-card">
+      <div class="agen-controls-row">
+        <!-- Filter Mode -->
+        <div class="custom-select-box" style="min-width: 220px;">
+          <select id="ewallet-mode-select" onchange="applyEwalletFilters()" class="modern-select">
+            <option value="fraud_only">Hanya Terindikasi Self-Trx</option>
+            <option value="all">Semua Target Perimeter</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <!-- Filter Cabang -->
+        <div class="custom-select-box filter-cabang-box" style="min-width: 170px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <select id="ewallet-cabang-select" onchange="applyEwalletFilters()" class="modern-select has-icon-left">
+            <option value="ALL">Semua Cabang</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <!-- Filter SCO -->
+        <div class="custom-select-box" style="min-width: 190px;">
+          <select id="ewallet-sco-select" onchange="applyEwalletFilters()" class="modern-select">
+            <option value="ALL">Semua Tim SCO</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <!-- Search Box -->
+        <div class="modern-search-box" style="flex: 1; min-width: 250px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="ewallet-search-input" oninput="applyEwalletFilters()" placeholder="Cari Reseller, Toko Induk, No HP..." class="modern-input has-icon-left">
+          <button type="button" onclick="clearEwalletSearch()" class="clear-search-btn" title="Hapus pencarian">&times;</button>
+        </div>
+      </div>
+    </div>
+    <!-- Data Table Fraud -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card-header" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0;">Tabel Monitoring Fraud &amp; Self-Transaction</h3>
+          <span id="ewallet-table-row-count" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 baris</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Klik tombol Detail untuk melihat rincian riwayat transaksi yang ditembak ke nomor sendiri
+        </div>
+      </div>
+      <div class="table-container" style="max-height: 650px; overflow-y: auto;">
+        <table class="table" id="ewallet-table">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th>Reseller</th>
+              <th>Cabang &amp; SCO</th>
+              <th>Toko Induk &amp; Plafon</th>
+              <th>No. HP Terdaftar</th>
+              <th class="text-right">Total Trx Toko</th>
+              <th class="text-right">Total Trx EW</th>
+              <th class="text-right">% EWALLET</th>
+              <th class="text-right">Hits Self-Trx</th>
+              <th class="text-right">Total Nominal Self-Trx</th>
+              <th class="text-right">% Self-Trx</th>
+              <th class="text-center" style="width: 90px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="ewallet-tbody">
+            <tr>
+              <td colspan="12" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                <div class="loader">Memuat data Analisa Fraud E-Wallet...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Pagination -->
+      <div style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
+        <div id="ewallet-table-page-info">Menampilkan 0 dari 0 data</div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button type="button" id="btn-ewallet-page-prev" onclick="prevEwalletPage()" class="reseller-btn-page" disabled>&laquo; Sebelumnya</button>
+          <span id="ewallet-page-current-num" style="font-weight: 600; padding: 0 8px; color: var(--text-main);">1</span>
+          <button type="button" id="btn-ewallet-page-next" onclick="nextEwalletPage()" class="reseller-btn-page" disabled>Selanjutnya &raquo;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ========================================================================= -->
+  <!-- TAB 2 CONTENT: TREN % EWALLET TOKO INDUK AGEN TIAP BULAN SELAMA 2026      -->
+  <!-- ========================================================================= -->
+  <div id="section-ewallet-tren" style="display: none; flex-direction: column; gap: 16px;">
+    <!-- Top KPI Summary Cards (Tab 2) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+      <!-- Card 1: Rata-rata % EWALLET Server 2026 -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #0284c7;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Rata-rata % EWALLET (Under SCO)
+        </div>
+        <div id="tren-kpi-server-avg" style="font-size: 26px; font-weight: 800; color: #0284c7; margin-top: 6px; font-family: var(--font-mono);">
+          0.0%
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Porsi e-wallet thd seluruh trx binaan SCO
+        </div>
+      </div>
+      <!-- Card 2: Porsi EWALLET Bulan Terakhir -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #059669;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Porsi EWALLET Okt 2026
+        </div>
+        <div id="tren-kpi-latest-pct" style="font-size: 26px; font-weight: 800; color: #059669; margin-top: 6px; font-family: var(--font-mono);">
+          0.0%
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Run-rate bulan berjalan (MTD)
+        </div>
+      </div>
+      <!-- Card 3: Toko Induk (Limit & Non-Limit) Aktif -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #6366f1;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Toko Induk (Limit & Non-Limit)
+        </div>
+        <div id="tren-kpi-total-agen" style="font-size: 26px; font-weight: 800; color: #6366f1; margin-top: 6px; font-family: var(--font-mono);">
+          0
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Toko binaan SCO bertransaksi selama 2026 (Excl. Prima)
+        </div>
+      </div>
+      <!-- Card 4: Agen Dominan EWALLET (>=50%) -->
+      <div class="card" style="padding: 16px 20px; border-left: 4px solid #d97706;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">
+          Agen Dominan EWALLET (&ge;50%)
+        </div>
+        <div id="tren-kpi-high-count" style="font-size: 26px; font-weight: 800; color: #d97706; margin-top: 6px; font-family: var(--font-mono);">
+          0
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+          Porsi transaksi didominasi e-wallet
+        </div>
+      </div>
+    </div>
+    <!-- Strip Rata-rata Server Bulanan -->
+    <div class="card" style="padding: 14px 20px; background: var(--surface); display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: #0284c7;"></span>
+          Tren Bulanan % EWALLET Tim SCO 2026 (Januari s/d Oktober)
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Rata-rata persentase transaksi e-wallet agen binaan SCO per bulan kalender
+        </div>
+      </div>
+      <div id="tren-server-monthly-strip" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
+        <!-- Akan di-render secara dinamis oleh ewallet.js -->
+      </div>
+    </div>
+    <!-- Filter & Search Toolbar Tab 2 -->
+    <div class="card agen-filter-card">
+      <div class="agen-controls-row">
+        <!-- Filter Cabang -->
+        <div class="custom-select-box filter-cabang-box" style="min-width: 170px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <select id="tren-cabang-select" onchange="applyTrenFilters()" class="modern-select has-icon-left">
+            <option value="ALL">Semua Cabang</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <!-- Filter SCO -->
+        <div class="custom-select-box" style="min-width: 190px;">
+          <select id="tren-sco-select" onchange="applyTrenFilters()" class="modern-select">
+            <option value="ALL">Semua Tim SCO</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <!-- Filter Porsi EWALLET -->
+        <div class="custom-select-box" style="min-width: 200px;">
+          <select id="tren-porsi-select" onchange="applyTrenFilters()" class="modern-select">
+            <option value="all">Semua Porsi EWALLET</option>
+            <option value="high">Dominan (&ge; 50%)</option>
+            <option value="mid">Sedang (20% - 49.9%)</option>
+            <option value="low">Rendah (&lt; 20%)</option>
+          </select>
+          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <!-- Search Box -->
+        <div class="modern-search-box" style="flex: 1; min-width: 250px;">
+          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="tren-search-input" oninput="applyTrenFilters()" placeholder="Cari Toko Induk Agen, ID..." class="modern-input has-icon-left">
+          <button type="button" onclick="clearTrenSearch()" class="clear-search-btn" title="Hapus pencarian">&times;</button>
+        </div>
+      </div>
+    </div>
+    <!-- Data Table Tren -->
+    <div class="card" style="overflow: hidden;">
+      <div class="card-header" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0;">Tabel Tren % EWALLET Toko Induk Agen (Limit & Non-Limit SCO) 2026</h3>
+          <span id="tren-table-row-count" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 baris</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Persentase (%) porsi transaksi e-wallet terhadap total transaksi toko per bulan kalender
+        </div>
+      </div>
+      <div class="table-container" style="max-height: 650px; overflow-y: auto;">
+        <table class="table" id="tren-table">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th>Toko Induk Agen</th>
+              <th>Cabang &amp; SCO</th>
+              <th>Tipe &amp; Limit</th>
+              <th class="text-right">Jan 26</th>
+              <th class="text-right">Feb 26</th>
+              <th class="text-right">Mar 26</th>
+              <th class="text-right">Apr 26</th>
+              <th class="text-right">Mei 26</th>
+              <th class="text-right">Jun 26</th>
+              <th class="text-right">Jul 26</th>
+              <th class="text-right">Agu 26</th>
+              <th class="text-right">Sep 26</th>
+              <th class="text-right">Okt 26</th>
+              <th class="text-right" style="background: rgba(2, 132, 199, 0.08); color: #0284c7; font-weight: 700;">Avg 2026</th>
+            </tr>
+          </thead>
+          <tbody id="tren-tbody">
+            <tr>
+              <td colspan="15" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                <div class="loader">Memuat data Tren E-Wallet Agen 2026...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Pagination Tren -->
+      <div style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
+        <div id="tren-table-page-info">Menampilkan 0 dari 0 data</div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button type="button" id="btn-tren-page-prev" onclick="prevTrenPage()" class="reseller-btn-page" disabled>&laquo; Sebelumnya</button>
+          <span id="tren-page-current-num" style="font-weight: 600; padding: 0 8px; color: var(--text-main);">1</span>
+          <button type="button" id="btn-tren-page-next" onclick="nextTrenPage()" class="reseller-btn-page" disabled>Selanjutnya &raquo;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- MODAL DETAIL TRANSAKSI SELF-TOPUP FRAUD -->
+  <div id="ewallet-detail-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1100; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 90%; max-width: 860px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); animation: modalFadeIn 0.2s ease;">
+      <!-- Modal Header -->
+      <div style="padding: 18px 24px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h3 id="ewallet-modal-name" style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main);">-</h3>
+            <span id="ewallet-modal-id" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 12px; font-weight: 700;">-</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;" id="ewallet-modal-meta">
+            -
+          </div>
+        </div>
+        <button type="button" onclick="closeEwalletDetailModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 4px;" title="Tutup">&times;</button>
+      </div>
+      <!-- Modal Body -->
+      <div style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+        <!-- Modal KPI Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+          <div class="card" style="padding: 14px; background: var(--surface);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Hits Self-Trx</div>
+            <div id="ewallet-modal-hits" style="font-size: 22px; font-weight: 800; color: #d97706; margin-top: 4px; font-family: var(--font-mono);">0</div>
+          </div>
+          <div class="card" style="padding: 14px; background: var(--surface);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Nominal Self-Trx</div>
+            <div id="ewallet-modal-nominal" style="font-size: 22px; font-weight: 800; color: #dc2626; margin-top: 4px; font-family: var(--font-mono);">Rp 0</div>
+          </div>
+          <div class="card" style="padding: 14px; background: var(--surface);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nomor HP Terdaftar Reseller</div>
+            <div id="ewallet-modal-phone" style="font-size: 14px; font-weight: 700; font-family: var(--font-mono); color: var(--text-main); margin-top: 6px;">-</div>
+          </div>
+        </div>
+        <!-- Detail Table -->
+        <div style="border: 1px solid var(--surface-border); border-radius: 8px; overflow: hidden;">
+          <div style="max-height: 380px; overflow-y: auto;">
+            <table class="table" style="margin: 0;">
+              <thead style="position: sticky; top: 0; background: var(--table-header); z-index: 5;">
+                <tr>
+                  <th>Waktu Entri</th>
+                  <th>TrxID</th>
+                  <th>Produk</th>
+                  <th>Nomor Tujuan (Ditembak)</th>
+                  <th class="text-right">Harga Jual</th>
+                  <th class="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="ewallet-modal-tbody">
+                <tr>
+                  <td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);">
+                    Tidak ada transaksi self-topup yang ditemukan.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Modal Footer -->
+      <div style="padding: 14px 24px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; background: var(--surface);">
+        <button type="button" onclick="closeEwalletDetailModal()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; cursor: pointer;">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- STYLES KHUSUS E-WALLET MONITORING & ANALISA FRAUD -->
+<style>
+  .ewallet-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-family: var(--font-sans);
+  }
+  /* HEADER & BRAND SWITCHER (LIKE #YOY) */
+  .ewallet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .ewallet-title-group h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+  .ewallet-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .ewallet-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0284c7;
+  }
+  .ewallet-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  /* TABS NAVIGATION (IDENTICAL TO #YOY) */
+  .ewallet-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+  }
+  .ewallet-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ewallet-tab-btn:hover {
+    color: var(--text-main);
+  }
+  .ewallet-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 700;
+  }
+  /* SELECTS & INPUTS */
+  .custom-select-box {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .modern-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 100%;
+    height: 38px;
+    padding: 0 32px 0 14px;
+    border-radius: 9px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    outline: none;
+  }
+  .modern-select.has-icon-left {
+    padding-left: 36px;
+  }
+  .modern-select:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+  .modern-select:focus {
+    border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  .dropdown-chevron {
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+    color: var(--text-muted);
+  }
+  .input-icon-left {
+    position: absolute;
+    left: 12px;
+    pointer-events: none;
+    color: #64748b;
+    z-index: 2;
+  }
+  .modern-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 240px;
+  }
+  .modern-input {
+    width: 100%;
+    height: 38px;
+    padding: 0 32px 0 14px;
+    border-radius: 9px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    outline: none;
+  }
+  .modern-input.has-icon-left {
+    padding-left: 36px;
+  }
+  .modern-input:hover {
+    border-color: #cbd5e1;
+  }
+  .modern-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  .clear-search-btn {
+    position: absolute;
+    right: 10px;
+    background: #e2e8f0;
+    border: none;
+    color: #475569;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+  .clear-search-btn:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+  }
+  /* EXPORT EXCEL */
+  .btn-excel-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #16a34a;
+    color: #ffffff;
+    border: 1px solid #15803d;
+    padding: 7px 14px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-excel-export:hover {
+    background: #15803d;
+    box-shadow: 0 4px 8px rgba(22, 163, 74, 0.35);
+    transform: translateY(-1px);
+  }
+  .excel-icon {
+    stroke: #ffffff;
+  }
+  .excel-badge {
+    font-size: 10px;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.22);
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  /* RESELLER FILTER PILLS & BUTTONS */
+  .reseller-tab {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .reseller-tab:hover {
+    background: var(--table-hover);
+    color: var(--text-main);
+  }
+  .reseller-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  }
+  .reseller-tab.active span {
+    font-weight: 700;
+  }
+  .reseller-btn-page {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-main);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .reseller-btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* HARMONIZED FILTER CARD LAYOUT */
+  .agen-filter-card {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: var(--surface);
+  }
+  .agen-pill-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .agen-controls-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+</style>

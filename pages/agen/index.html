@@ -1,91 +1,167 @@
-<!-- PAGES/AGEN/INDEX.HTML — Customer & Agen Analytics (Tiga Sub-Tab: Ringkasan, Toko Induk, Reseller Downline) -->
+<!-- pages/agen/index.html — Customer & Agen Analytics -->
+<style>
+  .agen-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-family: var(--font-sans);
+  }
 
-<div style="display: flex; flex-direction: column; gap: 20px; font-family: var(--font-sans);">
+  /* HEADER & BRAND SWITCHER */
+  .agen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 
-  <!-- ========================================================================= -->
-  <!-- TOP HEADER STRIP & TWO-TIER SUB-TAB NAVIGATION (IDENTIK DENGAN #ANALISA)  -->
-  <!-- ========================================================================= -->
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <h2
-          style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">
-          Agen &amp; Reseller
-        </h2>
+  .agen-title-group h1 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .agen-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .agen-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0284c7;
+  }
+
+  /* TABS NAVIGATION */
+  .agen-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+    overflow-x: auto;
+  }
+
+  .agen-tab-btn,
+  .agen-subtab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .agen-tab-btn:hover,
+  .agen-subtab-btn:hover {
+    color: var(--text-main);
+    background: transparent;
+  }
+
+  .agen-tab-btn.active,
+  .agen-subtab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: transparent;
+    box-shadow: none;
+  }
+</style>
+
+<div class="agen-container" id="agen-tab-content-wrapper">
+
+  <!-- TOP HEADER -->
+  <div class="agen-header">
+    <div class="agen-title-group">
+      <h1>Agen &amp; Reseller</h1>
+      <div class="agen-period-pill">
+        <span class="agen-period-dot"></span>
+        <span id="agen-header-subtitle">Evaluasi run-rate Daily Trx MoM Top &amp; Bottom 10 Toko Induk Agen</span>
       </div>
-      <p id="agen-header-subtitle" style="display: none;"></p>
     </div>
 
-    <!-- SUB-TAB SWITCHER & BRAND CONTROLS -->
-    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-      <!-- Brand Switcher Pill Box (Unified Capsule) -->
-      <div class="unified-brand-switcher">
-        <button type="button" id="brand-btn-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchAgenBrand('ASTAGA')">
-          <span class="brand-dot"></span>
-          ASTAGA
-        </button>
-        <button type="button" id="brand-btn-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchAgenBrand('OKIPAY')">
-          <span class="brand-dot"></span>
-          OKIPAY
-        </button>
-      </div>
-
-      <div class="agen-subtab-pill-box">
-        <!-- Tab 1: Ringkasan Agen -->
-        <button type="button" id="tab-btn-ringkasan" onclick="switchAgenTab('ringkasan')"
-          class="agen-subtab-btn active">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-          <span>TOP 10 AGEN</span>
-        </button>
-
-        <!-- Tab 2: Toko Induk (Agen) -->
-        <button type="button" id="tab-btn-induk" onclick="switchAgenTab('induk')" class="agen-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          <span>AGEN</span>
-        </button>
-
-        <!-- Tab 3: Reseller Downline -->
-        <button type="button" id="tab-btn-reseller" onclick="switchAgenTab('reseller')" class="agen-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-            <line x1="1" y1="10" x2="23" y2="10"></line>
-          </svg>
-          <span>RESELLER</span>
-        </button>
-
-        <!-- Tab 4: Tren Trx Agen (1 Tahun & YoY) -->
-        <button type="button" id="tab-btn-tren" onclick="switchAgenTab('tren')" class="agen-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-            <polyline points="17 6 23 6 23 12"></polyline>
-          </svg>
-          <span>TREN TRX AGEN</span>
-        </button>
-        <!-- Tab 5: Analisa Fraud (Self-Trx E-Wallet) -->
-        <button type="button" id="tab-btn-fraud" onclick="switchAgenTab('fraud')" class="agen-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <span>ANALISA FRAUD</span>
-        </button>
-      </div>
+    <!-- Switch Brand (ASTAGA vs OKIPAY) -->
+    <div class="unified-brand-switcher" id="agen-brand-switcher">
+      <button type="button" id="brand-btn-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchAgenBrand('ASTAGA')">
+        <span class="brand-dot"></span>
+        ASTAGA
+      </button>
+      <button type="button" id="brand-btn-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchAgenBrand('OKIPAY')">
+        <span class="brand-dot" style="background:#dc2626;"></span>
+        OKIPAY
+      </button>
     </div>
+  </div>
+
+  <!-- TAB NAVIGATION -->
+  <div class="agen-tabs">
+    <!-- Tab 1: Ringkasan Agen -->
+    <button type="button" id="tab-btn-ringkasan" onclick="switchAgenTab('ringkasan')"
+      class="agen-tab-btn active">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
+      <span>Tab 1: Top 10 Agen</span>
+    </button>
+
+    <!-- Tab 2: Toko Induk (Agen) -->
+    <button type="button" id="tab-btn-induk" onclick="switchAgenTab('induk')" class="agen-tab-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <span>Tab 2: Toko Induk (Agen)</span>
+    </button>
+
+    <!-- Tab 3: Reseller Downline -->
+    <button type="button" id="tab-btn-reseller" onclick="switchAgenTab('reseller')" class="agen-tab-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+        <line x1="1" y1="10" x2="23" y2="10"></line>
+      </svg>
+      <span>Tab 3: Reseller Downline</span>
+    </button>
+
+    <!-- Tab 4: Tren Trx Agen (1 Tahun & YoY) -->
+    <button type="button" id="tab-btn-tren" onclick="switchAgenTab('tren')" class="agen-tab-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+        <polyline points="17 6 23 6 23 12"></polyline>
+      </svg>
+      <span>Tab 4: Tren Trx Agen</span>
+    </button>
   </div>
 
   <!-- ========================================================================= -->
@@ -265,9 +341,7 @@
         <button type="button" class="reseller-tab" onclick="setIndukStatusTab('churn', this)">
           Pasif / Churn (<span id="count-induk-churn">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setIndukStatusTab('ewallet_high', this)">
-          Dominan EWALLET &ge; 50% (<span id="count-induk-ewallet">0</span>)
-        </button>
+
       </div>
 
       <!-- Controls Row: Cabang & Search -->
@@ -322,11 +396,10 @@
               <th style="width: 45px; text-align: center;">#</th>
               <th>Toko Induk Agen</th>
               <th>Cabang &amp; SCO</th>
+              <th class="text-center" style="width: 95px;">Reg Date</th>
               <th>Jadwal &amp; Limit</th>
               <th class="text-center">Reseller Downline</th>
               <th class="text-right">Total Trx Rollup</th>
-              <th class="text-right">Trx EWALLET</th>
-              <th class="text-right">% EWALLET</th>
               <th>Komposisi Produk</th>
               <th class="text-center">Status</th>
               <th class="text-center" style="width: 70px;">Aksi</th>
@@ -334,7 +407,7 @@
           </thead>
           <tbody id="induk-tbody">
             <tr>
-              <td colspan="11" class="text-center" style="padding: 40px; color: var(--text-muted);">
+              <td colspan="10" class="text-center" style="padding: 40px; color: var(--text-muted);">
                 <div class="loader">Memuat data Toko Induk Agen...</div>
               </td>
             </tr>
@@ -386,9 +459,7 @@
         <button type="button" class="reseller-tab" onclick="setResellerStatusTab('churn', this)">
           Pasif / Churn (<span id="count-reseller-churn">0</span>)
         </button>
-        <button type="button" class="reseller-tab" onclick="setResellerStatusTab('ewallet_high', this)">
-          Dominan EWALLET &ge; 50% (<span id="count-reseller-ewallet">0</span>)
-        </button>
+
       </div>
 
       <!-- Controls Row: Sort, Cabang & Search -->
@@ -398,7 +469,6 @@
             <option value="daily_desc">Sort: Daily Trx Terbesar</option>
             <option value="growth_desc">Sort: Growth Positif</option>
             <option value="growth_asc">Sort: Drop Terbesar</option>
-            <option value="ewallet_desc">Sort: % EWALLET Tertinggi</option>
             <option value="total_desc">Sort: Total Trx Terbanyak</option>
           </select>
           <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -465,9 +535,8 @@
               <th>Nama Reseller</th>
               <th>Toko Induk (Agen)</th>
               <th>Cabang &amp; SCO</th>
+              <th class="text-center" style="width: 95px;">Reg Date</th>
               <th class="text-right">Total Trx</th>
-              <th class="text-right">Trx EWALLET</th>
-              <th class="text-right">% EWALLET</th>
               <th>Komposisi Produk</th>
               <th class="text-center">Status</th>
               <th class="text-center" style="width: 70px;">Aksi</th>
@@ -475,7 +544,7 @@
           </thead>
           <tbody id="reseller-tbody">
             <tr>
-              <td colspan="10" class="text-center" style="padding: 40px; color: var(--text-muted);">
+              <td colspan="9" class="text-center" style="padding: 40px; color: var(--text-muted);">
                 <div class="loader">Memuat data Reseller Downline...</div>
               </td>
             </tr>
@@ -652,186 +721,6 @@
   </div>
 
 </div>
-
-  <!-- ========================================================================= -->
-  <!-- SECTION 5: ANALISA FRAUD SELF-TRANSACTION RESELLER (E-WALLET GESTUN)      -->
-  <!-- ========================================================================= -->
-  <div id="section-agen-fraud" style="display: none; flex-direction: column; gap: 16px;">
-
-    <!-- Filter & Search Toolbar -->
-    <div class="card agen-filter-card">
-      <div class="agen-controls-row">
-        <!-- Filter Mode: Semua Target vs Hanya Terindikasi -->
-        <div class="custom-select-box" style="min-width: 220px;">
-          <select id="fraud-mode-select" onchange="applyFraudFilters()" class="modern-select">
-            <option value="all">Semua Target Perimeter</option>
-            <option value="fraud_only">Hanya Terindikasi Self-Trx</option>
-          </select>
-          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </div>
-
-        <!-- Filter Cabang -->
-        <div class="custom-select-box filter-cabang-box" style="min-width: 170px;">
-          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          <select id="fraud-cabang-select" onchange="applyFraudFilters()" class="modern-select has-icon-left">
-            <option value="ALL">Semua Cabang</option>
-          </select>
-          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </div>
-
-        <!-- Filter SCO -->
-        <div class="custom-select-box" style="min-width: 190px;">
-          <select id="fraud-sco-select" onchange="applyFraudFilters()" class="modern-select">
-            <option value="ALL">Semua Tim SCO</option>
-          </select>
-          <svg class="dropdown-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </div>
-
-        <!-- Search Box -->
-        <div class="modern-search-box" style="flex: 1; min-width: 250px;">
-          <svg class="input-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="fraud-search-input" oninput="applyFraudFilters()" placeholder="Cari Reseller, Toko Induk, No HP..." class="modern-input has-icon-left">
-          <button type="button" onclick="clearFraudSearch()" class="clear-search-btn" title="Hapus pencarian">&times;</button>
-        </div>
-
-
-      </div>
-    </div>
-
-    <!-- Data Table Fraud -->
-    <div class="card" style="overflow: hidden;">
-      <div class="card-header" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <h3 style="font-size: 15px; font-weight: 700; margin: 0;">Tabel Monitoring Fraud &amp; Self-Transaction</h3>
-          <span id="fraud-table-row-count" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 11px;">0 baris</span>
-        </div>
-        <div style="font-size: 12px; color: var(--text-muted);">
-          Klik baris toko untuk melihat rincian riwayat transaksi yang ditembak ke nomor sendiri
-        </div>
-      </div>
-
-      <div class="table-container" style="max-height: 650px; overflow-y: auto;">
-        <table class="table" id="fraud-table">
-          <thead style="position: sticky; top: 0; z-index: 10; background: var(--table-header);">
-            <tr>
-              <th style="width: 45px; text-align: center;">#</th>
-              <th>Reseller</th>
-              <th>Cabang &amp; SCO</th>
-              <th>Toko Induk &amp; Plafon</th>
-              <th>No. HP Terdaftar</th>
-              <th class="text-right">Total Trx EW</th>
-              <th class="text-right">% EWALLET</th>
-              <th class="text-right">Hits Self-Trx</th>
-              <th class="text-right">Total Nominal Self-Trx</th>
-              <th class="text-right">% Self-Trx</th>
-              <th class="text-center" style="width: 90px;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="fraud-tbody">
-            <tr>
-              <td colspan="11" class="text-center" style="padding: 40px; color: var(--text-muted);">
-                <div class="loader">Memuat data Analisa Fraud...</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination Fraud -->
-      <div style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
-        <div id="fraud-table-page-info">Menampilkan 0 dari 0 data</div>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <button type="button" id="btn-fraud-page-prev" onclick="prevFraudPage()" class="reseller-btn-page" disabled>&laquo; Sebelumnya</button>
-          <span id="fraud-page-current-num" style="font-weight: 600; padding: 0 8px; color: var(--text-main);">1</span>
-          <button type="button" id="btn-fraud-page-next" onclick="nextFraudPage()" class="reseller-btn-page" disabled>Selanjutnya &raquo;</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- MODAL DETAIL TRANSAKSI SELF-TOPUP FRAUD -->
-  <div id="fraud-detail-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
-    <div class="card" style="width: 90%; max-width: 860px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease;">
-      <!-- Modal Header -->
-      <div style="padding: 18px 24px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
-        <div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <h3 id="fraud-modal-name" style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main);">-</h3>
-            <span id="fraud-modal-id" class="badge" style="background: var(--table-header); color: var(--text-muted); font-size: 12px; font-weight: 700;">-</span>
-          </div>
-          <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;" id="fraud-modal-meta">
-            -
-          </div>
-        </div>
-        <button type="button" onclick="closeFraudDetailModal()" style="background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 4px;" title="Tutup">&times;</button>
-      </div>
-
-      <!-- Modal Body -->
-      <div style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
-        <!-- Modal KPI Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-          <div class="card" style="padding: 14px; background: var(--surface);">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Hits Self-Trx</div>
-            <div id="fraud-modal-hits" style="font-size: 22px; font-weight: 800; color: #d97706; margin-top: 4px;">0</div>
-          </div>
-          <div class="card" style="padding: 14px; background: var(--surface);">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Nominal Self-Trx</div>
-            <div id="fraud-modal-nominal" style="font-size: 22px; font-weight: 800; color: #dc2626; margin-top: 4px;">Rp 0</div>
-          </div>
-          <div class="card" style="padding: 14px; background: var(--surface);">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nomor HP Terdaftar Reseller</div>
-            <div id="fraud-modal-phone" style="font-size: 14px; font-weight: 700; font-family: var(--font-mono); color: var(--text-main); margin-top: 6px;">-</div>
-          </div>
-        </div>
-
-        <!-- Detail Table -->
-        <div style="border: 1px solid var(--surface-border); border-radius: 8px; overflow: hidden;">
-          <div style="max-height: 380px; overflow-y: auto;">
-            <table class="table" style="margin: 0;">
-              <thead style="position: sticky; top: 0; background: var(--table-header); z-index: 5;">
-                <tr>
-                  <th>Waktu Entri</th>
-                  <th>TrxID</th>
-                  <th>Produk</th>
-                  <th>Nomor Tujuan (Ditembak)</th>
-                  <th class="text-right">Harga Jual</th>
-                  <th class="text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody id="fraud-modal-tbody">
-                <tr>
-                  <td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);">
-                    Tidak ada transaksi self-topup yang ditemukan.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div style="padding: 14px 24px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; background: var(--surface);">
-        <button type="button" onclick="closeFraudDetailModal()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; cursor: pointer;">
-          Tutup
-        </button>
-      </div>
-    </div>
-  </div>
-
 
 <!-- ========================================================================= -->
 <!-- MODAL DETAIL TOKO INDUK AGEN & RESELLER DOWNLINE                          -->
@@ -1275,44 +1164,6 @@
 <!-- STYLES KHUSUS AGEN & RESELLER MODULE                                      -->
 <!-- ========================================================================= -->
 <style>
-  /* SUB-TAB PILL BUTTONS (IDENTIK DENGAN ANALISA-SUBTAB-BTN) */
-  .agen-subtab-pill-box {
-    display: flex;
-    background: var(--surface-card, var(--surface));
-    border: 1px solid var(--surface-border);
-    border-radius: 10px;
-    padding: 4px;
-    gap: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    flex-wrap: wrap;
-  }
-
-  .agen-subtab-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-  }
-
-  .agen-subtab-btn:hover {
-    color: var(--text-main);
-    background: rgba(0, 0, 0, 0.03);
-  }
-
-  .agen-subtab-btn.active {
-    background: var(--primary);
-    color: #ffffff;
-    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
-  }
-
   /* TOGGLE MODE RINGKASAN */
   .ringkasan-mode-btn {
     padding: 6px 14px;

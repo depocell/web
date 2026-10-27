@@ -1,53 +1,234 @@
 <!-- ========================================================================= -->
-<!-- PAGES/SURVEY/INDEX.HTML - MODUL SURVEI AGEN CHURN -->
+<!-- PAGES/SURVEY/INDEX.HTML - MODUL SURVEI AGEN CHURN (BLUEPRINT #YOY STANDARD)  -->
 <!-- ========================================================================= -->
-<div class="survey-page-wrapper" style="display: flex; flex-direction: column; gap: 20px;">
+<style>
+  .survey-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 40px;
+    font-family: var(--font-sans);
+  }
 
-  <!-- TOP HERO & TOOLBAR: STATUS GATEWAY & ACTION BAT -->
-  <div class="card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main);">SURVEI AGEN CHURN</h2>
-        <span class="badge" style="background: #e0e7ff; color: #4338ca; font-weight: 700; font-size: 11px;">WA BOT AI</span>
+  /* TOP HEADER (IDENTIK #YOY & #AGEN) */
+  .survey-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .survey-title-group h1 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .survey-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .survey-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0284c7;
+  }
+
+  /* TABS NAVIGATION (BORDER-BOTTOM UNDERLINE, IDENTIK #YOY) */
+  .survey-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .survey-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    border-radius: 0;
+  }
+
+  .survey-tab-btn:hover {
+    color: var(--text-main);
+    background: transparent;
+  }
+
+  .survey-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* PANEL CONTAINER (BORDER-FIRST, IDENTIK #YOY) */
+  .chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .chart-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chart-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chart-panel-title-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .chart-subtoggle {
+    display: inline-flex;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .chart-subtoggle-btn {
+    padding: 4px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .chart-subtoggle-btn.active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+</style>
+
+<div class="survey-container">
+
+  <!-- TOP HEADER (IDENTIK #YOY) -->
+  <div class="survey-header">
+    <div class="survey-title-group">
+      <h1>Survei Agen Churn</h1>
+      <div class="survey-period-pill">
+        <span class="survey-period-dot"></span>
+        <span id="survey-window-badge">Rentang: Juli - September 2026</span>
+        <span style="color:var(--surface-border); margin: 0 2px;">|</span>
+        <span id="survey-period-badge">Periode 2026-10</span>
       </div>
-      
+    </div>
+
+    <!-- Unified Brand Switcher (Identik #YoY) -->
+    <div class="unified-brand-switcher" id="survey-brand-switcher">
+      <button type="button" id="survey-brand-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="setSurveyBrand('ASTAGA')">
+        <span class="brand-dot"></span>
+        ASTAGA
+      </button>
+      <button type="button" id="survey-brand-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="setSurveyBrand('OKIPAY')">
+        <span class="brand-dot" style="background:#dc2626;"></span>
+        OKIPAY
+      </button>
     </div>
   </div>
 
-  <!-- NAVIGATION TABS -->
-  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--surface-border); padding-bottom: 2px;">
-    <div style="display: flex; gap: 8px;">
-      <button type="button" class="reseller-tab active" id="tab-btn-list" onclick="switchSurveyTab('list', this)"
-        style="padding: 8px 18px; font-size: 13px; font-weight: 700; border: none; background: none; cursor: pointer; border-bottom: 2px solid #4f46e5; color: #4f46e5;">
-        List Reseller Target (<span id="survey-count-target">159</span>)
-      </button>
-      <button type="button" class="reseller-tab" id="tab-btn-logs" onclick="switchSurveyTab('logs', this)"
-        style="padding: 8px 18px; font-size: 13px; font-weight: 600; border: none; background: none; cursor: pointer; color: var(--text-muted);">
-        Log Survei (<span id="survey-count-logs">0</span>)
-      </button>
-      <button type="button" class="reseller-tab" id="tab-btn-chart" onclick="switchSurveyTab('chart', this)"
-        style="padding: 8px 18px; font-size: 13px; font-weight: 600; border: none; background: none; cursor: pointer; color: var(--text-muted);">
-        Chart Hasil Survei
-      </button>
-    </div>
-
-    <!-- Brand Switcher & Periode Info -->
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <div style="display: flex; background: var(--table-header); border-radius: 6px; padding: 2px;">
-        <button type="button" id="survey-brand-astaga" onclick="setSurveyBrand('ASTAGA')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 700; border: none; border-radius: 4px; background: #4f46e5; color: #fff; cursor: pointer;">ASTAGA</button>
-        <button type="button" id="survey-brand-okipay" onclick="setSurveyBrand('OKIPAY')" style="padding: 4px 10px; font-size: 11.5px; font-weight: 600; border: none; border-radius: 4px; background: none; color: var(--text-muted); cursor: pointer;">OKIPAY</button>
-      </div>
-      <span class="badge" style="background: var(--table-header); color: var(--text-main); font-weight: 600; font-size: 11.5px;">Periode 2026-10</span>
-      <span id="survey-window-badge" class="badge" style="background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 11.5px; border: 1px solid #bfdbfe;">Rentang: Juli - September 2026</span>
-    </div>
+  <!-- NAVIGATION TABS (IDENTIK #YOY) -->
+  <div class="survey-tabs">
+    <button type="button" class="survey-tab-btn active" id="tab-btn-list" onclick="switchSurveyTab('list', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <span>Tab 1: Target Churn (<span id="survey-count-target">0</span>)</span>
+    </button>
+    <button type="button" class="survey-tab-btn" id="tab-btn-logs" onclick="switchSurveyTab('logs', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+      <span>Tab 2: Log Percakapan (<span id="survey-count-logs">0</span>)</span>
+    </button>
+    <button type="button" class="survey-tab-btn" id="tab-btn-chart" onclick="switchSurveyTab('chart', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
+      <span>Tab 3: Analitik &amp; Chart Hasil</span>
+    </button>
   </div>
 
   <!-- ========================================================================= -->
   <!-- TAB 1: LIST RESELLER TARGET SURVEI                                        -->
   <!-- ========================================================================= -->
-  <div id="survey-tab-list" class="survey-tab-content">
-    <div class="card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
-      <!-- Filter Row -->
+  <div id="survey-tab-list" class="survey-tab-content" style="display: flex; flex-direction: column; gap: 16px;">
+    <div class="chart-panel">
+      <!-- Panel Header -->
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#0284c7;"></span>
+          <span>Daftar Outlet Pasif &amp; Churn Siap Disurvei</span>
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
+          Mode Aman: Direct Personal WhatsApp (wa.me)
+        </div>
+      </div>
+
+      <!-- Filter Controls Row -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <div style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 280px; flex-wrap: wrap;">
           <!-- Filter Target Volume -->
@@ -87,8 +268,6 @@
             </svg>
           </div>
         </div>
-
-<!-- Batch Broadcast Button Dihapus untuk Keamanan Akun WA -->
       </div>
 
       <!-- Candidate Table -->
@@ -100,10 +279,10 @@
               <th style="padding: 10px 14px;">RESELLER OUTLET</th>
               <th style="padding: 10px 14px;">AGEN INDUK</th>
               <th style="padding: 10px 14px;">CABANG &amp; SCO</th>
-              <th style="padding: 10px 14px; text-align: center;">TRX 3 BULAN</th>
+              <th style="padding: 10px 14px; text-align: center; min-width: 175px;">TREN DAILY TRX (3 BULAN)</th>
               <th style="padding: 10px 14px;">NO WHATSAPP</th>
               <th style="padding: 10px 14px; text-align: center;">STATUS</th>
-              <th style="padding: 10px 14px; text-align: center; width: 90px;">AKSI</th>
+              <th style="padding: 10px 14px; text-align: center; width: 110px;">AKSI</th>
             </tr>
           </thead>
           <tbody id="survey-candidate-tbody">
@@ -117,29 +296,14 @@
   <!-- ========================================================================= -->
   <!-- TAB 2: LOG SURVEI (RIWAYAT PERCAKAPAN)                                     -->
   <!-- ========================================================================= -->
-  <div id="survey-tab-logs" class="survey-tab-content" style="display: none;">
-    <div class="card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
-      <!-- Log Controls -->
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <button type="button" class="reseller-tab active" onclick="filterLogsByStatus('ALL', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px;">Semua</button>
-          <button type="button" class="reseller-tab" onclick="filterLogsByStatus('REPLIED', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px;">Sudah Balas</button>
-          <button type="button" class="reseller-tab" onclick="filterLogsByStatus('SENT', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px;">Menunggu Balasan</button>
-          <button type="button" class="reseller-tab" onclick="filterLogsByStatus('NOT_ON_WA', this)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; color: #dc2626;">Tidak Ada WA</button>
+  <div id="survey-tab-logs" class="survey-tab-content" style="display: none; flex-direction: column; gap: 16px;">
+    <div class="chart-panel">
+      <!-- Panel Header -->
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#16a34a;"></span>
+          <span>Riwayat Komunikasi &amp; Log Survei</span>
         </div>
-
-        <!-- Search Box untuk Log Survei (Memudahkan Copas Jawaban) -->
-        <div style="flex: 1; min-width: 240px; max-width: 380px; position: relative; display: flex; align-items: center;">
-          <input type="text" id="survey-logs-search-input" oninput="applyLogsFilterAndSearch()"
-            placeholder="Cari Toko, ID Reseller, No WA..." 
-            style="height: 34px; width: 100%; padding: 0 14px 0 32px; border-radius: 7px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 12.5px; outline: none; box-sizing: border-box; transition: all 0.15s ease;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            style="position: absolute; left: 10px; color: var(--text-muted); pointer-events: none;">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </div>
-
         <div style="display: flex; gap: 8px; align-items: center;">
           <button type="button" onclick="loadSurveyLogs()" class="modern-btn" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -156,6 +320,28 @@
             </svg>
             <span>Hapus Semua Log</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Controls & Subtoggle Filter -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div class="chart-subtoggle">
+          <button type="button" class="chart-subtoggle-btn active" onclick="filterLogsByStatus('ALL', this)">Semua</button>
+          <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('REPLIED', this)">Sudah Balas</button>
+          <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('SENT', this)">Menunggu</button>
+          <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('NOT_ON_WA', this)">Tidak Ada WA</button>
+        </div>
+
+        <!-- Search Box Log -->
+        <div style="flex: 1; min-width: 240px; max-width: 380px; position: relative; display: flex; align-items: center;">
+          <input type="text" id="survey-logs-search-input" oninput="applyLogsFilterAndSearch()"
+            placeholder="Cari Toko, ID Reseller, No WA..." 
+            style="height: 34px; width: 100%; padding: 0 14px 0 32px; border-radius: 7px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 12.5px; outline: none; box-sizing: border-box; transition: all 0.15s ease;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            style="position: absolute; left: 10px; color: var(--text-muted); pointer-events: none;">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
         </div>
       </div>
 
@@ -186,26 +372,26 @@
   <!-- ========================================================================= -->
   <!-- TAB 3: CHART HASIL SURVEI (ANALITIK & REKAP KENDALA)                      -->
   <!-- ========================================================================= -->
-  <div id="survey-tab-chart" class="survey-tab-content" style="display: none;">
-    <!-- Metric Summary Cards -->
+  <div id="survey-tab-chart" class="survey-tab-content" style="display: none; flex-direction: column; gap: 16px;">
+    <!-- Metric Summary Cards (Border-first) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
-      <div class="card" style="padding: 16px;">
-        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Total Survei Terkirim</div>
+      <div class="chart-panel" style="padding: 16px;">
+        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Total Survei Terkirim</div>
         <div id="chart-metric-total" style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Akun reseller pasif/churn</div>
       </div>
-      <div class="card" style="padding: 16px;">
-        <div style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase;">Reseller Merespon</div>
+      <div class="chart-panel" style="padding: 16px;">
+        <div style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Reseller Merespon</div>
         <div id="chart-metric-replied" style="font-size: 24px; font-weight: 800; color: #15803d; margin-top: 4px;">0</div>
         <div id="chart-metric-rate" style="font-size: 11px; color: #16a34a; font-weight: 600; margin-top: 2px;">Response Rate: 0%</div>
       </div>
-      <div class="card" style="padding: 16px;">
-        <div style="font-size: 11px; color: #b45309; font-weight: 700; text-transform: uppercase;">Kendala Terbanyak</div>
+      <div class="chart-panel" style="padding: 16px;">
+        <div style="font-size: 11px; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Kendala Terbanyak</div>
         <div id="chart-metric-top-issue" style="font-size: 18px; font-weight: 800; color: #d97706; margin-top: 4px;">-</div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Klasifikasi otomatis AI</div>
       </div>
-      <div class="card" style="padding: 16px;">
-        <div style="font-size: 11px; color: #1e40af; font-weight: 700; text-transform: uppercase;">Perlu Kunjungan SCO</div>
+      <div class="chart-panel" style="padding: 16px;">
+        <div style="font-size: 11px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Perlu Kunjungan SCO</div>
         <div id="chart-metric-sco-visit" style="font-size: 24px; font-weight: 800; color: #2563eb; margin-top: 4px;">0 Toko</div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Butuh spanduk / follow-up</div>
       </div>
@@ -214,16 +400,26 @@
     <!-- Charts Row -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
       <!-- Chart 1: Donut Kategori Kendala -->
-      <div class="card" style="padding: 18px;">
-        <h4 style="margin: 0 0 14px 0; font-size: 14px; font-weight: 700; color: var(--text-main);">Komposisi Kategori Kendala Reseller</h4>
+      <div class="chart-panel" style="padding: 18px;">
+        <div class="chart-panel-header">
+          <div class="chart-panel-title">
+            <span class="chart-panel-title-dot" style="background:#0284c7;"></span>
+            <span>Komposisi Kategori Kendala Reseller</span>
+          </div>
+        </div>
         <div style="position: relative; height: 260px; display: flex; align-items: center; justify-content: center;">
           <canvas id="chart-category-donut"></canvas>
         </div>
       </div>
 
       <!-- Chart 2: Bar Respon per Cabang -->
-      <div class="card" style="padding: 18px;">
-        <h4 style="margin: 0 0 14px 0; font-size: 14px; font-weight: 700; color: var(--text-main);">Sebaran Respon Survei per Cabang</h4>
+      <div class="chart-panel" style="padding: 18px;">
+        <div class="chart-panel-header">
+          <div class="chart-panel-title">
+            <span class="chart-panel-title-dot" style="background:#16a34a;"></span>
+            <span>Sebaran Respon Survei per Cabang</span>
+          </div>
+        </div>
         <div style="position: relative; height: 260px;">
           <canvas id="chart-cabang-bar"></canvas>
         </div>
@@ -250,7 +446,6 @@
         </div>
         <div>
           <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-main);">SURVEI AGEN CHURN</h3>
-          
         </div>
       </div>
       <button type="button" onclick="closeSurveyModal()" style="background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
@@ -271,7 +466,7 @@
           <div id="survey-modal-sco" style="font-size: 11px; color: var(--text-muted);">-</div>
         </div>
         <div>
-          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TRX 3 BULAN</div>
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TOTAL TRX (3 BULAN)</div>
           <div id="survey-modal-prev-trx" style="font-size: 14px; font-weight: 800; color: #0284c7;">0</div>
           <div id="survey-modal-last-active" style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">Terakhir: -</div>
           <div style="font-size: 10.5px; color: #ef4444; font-weight: 600;">Bulan ini: 0 (Churn)</div>
@@ -312,8 +507,6 @@
     </div>
   </div>
 </div>
-
-<!-- Modal Batch Survey Dihapus demi Keamanan Anti-Ban -->
 
 <!-- ========================================================================= -->
 <!-- MODAL CATAT BALASAN RESELLER (NLP AI)                                     -->

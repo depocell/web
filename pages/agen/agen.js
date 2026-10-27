@@ -10,17 +10,6 @@ const agenUnifiedState = {
   agenRaw: null,      // cache /api/agen
   resellerRaw: null,  // cache /api/reseller
   trenRaw: null,      // cache /api/agen/tren
-  fraudRaw: null,     // cache /api/reseller/fraud
-  fraud: {
-    cabang: 'ALL',
-    sco: 'ALL',
-    mode: 'all',
-    search: '',
-    page: 1,
-    pageSize: 50,
-    filteredRows: []
-  },
-  
   // Tab 1: Ringkasan Agen State
   ringkasan: {
     mode: 'bottom', // 'bottom' or 'top'
@@ -151,8 +140,6 @@ async function switchAgenBrand(brand) {
   // Invalidate cache for new brand
   agenUnifiedState.agenRaw = null;
   agenUnifiedState.resellerRaw = null;
-  agenUnifiedState.fraudRaw = null;
-  agenUnifiedState.fraud.page = 1;
   agenUnifiedState.trenRaw = null;
   agenUnifiedState.selectedMonth = null;
 
@@ -224,7 +211,7 @@ async function switchAgenTab(tabName) {
   } catch (e) {}
 
   // Update visual sub-tab buttons
-  ['ringkasan', 'induk', 'reseller', 'tren', 'fraud'].forEach(t => {
+  ['ringkasan', 'induk', 'reseller', 'tren'].forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const sec = document.getElementById(`section-agen-${t}`);
     if (btn) {
@@ -250,8 +237,6 @@ async function switchAgenTab(tabName) {
       subEl.textContent = 'Tracking keaktifan seluruh customer reseller downline individual berbasis Daily Trx.';
     } else if (tabName === 'tren') {
       subEl.textContent = 'Profil histori & tren Daily Trx 1 tahun terakhir (12 bulan) serta evaluasi pertumbuhan YoY (Year-over-Year).';
-    } else if (tabName === 'fraud') {
-      subEl.textContent = 'Analisa self-transaction top-up e-wallet pada reseller fisik under SCO untuk pencegahan gestun/withdrawal saldo.';
     }
   }
 
@@ -282,10 +267,6 @@ async function switchAgenTab(tabName) {
   } else if (tabName === 'tren') {
     renderTrenControls();
     applyTrenFilters();
-  } else if (tabName === 'fraud') {
-    renderFraudKPI();
-    renderFraudControls();
-    applyFraudFilters();
   }
 }
 window.switchAgenTab = switchAgenTab;
@@ -305,10 +286,6 @@ async function ensureTabDataLoaded(tabName) {
   } else if (tabName === 'tren') {
     if (!agenUnifiedState.trenRaw) {
       await fetchTrenData();
-    }
-  } else if (tabName === 'fraud') {
-    if (!agenUnifiedState.fraudRaw) {
-      await fetchFraudData(currentMonth);
     }
   }
 }
@@ -397,8 +374,6 @@ async function onAgenMonthChange(monthCode) {
   // Reset cache agar data terupdate
   agenUnifiedState.agenRaw = null;
   agenUnifiedState.resellerRaw = null;
-  agenUnifiedState.fraudRaw = null;
-  agenUnifiedState.fraud.page = 1;
 
   // Reset pagination ke page 1
   agenUnifiedState.induk.page = 1;
@@ -442,7 +417,8 @@ async function loadAgen() {
     } else if (tabParam === 'tren') {
       initialTab = 'tren';
     } else if (tabParam === 'fraud') {
-      initialTab = 'fraud';
+      window.location.replace('#ewallet' + (brandParam ? '?brand=' + brandParam : ''));
+      return;
     }
 
     const brandParam = (params.get('brand') || '').toUpperCase();
@@ -824,8 +800,7 @@ function applyIndukFilters() {
     source = (data.rows || []).filter(r => r.activity_status === 'Reaktivasi');
   } else if (status === 'rutin') {
     source = (data.rows || []).filter(r => r.activity_status === 'Aktif Rutin');
-  } else if (status === 'ewallet_high') {
-    source = (data.rows || []).filter(r => (r.pct_ewallet || 0) >= 50);
+
   } else {
     source = data.rows || [];
   }
@@ -990,7 +965,10 @@ function renderIndukTable() {
         </td>
         <td>
           <div style="font-weight: 600; color: var(--text-main); font-size: 13px;">${escapeHtml(r.cabang)}</div>
-          <div style="font-size: 11.5px; color: var(--text-muted);">SCO: ${escapeHtml(r.sco)} ${r.tgl_daftar && r.tgl_daftar !== '-' ? `• <span style="font-size: 10.5px;">Reg: ${escapeHtml(r.tgl_daftar.split(' ')[0])}</span>` : ''}</div>
+          <div style="font-size: 11.5px; color: var(--text-muted);">SCO: ${escapeHtml(r.sco)}</div>
+        </td>
+        <td class="text-center" style="font-family: var(--font-mono, monospace); font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+          ${r.tgl_daftar && r.tgl_daftar !== '-' ? escapeHtml(r.tgl_daftar.split(' ')[0]) : '-'}
         </td>
         <td>
           <div style="font-size: 12px; color: var(--text-main); font-weight: 500;">${escapeHtml(r.jadwal || '-')}</div>
@@ -1004,12 +982,6 @@ function renderIndukTable() {
         </td>
         <td class="text-right font-semibold" style="font-size: 14px; color: var(--text-main);">
           ${isChurn ? `<span style="color: var(--text-muted);">0</span> <span style="font-size: 11px; color: var(--text-muted); display: block;">(Bln lalu: ${formatIDR(r.prev_trx)})</span>` : formatIDR(r.total_trx)}
-        </td>
-        <td class="text-right" style="color: #1e40af; font-weight: 600;">
-          ${isChurn ? '-' : formatIDR(r.ewallet_trx)}
-        </td>
-        <td class="text-right">
-          ${ewBadge}
         </td>
         <td>
           ${compBars}
@@ -1183,8 +1155,7 @@ function applyResellerFilters() {
     source = (data.rows || []).filter(r => r.activity_status === 'Reaktivasi');
   } else if (status === 'rutin') {
     source = (data.rows || []).filter(r => r.activity_status === 'Aktif Rutin');
-  } else if (status === 'ewallet_high') {
-    source = (data.rows || []).filter(r => (r.pct_ewallet || 0) >= 50);
+
   } else {
     source = data.rows || [];
   }
@@ -1217,8 +1188,7 @@ function applyResellerFilters() {
       return (b.growth_daily || 0) - (a.growth_daily || 0);
     } else if (sortMode === 'growth_asc') {
       return (a.growth_daily || 0) - (b.growth_daily || 0);
-    } else if (sortMode === 'ewallet_desc') {
-      return (b.pct_ewallet || 0) - (a.pct_ewallet || 0);
+
     } else if (sortMode === 'total_desc') {
       return (b.total_trx || 0) - (a.total_trx || 0);
     }
@@ -1357,17 +1327,14 @@ function renderResellerTable() {
           <div style="font-weight: 600; color: var(--text-main); font-size: 13px;">${escapeHtml(r.cabang)}</div>
           <div style="font-size: 11.5px; color: var(--text-muted);">SCO: ${escapeHtml(r.sco)}</div>
         </td>
+        <td class="text-center" style="font-family: var(--font-mono, monospace); font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+          ${r.tgl_daftar && r.tgl_daftar !== '-' ? escapeHtml(r.tgl_daftar.split(' ')[0]) : '-'}
+        </td>
         <td class="text-right font-semibold" style="font-size: 14px; color: var(--text-main);">
           ${isChurn ? `<span style="color: var(--text-muted);">0</span> <span style="font-size: 11px; color: var(--text-muted); display: block;">(Bln lalu: ${formatIDR(r.prev_trx)})</span>` : `
             <div>${formatIDR(r.total_trx)}</div>
             <div style="font-size: 11px; color: #2563eb; font-weight: 600;">${formatDailyRate(r.daily_curr)} / hr</div>
           `}
-        </td>
-        <td class="text-right" style="color: #1e40af; font-weight: 600;">
-          ${isChurn ? '-' : formatIDR(r.ewallet_trx)}
-        </td>
-        <td class="text-right">
-          ${ewBadge}
         </td>
         <td>
           ${compBars}
@@ -1650,84 +1617,10 @@ async function exportActiveTabExcel() {
     exportResellerExcel();
   } else if (currentTab === 'tren') {
     exportTrenExcel();
-  } else if (currentTab === 'fraud') {
-    exportFraudExcel();
+
   }
 }
 window.exportActiveTabExcel = exportActiveTabExcel;
-
-function exportFraudExcel() {
-  const rows = agenUnifiedState.fraud.filteredRows || [];
-  if (rows.length === 0) {
-    alert('Tidak ada data analisa fraud untuk diekspor.');
-    return;
-  }
-
-  const period = agenUnifiedState.selectedMonth || '2026';
-  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
-  const cabang = agenUnifiedState.fraud.cabang === 'ALL' ? 'Semua_Cabang' : agenUnifiedState.fraud.cabang;
-
-  const headers = [
-    'No', 'Kode Reseller', 'Nama Reseller', 'Cabang', 'Tim SCO', 'Toko Induk', 'Tipe Agen', 'Plafon Limit (Rp)',
-    'No HP Terdaftar', 'Total Trx Toko', 'Total Trx EW', '% EWALLET', 'Hits Self-Trx', 'Nominal Self-Trx (Rp)', '% Self-Trx'
-  ];
-
-  const sheetData = [headers];
-  rows.forEach((r, idx) => {
-    sheetData.push([
-      idx + 1,
-      r.kode_reseller || '',
-      r.nama_reseller || '',
-      r.cabang || '',
-      r.sco || '-',
-      r.nama_agen || '-',
-      r.agent_type || 'Non Limit',
-      Number(r.limit_saldo || 0),
-      r.registered_phone || '-',
-      Number(r.total_all_hits || 0),
-      Number(r.total_ew_hits || 0),
-      Number(r.pct_ewallet ? (r.pct_ewallet / 100).toFixed(3) : 0),
-      Number(r.self_hits || 0),
-      Number(r.self_nominal || 0),
-      Number(r.self_pct ? (r.self_pct / 100).toFixed(3) : 0)
-    ]);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-  for (let r = 1; r < sheetData.length; r++) {
-    const c7 = XLSX.utils.encode_cell({ r: r, c: 7 }); // Plafon Limit
-    if (ws[c7]) ws[c7].z = '#,##0';
-    const c9 = XLSX.utils.encode_cell({ r: r, c: 9 }); // Total Trx Toko
-    if (ws[c9]) ws[c9].z = '#,##0';
-    const c10 = XLSX.utils.encode_cell({ r: r, c: 10 }); // Total Trx EW
-    if (ws[c10]) ws[c10].z = '#,##0';
-    const c11 = XLSX.utils.encode_cell({ r: r, c: 11 }); // % EWALLET
-    if (ws[c11]) ws[c11].z = '0.0%';
-    const c12 = XLSX.utils.encode_cell({ r: r, c: 12 }); // Hits Self-Trx
-    if (ws[c12]) ws[c12].z = '#,##0';
-    const c13 = XLSX.utils.encode_cell({ r: r, c: 13 }); // Nominal Self-Trx
-    if (ws[c13]) ws[c13].z = '#,##0';
-    const c14 = XLSX.utils.encode_cell({ r: r, c: 14 }); // % Self-Trx
-    if (ws[c14]) ws[c14].z = '0.0%';
-  }
-
-  const colWidths = headers.map((h, colIdx) => {
-    let maxLen = h.length;
-    sheetData.forEach(row => {
-      const val = row[colIdx] != null ? String(row[colIdx]) : '';
-      if (val.length > maxLen) maxLen = val.length;
-    });
-    return { wch: Math.min(Math.max(maxLen + 3, 10), 45) };
-  });
-  ws['!cols'] = colWidths;
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Analisa Fraud');
-  XLSX.writeFile(wb, `Analisa_Fraud_SelfTrx_${brand}_${period}_${cabang}.xlsx`);
-}
-window.exportFraudExcel = exportFraudExcel;
-
 
 function exportRingkasanExcel() {
   const rows = agenUnifiedState.ringkasan.filteredRows || [];
@@ -1813,9 +1706,9 @@ function exportIndukExcel() {
   const cabang = agenUnifiedState.induk.cabang === 'ALL' ? 'Semua_Cabang' : agenUnifiedState.induk.cabang;
 
   const headers = [
-    'No', 'Agen ID', 'Nama Toko Induk', 'Cabang', 'SCO', 'DSO', 'Jadwal', 'Limit (Rp)', 'Tipe', 'Tgl. Daftar',
+    'No', 'Agen ID', 'Nama Toko Induk', 'Cabang', 'SCO', 'DSO', 'Jadwal', 'Limit (Rp)', 'Tipe', 'Reg Date',
     'Total Reseller Anak', 'Anak Aktif Bulan Ini', '% Anak Aktif',
-    'Total Trx Rollup', 'Trx EWALLET', '% EWALLET', 'Trx TELCO', 'Trx PPOB', 'Trx TOKEN PLN', 'Status Keaktifan'
+    'Total Trx Rollup', 'Trx TELCO', 'Trx PPOB', 'Trx TOKEN PLN', 'Status Keaktifan'
   ];
 
   const sheetData = [headers];
@@ -1835,8 +1728,6 @@ function exportIndukExcel() {
       Number(r.active_reseller) || 0,
       Number(r.pct_active_reseller ? (r.pct_active_reseller / 100).toFixed(3) : 0),
       Number(r.total_trx) || 0,
-      Number(r.ewallet_trx) || 0,
-      Number(r.pct_ewallet ? (r.pct_ewallet / 100).toFixed(3) : 0),
       Number(r.telco_trx) || 0,
       Number(r.ppob_trx) || 0,
       Number(r.token_trx) || 0,
@@ -1883,8 +1774,8 @@ function exportResellerExcel() {
   const cabang = agenUnifiedState.reseller.cabang === 'ALL' ? 'Semua_Cabang' : agenUnifiedState.reseller.cabang;
 
   const headers = [
-    'No', 'Kode Reseller', 'Nama Reseller', 'Toko Induk (Agen)', 'Agen ID', 'Cabang', 'SCO', 'Tgl. Daftar',
-    'Total Trx', 'Daily Trx (/hari)', 'Trx EWALLET', '% EWALLET', 'Trx TELCO', 'Trx PPOB', 'Trx TOKEN PLN', 'Status Keaktifan'
+    'No', 'Kode Reseller', 'Nama Reseller', 'Toko Induk (Agen)', 'Agen ID', 'Cabang', 'SCO', 'Reg Date',
+    'Total Trx', 'Daily Trx (/hari)', 'Trx TELCO', 'Trx PPOB', 'Trx TOKEN PLN', 'Status Keaktifan'
   ];
 
   const sheetData = [headers];
@@ -1900,8 +1791,6 @@ function exportResellerExcel() {
       r.tgl_daftar || '-',
       Number(r.total_trx) || 0,
       Number(r.daily_curr) || 0,
-      Number(r.ewallet_trx) || 0,
-      Number(r.pct_ewallet ? (r.pct_ewallet / 100).toFixed(3) : 0),
       Number(r.telco_trx) || 0,
       Number(r.ppob_trx) || 0,
       Number(r.token_trx) || 0,
@@ -2076,8 +1965,8 @@ function getFilteredTrenAgents(allAgents) {
     const bDiff = Number(b.diff_yoy || 0);
     const aCurr = Number(a.curr_val || 0);
     const bCurr = Number(b.curr_val || 0);
-    const aNov = Number((a.monthly && a.monthly['1125']) || 0);
-    const bNov = Number((b.monthly && b.monthly['1125']) || 0);
+    const aNov = Number((a.monthly && (a.monthly['0126'] || a.monthly['1125'])) || 0);
+    const bNov = Number((b.monthly && (b.monthly['0126'] || b.monthly['1125'])) || 0);
 
     if (sortMode === 'diff_asc') return aDiff - bDiff; // Penurunan terbesar di atas (default)
     if (sortMode === 'diff_desc') return bDiff - aDiff; // Kenaikan tertinggi di atas
@@ -2090,6 +1979,32 @@ function getFilteredTrenAgents(allAgents) {
 
   return list;
 }
+
+function renderTrenTableHeader() {
+  const table = document.getElementById('tren-table');
+  if (!table) return;
+  const thead = table.querySelector('thead');
+  if (!thead) return;
+  const months = (agenUnifiedState.trenRaw && agenUnifiedState.trenRaw.months) || [];
+  if (months.length === 0) return;
+
+  const monthThs = months.map(m => {
+    if (m.is_latest) {
+      return `<th class="text-right" style="width: 75px; color: var(--primary); font-weight: 800; background: rgba(37,99,235,0.06);">${escapeHtml(m.label)}</th>`;
+    }
+    return `<th class="text-right" style="width: 65px;">${escapeHtml(m.label)}</th>`;
+  }).join('');
+
+  thead.innerHTML = `
+    <tr>
+      <th style="width: 40px; text-align: center;">No</th>
+      <th style="min-width: 250px;">Nama Agen &amp; Tren Line</th>
+      ${monthThs}
+      <th class="text-right" style="min-width: 120px;">YTD Δ</th>
+    </tr>
+  `;
+}
+window.renderTrenTableHeader = renderTrenTableHeader;
 
 function renderTrenTableRows(agents) {
   if (!agents || agents.length === 0) {
@@ -2147,7 +2062,7 @@ function renderTrenTableRows(agents) {
             <span class="badge ${isPos ? 'badge-success' : 'badge-danger'}" style="font-weight:700; font-size:11.5px; padding:2px 6px; ${isPos ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'}">
               ${isPos ? '+' : ''}${formatDailyRate(diff)} (${isPos ? '+' : ''}${pct.toFixed(1)}%)
             </span>
-            <span style="font-size:10px; color:var(--text-muted);">Base: ${formatDailyRate(a.yoy_base)} (Okt 25)</span>
+            <span style="font-size:10px; color:var(--text-muted);">Base: ${formatDailyRate(a.yoy_base)} (Jan 26)</span>
           </div>
         </td>
       </tr>`;
@@ -2195,9 +2110,9 @@ function applyTrenFilters() {
   const qfAll = document.getElementById('tren-qf-all');
   if (qfAll) qfAll.textContent = `Semua Tren (${totalBase})`;
   const qfUp = document.getElementById('tren-qf-up');
-  if (qfUp) qfUp.innerHTML = `<span style="display:inline-flex; align-items:center; color:#16a34a; margin-right:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg></span> Tren Naik YoY (${countUp})`;
+  if (qfUp) qfUp.innerHTML = `<span style="display:inline-flex; align-items:center; color:#16a34a; margin-right:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg></span> Tren Naik YTD (${countUp})`;
   const qfDown = document.getElementById('tren-qf-down');
-  if (qfDown) qfDown.innerHTML = `<span style="display:inline-flex; align-items:center; color:#dc2626; margin-right:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg></span> Tren Turun YoY (${countDown})`;
+  if (qfDown) qfDown.innerHTML = `<span style="display:inline-flex; align-items:center; color:#dc2626; margin-right:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg></span> Tren Turun YTD (${countDown})`;
   const qfTop = document.getElementById('tren-qf-top');
   if (qfTop) qfTop.innerHTML = `<span style="display:inline-flex; align-items:center; color:#f59e0b; margin-right:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span> Top Aktif (≥ 50 trx/hari) (${countTop})`;
 
@@ -2212,6 +2127,7 @@ function applyTrenFilters() {
 
   // Pagination / Paging limit
   const paged = filtered.slice(0, agenUnifiedState.tren.pageLimit);
+  renderTrenTableHeader();
   tbody.innerHTML = renderTrenTableRows(paged);
 
   // Counter badge in header
@@ -2368,9 +2284,9 @@ async function exportTrenExcel() {
     'Plafon Limit (Rp)',
     ...months.map(m => `Daily ${m.label}`),
     'Puncak 12 Bulan (Max)',
-    'Base YoY (Okt 25)',
-    'Selisih YoY (Trx/Hari)',
-    'Pertumbuhan YoY (%)',
+    'Base YoY (Jan 26)',
+    'Selisih YTD (Trx/Hari)',
+    'Pertumbuhan YTD (%)',
     'Status Tren'
   ];
 
@@ -2748,393 +2664,3 @@ async function submitBatchSurveyAction() {
   }, 1000);
 }
 window.submitBatchSurveyAction = submitBatchSurveyAction;
-
-
-// =============================================================================
-// TAB 5: ANALISA FRAUD SELF-TRANSACTION RESELLER (E-WALLET GESTUN)
-// =============================================================================
-
-async function fetchFraudData(monthCode = null) {
-  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
-  let url = `/api/reseller/fraud?brand=${brand}`;
-  if (monthCode) url += `&month=${monthCode}`;
-
-  try {
-    const res = await fetch(url + '&t=' + Date.now());
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'Gagal mengambil data Analisa Fraud');
-
-    agenUnifiedState.fraudRaw = json;
-    if (!agenUnifiedState.selectedMonth) {
-      agenUnifiedState.selectedMonth = json.month;
-    }
-  } catch (err) {
-    console.error('Error fetchFraudData:', err);
-    const tbody = document.getElementById('fraud-tbody');
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 30px; color: var(--negative);">Terjadi kesalahan: ${err.message}</td></tr>`;
-    }
-  }
-}
-
-function renderFraudKPI() {
-  const data = agenUnifiedState.fraudRaw;
-  if (!data) return;
-
-  const summary = data.summary || { total_fraud_resellers: 0, total_self_hits: 0, total_self_nominal: 0, avg_self_pct: 0.0 };
-
-  const countEl = document.getElementById('fraud-kpi-count');
-  if (countEl) countEl.textContent = Number(summary.total_fraud_resellers || 0).toLocaleString('id-ID');
-
-  const countSubEl = document.getElementById('fraud-kpi-count-sub');
-  if (countSubEl && data.total_targets) {
-    countSubEl.textContent = `Dari ${Number(data.total_targets).toLocaleString('id-ID')} target toko binaan SCO`;
-  }
-
-  const hitsEl = document.getElementById('fraud-kpi-hits');
-  if (hitsEl) hitsEl.textContent = Number(summary.total_self_hits || 0).toLocaleString('id-ID');
-
-  const nominalEl = document.getElementById('fraud-kpi-nominal');
-  if (nominalEl) nominalEl.textContent = 'Rp ' + Number(summary.total_self_nominal || 0).toLocaleString('id-ID');
-
-  const pctEl = document.getElementById('fraud-kpi-pct');
-  if (pctEl) pctEl.textContent = (summary.avg_self_pct || 0).toFixed(1) + '%';
-
-  // Status banner update
-  const bannerDesc = document.getElementById('fraud-banner-desc');
-  const badgeEl = document.getElementById('fraud-tujuan-badge');
-  if (data.has_tujuan_data) {
-    if (bannerDesc) bannerDesc.textContent = 'Sinkronisasi Aktif: Sistem otomatis mencocokkan nomor tujuan top-up e-wallet dengan database nomor HP reseller.';
-    if (badgeEl) {
-      badgeEl.style.background = 'rgba(16,185,129,0.1)';
-      badgeEl.style.color = '#059669';
-      badgeEl.style.borderColor = 'rgba(16,185,129,0.25)';
-      badgeEl.textContent = 'Data Tujuan Aktif';
-    }
-  } else {
-    if (bannerDesc) bannerDesc.textContent = 'Menunggu Data Tujuan: Menampilkan perimeter target reseller fisik under SCO (non-Prima) dengan histori e-wallet. Segera setelah file TSV baru dari OtomaX yang memuat kolom Tujuan diunggah, pencocokan self-trx langsung aktif.';
-    if (badgeEl) {
-      badgeEl.style.background = 'rgba(245,158,11,0.1)';
-      badgeEl.style.color = '#d97706';
-      badgeEl.style.borderColor = 'rgba(245,158,11,0.25)';
-      badgeEl.textContent = 'Menunggu TSV Tujuan';
-    }
-  }
-}
-
-function renderFraudControls() {
-  const data = agenUnifiedState.fraudRaw;
-  if (!data || !data.rows) return;
-
-  // Cabang dropdown
-  const cabangSel = document.getElementById('fraud-cabang-select');
-  if (cabangSel) {
-    const curVal = agenUnifiedState.fraud.cabang || 'ALL';
-    const cabangs = Array.from(new Set(data.rows.map(r => r.cabang).filter(Boolean))).sort();
-    cabangSel.innerHTML = '<option value="ALL">Semua Cabang</option>' +
-      cabangs.map(c => `<option value="${c}" ${c === curVal ? 'selected' : ''}>Cabang ${c}</option>`).join('');
-  }
-
-  // SCO dropdown
-  const scoSel = document.getElementById('fraud-sco-select');
-  if (scoSel) {
-    const curVal = agenUnifiedState.fraud.sco || 'ALL';
-    const scos = Array.from(new Set(data.rows.map(r => r.sco).filter(Boolean))).sort();
-    scoSel.innerHTML = '<option value="ALL">Semua Tim SCO</option>' +
-      scos.map(s => `<option value="${s}" ${s === curVal ? 'selected' : ''}>SCO ${s}</option>`).join('');
-  }
-}
-
-function applyFraudFilters() {
-  const data = agenUnifiedState.fraudRaw;
-  if (!data || !data.rows) return;
-
-  const modeSel = document.getElementById('fraud-mode-select');
-  const cabangSel = document.getElementById('fraud-cabang-select');
-  const scoSel = document.getElementById('fraud-sco-select');
-  const searchInput = document.getElementById('fraud-search-input');
-
-  const mode = modeSel ? modeSel.value : 'all';
-  const cabang = cabangSel ? cabangSel.value : 'ALL';
-  const sco = scoSel ? scoSel.value : 'ALL';
-  const search = searchInput ? searchInput.value.trim().toLowerCase() : '';
-
-  agenUnifiedState.fraud.mode = mode;
-  agenUnifiedState.fraud.cabang = cabang;
-  agenUnifiedState.fraud.sco = sco;
-  agenUnifiedState.fraud.search = search;
-
-  let filtered = data.rows.slice();
-
-  if (mode === 'fraud_only') {
-    filtered = filtered.filter(r => (r.self_hits || 0) > 0);
-  }
-
-  if (cabang !== 'ALL') {
-    filtered = filtered.filter(r => (r.cabang || '').toUpperCase() === cabang.toUpperCase());
-  }
-
-  if (sco !== 'ALL') {
-    filtered = filtered.filter(r => (r.sco || '').toUpperCase() === sco.toUpperCase());
-  }
-
-  if (search) {
-    filtered = filtered.filter(r => {
-      const kd = (r.kode_reseller || '').toLowerCase();
-      const nm = (r.nama_reseller || '').toLowerCase();
-      const ag = (r.nama_agen || '').toLowerCase();
-      const ph = (r.registered_phone || '').toLowerCase();
-      const sc = (r.sco || '').toLowerCase();
-      const tp = (r.target_phones || []).map(x => String(x).toLowerCase()).join(' ');
-      return kd.includes(search) || nm.includes(search) || ag.includes(search) || ph.includes(search) || sc.includes(search) || tp.includes(search);
-    });
-  }
-
-  agenUnifiedState.fraud.filteredRows = filtered;
-  agenUnifiedState.fraud.page = 1;
-
-  renderFraudTable();
-}
-
-function renderFraudTable() {
-  const filtered = agenUnifiedState.fraud.filteredRows || [];
-  const tbody = document.getElementById('fraud-tbody');
-  const rowCountBadge = document.getElementById('fraud-table-row-count');
-  const pageInfo = document.getElementById('fraud-table-page-info');
-  const btnPrev = document.getElementById('btn-fraud-page-prev');
-  const btnNext = document.getElementById('btn-fraud-page-next');
-  const pageNum = document.getElementById('fraud-page-current-num');
-
-  if (rowCountBadge) {
-    rowCountBadge.textContent = `${filtered.length.toLocaleString('id-ID')} baris`;
-  }
-
-  if (!filtered.length) {
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding: 40px; color: var(--text-muted);">Tidak ada data reseller yang cocok dengan filter.</td></tr>`;
-    }
-    if (pageInfo) pageInfo.textContent = 'Menampilkan 0 dari 0 data';
-    if (btnPrev) btnPrev.disabled = true;
-    if (btnNext) btnNext.disabled = true;
-    if (pageNum) pageNum.textContent = '1';
-    return;
-  }
-
-  const page = agenUnifiedState.fraud.page || 1;
-  const pageSize = agenUnifiedState.fraud.pageSize || 50;
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
-  const startIdx = (page - 1) * pageSize;
-  const endIdx = Math.min(startIdx + pageSize, filtered.length);
-  const pageRows = filtered.slice(startIdx, endIdx);
-
-  if (pageInfo) {
-    pageInfo.textContent = `Menampilkan ${startIdx + 1}–${endIdx} dari ${filtered.length.toLocaleString('id-ID')} data`;
-  }
-  if (pageNum) pageNum.textContent = `${page} / ${totalPages}`;
-  if (btnPrev) btnPrev.disabled = page <= 1;
-  if (btnNext) btnNext.disabled = page >= totalPages;
-
-  if (!tbody) return;
-
-  const html = pageRows.map((r, i) => {
-    const no = startIdx + i + 1;
-    const limitText = r.limit_saldo > 0
-      ? `Limit Rp ${Number(r.limit_saldo).toLocaleString('id-ID')}`
-      : 'Non Limit';
-
-    const phoneText = r.registered_phone && r.registered_phone !== '-'
-      ? r.registered_phone
-      : '-';
-
-    const pctEwNum = Number(r.pct_ewallet || 0);
-    const isHighEw = pctEwNum > 50;
-    const pctEwVal = pctEwNum.toFixed(1) + '%';
-    const pctEwStyle = isHighEw
-      ? 'color: #dc2626; font-weight: 700;'
-      : 'color: var(--text-main); font-weight: 500;';
-
-    const selfHitsVal = Number(r.self_hits || 0).toLocaleString('id-ID');
-    const selfNominalVal = 'Rp ' + Number(r.self_nominal || 0).toLocaleString('id-ID');
-    const selfPctVal = Number(r.self_pct || 0).toFixed(1) + '%';
-
-    return `
-      <tr style="cursor: pointer;" onclick="openFraudDetailModal('${r.kode_reseller}')">
-        <td style="text-align: center; color: var(--text-muted); font-size: 12px;">${no}</td>
-        <td>
-          <div style="font-weight: 600; color: var(--text-main); font-size: 13px;">${escapeHtml(r.nama_reseller)}</div>
-          <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">${r.kode_reseller}</div>
-        </td>
-        <td>
-          <div style="font-weight: 500; color: var(--text-main); font-size: 12.5px;">${r.cabang}</div>
-          <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(r.sco)}</div>
-        </td>
-        <td>
-          <div style="font-weight: 500; color: var(--text-main); font-size: 12.5px;">${escapeHtml(r.nama_agen)}</div>
-          <div style="font-size: 11px; color: var(--text-muted);">${limitText}</div>
-        </td>
-        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main);">${phoneText}</td>
-        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${Number(r.total_ew_hits || 0).toLocaleString('id-ID')}</td>
-        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; ${pctEwStyle}">${pctEwVal}</td>
-        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfHitsVal}</td>
-        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfNominalVal}</td>
-        <td class="text-right" style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-main);">${selfPctVal}</td>
-        <td class="text-center" onclick="event.stopPropagation();">
-          <button type="button" onclick="openFraudDetailModal('${r.kode_reseller}')" class="btn-table-action" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; cursor: pointer;">
-            Detail
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  tbody.innerHTML = html;
-}
-
-function prevFraudPage() {
-  if (agenUnifiedState.fraud.page > 1) {
-    agenUnifiedState.fraud.page--;
-    renderFraudTable();
-  }
-}
-
-function nextFraudPage() {
-  const filtered = agenUnifiedState.fraud.filteredRows || [];
-  const pageSize = agenUnifiedState.fraud.pageSize || 50;
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
-  if (agenUnifiedState.fraud.page < totalPages) {
-    agenUnifiedState.fraud.page++;
-    renderFraudTable();
-  }
-}
-
-function clearFraudSearch() {
-  const inp = document.getElementById('fraud-search-input');
-  if (inp) {
-    inp.value = '';
-    applyFraudFilters();
-  }
-}
-
-async function openFraudDetailModal(kodeReseller) {
-  if (!kodeReseller) return;
-  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
-  const month = agenUnifiedState.selectedMonth;
-
-  const modal = document.getElementById('fraud-detail-modal');
-  if (modal) modal.style.display = 'flex';
-
-  const nameEl = document.getElementById('fraud-modal-name');
-  const idEl = document.getElementById('fraud-modal-id');
-  const metaEl = document.getElementById('fraud-modal-meta');
-  const hitsEl = document.getElementById('fraud-modal-hits');
-  const nominalEl = document.getElementById('fraud-modal-nominal');
-  const phoneEl = document.getElementById('fraud-modal-phone');
-  const tbody = document.getElementById('fraud-modal-tbody');
-
-  if (nameEl) nameEl.textContent = 'Memuat rincian transaksi...';
-  if (idEl) idEl.textContent = kodeReseller;
-  if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);"><div class="loader">Memuat transaksi...</div></td></tr>`;
-
-  try {
-    const url = `/api/reseller/fraud/detail?brand=${brand}&kode_reseller=${kodeReseller}&month=${month || ''}&t=${Date.now()}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'Gagal memuat detail fraud');
-
-    const rs = json.reseller || {};
-    if (nameEl) nameEl.textContent = rs.nama_reseller || kodeReseller;
-    if (idEl) idEl.textContent = kodeReseller;
-    if (metaEl) {
-      const limText = rs.limit_saldo > 0 ? `Limit Rp ${Number(rs.limit_saldo).toLocaleString('id-ID')}` : (rs.agent_type || 'Non Limit');
-      const ewRatio = (rs.pct_ewallet !== undefined) ? ` • E-Wallet: ${rs.pct_ewallet}% (${Number(rs.total_ew_hits || 0).toLocaleString('id-ID')} / ${Number(rs.total_all_hits || 0).toLocaleString('id-ID')} trx)` : '';
-      metaEl.textContent = `Cabang ${rs.cabang || '-'} • Tim SCO: ${rs.sco || '-'} • Toko Induk: ${rs.nama_agen || '-'} (${limText})${ewRatio}`;
-    }
-    if (hitsEl) hitsEl.textContent = Number(json.total_self_hits || 0).toLocaleString('id-ID');
-    if (nominalEl) nominalEl.textContent = 'Rp ' + Number(json.total_self_nominal || 0).toLocaleString('id-ID');
-    if (phoneEl) {
-      const allPhones = (rs.candidate_phones && rs.candidate_phones.length) ? rs.candidate_phones.join(', ') : (rs.registered_phone || '-');
-      phoneEl.textContent = allPhones;
-    }
-
-    const items = json.items || [];
-    if (!items.length) {
-      if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);">Tidak ada transaksi self-topup yang ditemukan pada periode ini.</td></tr>`;
-      }
-      return;
-    }
-
-    if (tbody) {
-      tbody.innerHTML = items.map(it => `
-        <tr>
-          <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">${it.tgl_entry}</td>
-          <td style="font-family: var(--font-mono); font-size: 12px;">#${it.trx_id}</td>
-          <td><span class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb; font-weight: 700; font-size: 11px;">${it.product_id}</span></td>
-          <td style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #dc2626;">${it.nomor_tujuan}</td>
-          <td class="text-right" style="font-family: var(--font-mono); font-weight: 700; font-size: 12.5px;">Rp ${Number(it.harga_jual).toLocaleString('id-ID')}</td>
-          <td class="text-center"><span class="badge" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px;">${it.status}</span></td>
-        </tr>
-      `).join('');
-    }
-  } catch (err) {
-    console.error('Error openFraudDetailModal:', err);
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--negative);">Terjadi kesalahan: ${err.message}</td></tr>`;
-    }
-  }
-}
-
-function closeFraudDetailModal() {
-  const modal = document.getElementById('fraud-detail-modal');
-  if (modal) modal.style.display = 'none';
-}
-
-function exportFraudCSV() {
-  const filtered = agenUnifiedState.fraud.filteredRows || [];
-  if (!filtered.length) {
-    alert('Tidak ada data untuk diexport.');
-    return;
-  }
-
-  const brand = agenUnifiedState.currentBrand || 'ASTAGA';
-  const month = agenUnifiedState.selectedMonth || '2026';
-  const headers = ['Kode Reseller', 'Nama Reseller', 'Cabang', 'Tim SCO', 'Agen Induk', 'Tipe Agen', 'Plafon Limit', 'No HP Terdaftar', 'Total Trx EW', '% EWALLET', 'Hits Self-Trx', 'Nominal Self-Trx (Rp)', '% Self-Trx'];
-
-  const csvRows = [headers.join(',')];
-  filtered.forEach(r => {
-    const row = [
-      `"${r.kode_reseller}"`,
-      `"${(r.nama_reseller || '').replace(/"/g, '""')}"`,
-      `"${r.cabang}"`,
-      `"${(r.sco || '').replace(/"/g, '""')}"`,
-      `"${(r.nama_agen || '').replace(/"/g, '""')}"`,
-      `"${r.agent_type}"`,
-      r.limit_saldo || 0,
-      `"${r.registered_phone || ''}"`,
-      r.total_ew_hits || 0,
-      r.pct_ewallet || 0,
-      r.self_hits || 0,
-      r.self_nominal || 0,
-      r.self_pct || 0
-    ];
-    csvRows.push(row.join(','));
-  });
-
-  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Analisa_Fraud_${brand}_${month}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-// Global window exposure
-window.applyFraudFilters = applyFraudFilters;
-window.prevFraudPage = prevFraudPage;
-window.nextFraudPage = nextFraudPage;
-window.clearFraudSearch = clearFraudSearch;
-window.openFraudDetailModal = openFraudDetailModal;
-window.closeFraudDetailModal = closeFraudDetailModal;
-window.exportFraudCSV = exportFraudCSV;

@@ -17,6 +17,7 @@ from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+DIR_DMS_MASTER = r"C:\DMS RAW DATA\MASTER"
 DIR_DEPAS = r"C:\DEPASMYID\RESELLER"
 
 def clean_phone(raw):
@@ -62,7 +63,9 @@ def main():
     })
 
     # Baca KONTAK_ASTAGA.tsv
-    path_astaga = os.path.join(DIR_DEPAS, "KONTAK_ASTAGA.tsv")
+    path_astaga = os.path.join(DIR_DMS_MASTER, "KONTAK_ASTAGA.tsv")
+    if not os.path.exists(path_astaga):
+        path_astaga = os.path.join(DIR_DEPAS, "KONTAK_ASTAGA.tsv")
     if os.path.exists(path_astaga):
         print(f"=== [2/4] Membaca {path_astaga} ===")
         with open(path_astaga, 'r', encoding='utf-8', errors='ignore') as f:
@@ -95,7 +98,9 @@ def main():
                     entry["sms_candidates"].append(p)
 
     # Baca KONTAK_OKIPAY.tsv
-    path_okipay = os.path.join(DIR_DEPAS, "KONTAK_OKIPAY.tsv")
+    path_okipay = os.path.join(DIR_DMS_MASTER, "KONTAK_OKIPAY.tsv")
+    if not os.path.exists(path_okipay):
+        path_okipay = os.path.join(DIR_DEPAS, "KONTAK_OKIPAY.tsv")
     if os.path.exists(path_okipay):
         print(f"=== [3/4] Membaca {path_okipay} ===")
         with open(path_okipay, 'r', encoding='utf-8', errors='ignore') as f:

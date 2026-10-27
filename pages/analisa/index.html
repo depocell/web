@@ -1,58 +1,140 @@
 <!-- PAGES/ANALISA/INDEX.HTML — Dashboard Analisa (Chart Only, Tren Bulanan 2023-2026) -->
+<style>
+  .analisa-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-family: var(--font-sans);
+  }
 
-<div id="analisa-view-container" style="display: flex; flex-direction: column; gap: 20px; font-family: var(--font-sans);">
+  /* HEADER */
+  .analisa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 
-  <!-- TOP HEADER & TITLE STRIP (Google Aesthetics & Plus Jakarta Sans) -->
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <h2
-          style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin: 0; color: var(--text-main);">
-          Analisa Operasional
-        </h2>
+  .analisa-title-group h1 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .analisa-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .analisa-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0284c7;
+  }
+
+  /* TABS NAVIGATION (MODEL YoY) */
+  .analisa-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+  }
+
+  .analisa-tab-btn,
+  .analisa-subtab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+  }
+
+  .analisa-tab-btn:hover,
+  .analisa-subtab-btn:hover {
+    color: var(--text-main);
+    background: transparent;
+  }
+
+  .analisa-tab-btn.active,
+  .analisa-subtab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: transparent;
+    box-shadow: none;
+  }
+</style>
+
+<div id="analisa-view-container" class="analisa-container">
+
+  <!-- TOP HEADER -->
+  <div class="analisa-header">
+    <div class="analisa-title-group">
+      <h1>Analisa Operasional</h1>
+      <div class="analisa-period-pill">
+        <span class="analisa-period-dot"></span>
+        <span id="analisa-period-label">Tren Multi-Tahun (2023 - 2026) • Distribusi, Service &amp; Supplier</span>
       </div>
-      
     </div>
+  </div>
 
-    <!-- SUB-TAB SWITCHER BUTTONS (TWO-TIER NAVIGATION) & ACTIONS -->
-    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-      <div
-        style="display: flex; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; padding: 4px; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); flex-wrap: wrap;">
-        <button type="button" id="tab-btn-distribusi" onclick="switchAnalisaTab('distribusi')"
-          class="analisa-subtab-btn active">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          <span>Analisa Distribusi</span>
-        </button>
-        <button type="button" id="tab-btn-service" onclick="switchAnalisaTab('service')" class="analisa-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path
-              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-            </path>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-          </svg>
-          <span>Analisa Service</span>
-        </button>
-        <button type="button" id="tab-btn-supplier" onclick="switchAnalisaTab('supplier')" class="analisa-subtab-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-            <line x1="6" y1="6" x2="6.01" y2="6"></line>
-            <line x1="6" y1="18" x2="6.01" y2="18"></line>
-          </svg>
-          <span>Analisa Supplier</span>
-        </button>
-      </div>
-
-    </div>
+  <!-- TAB NAVIGATION (MODEL YoY) -->
+  <div class="analisa-tabs">
+    <button type="button" id="tab-btn-distribusi" onclick="switchAnalisaTab('distribusi')"
+      class="analisa-tab-btn active">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <span>Tab 1: Analisa Distribusi</span>
+    </button>
+    <button type="button" id="tab-btn-service" onclick="switchAnalisaTab('service')" class="analisa-tab-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path
+          d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+        </path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+      <span>Tab 2: Analisa Service</span>
+    </button>
+    <button type="button" id="tab-btn-supplier" onclick="switchAnalisaTab('supplier')" class="analisa-tab-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+      </svg>
+      <span>Tab 3: Analisa Supplier</span>
+    </button>
   </div>
 
   <!-- ========================================================================= -->
@@ -750,32 +832,6 @@
     background: var(--primary);
     color: #ffffff;
     border-color: var(--primary);
-  }
-
-  .analisa-subtab-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-  }
-
-  .analisa-subtab-btn:hover {
-    color: var(--text-main);
-    background: rgba(0, 0, 0, 0.03);
-  }
-
-  .analisa-subtab-btn.active {
-    background: var(--primary);
-    color: #ffffff;
-    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
   }
 
   .product-filter-select {

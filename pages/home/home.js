@@ -28,8 +28,8 @@ function renderOverviewMatrix(data) {
 
   const rCust = document.getElementById("ribbon-active-cust");
   const rCustSub = document.getElementById("ribbon-active-sub");
-  if (rCust) rCust.textContent = `${formatNum(t.active_cust)} Member`;
-  if (rCustSub) rCustSub.textContent = `${formatNum(t.retained_cust)} Toko/Member Setia (Retained)`;
+  if (rCust) rCust.textContent = `${formatNum(t.active_cust)} Reseller`;
+  if (rCustSub) rCustSub.textContent = `${formatNum(t.retained_cust)} Reseller Setia (Retained)`;
 
   const rSla = document.getElementById("ribbon-sla");
   const rSlaSub = document.getElementById("ribbon-sla-sub");
@@ -95,49 +95,65 @@ function renderOverviewMatrix(data) {
       <td class="col-total"><strong>${t.sukses_str}</strong></td>
     </tr>
 
-    <!-- SECTION II: KESEHATAN BASIS TOKO & MEMBER (AGEN) -->
+    <!-- SECTION II: KESEHATAN BASIS RESELLER (#AGEN TAB RESELLER) -->
     <tr class="matrix-section-row">
-      <td colspan="4">II. KESEHATAN BASIS TOKO &amp; MEMBER (AGEN &amp; RESELLER)</td>
+      <td colspan="4">II. KESEHATAN BASIS RESELLER (#AGEN TAB RESELLER)</td>
     </tr>
     <tr>
       <td class="col-metric">
-        <span class="metric-bullet"></span>Toko / Member Aktif Bertransaksi
+        <span class="metric-bullet"></span>Reseller Aktif Bertransaksi
       </td>
-      <td class="col-astaga"><strong>${formatNum(a.active_cust)}</strong> toko</td>
+      <td class="col-astaga"><strong>${formatNum(a.active_cust)}</strong> reseller</td>
       <td class="col-okipay"><strong>${formatNum(o.active_cust)}</strong> akun</td>
-      <td class="col-total"><strong>${formatNum(t.active_cust)}</strong> member</td>
+      <td class="col-total"><strong>${formatNum(t.active_cust)}</strong> reseller</td>
     </tr>
     <tr>
       <td class="col-metric">
-        <span class="metric-bullet"></span>Pelanggan Setia (Retained Toko)
+        <span class="metric-bullet"></span>Avg Daily Member
       </td>
-      <td class="col-astaga">${formatNum(a.retained_cust)} toko</td>
+      <td class="col-astaga"><strong>${formatNum(a.avg_daily_mem)}</strong> <span style="font-size:11px; color:var(--text-muted);">member/hari</span></td>
+      <td class="col-okipay"><strong>${formatNum(o.avg_daily_mem)}</strong> <span style="font-size:11px; color:var(--text-muted);">akun/hari</span></td>
+      <td class="col-total"><strong>${formatNum(t.avg_daily_mem)}</strong> <span style="font-size:11px; color:var(--text-muted);">member/hari</span></td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Reseller Setia (Retained)
+      </td>
+      <td class="col-astaga">${formatNum(a.retained_cust)} reseller</td>
       <td class="col-okipay">${formatNum(o.retained_cust)} akun</td>
-      <td class="col-total">${formatNum(t.retained_cust)} member</td>
+      <td class="col-total">${formatNum(t.retained_cust)} reseller</td>
     </tr>
     <tr>
       <td class="col-metric">
-        <span class="metric-bullet"></span>Toko Baru &amp; Reaktivasi (+)
+        <span class="metric-bullet"></span>Reseller Reaktivasi (+)
       </td>
-      <td class="col-astaga"><span style="color:#059669; font-weight:600;">+${formatNum(a.new_and_reactivated)}</span> toko</td>
-      <td class="col-okipay"><span style="color:#059669; font-weight:600;">+${formatNum(o.new_and_reactivated)}</span> akun</td>
-      <td class="col-total"><span style="color:#059669; font-weight:700;">+${formatNum(t.new_and_reactivated)}</span> member</td>
+      <td class="col-astaga"><span style="color:#059669; font-weight:600;">+${formatNum(a.reactivated_cust)}</span> reseller</td>
+      <td class="col-okipay"><span style="color:#059669; font-weight:600;">+${formatNum(o.reactivated_cust)}</span> akun</td>
+      <td class="col-total"><span style="color:#059669; font-weight:700;">+${formatNum(t.reactivated_cust)}</span> reseller</td>
     </tr>
     <tr>
       <td class="col-metric">
-        <span class="metric-bullet"></span>Toko Berhenti / Churn (-)
+        <span class="metric-bullet"></span>Reseller Baru Terdaftar (+)
       </td>
-      <td class="col-astaga"><span style="color:#dc2626; font-weight:600;">-${formatNum(a.churn_cust)}</span> toko</td>
+      <td class="col-astaga"><span style="color:#0284c7; font-weight:600;">+${formatNum(a.new_cust)}</span> reseller</td>
+      <td class="col-okipay"><span style="color:#0284c7; font-weight:600;">+${formatNum(o.new_cust)}</span> akun</td>
+      <td class="col-total"><span style="color:#0284c7; font-weight:700;">+${formatNum(t.new_cust)}</span> reseller</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Reseller Pasif / Churn (-)
+      </td>
+      <td class="col-astaga"><span style="color:#dc2626; font-weight:600;">-${formatNum(a.churn_cust)}</span> reseller</td>
       <td class="col-okipay"><span style="color:#dc2626; font-weight:600;">-${formatNum(o.churn_cust)}</span> akun</td>
-      <td class="col-total"><span style="color:#dc2626; font-weight:700;">-${formatNum(t.churn_cust)}</span> member</td>
+      <td class="col-total"><span style="color:#dc2626; font-weight:700;">-${formatNum(t.churn_cust)}</span> reseller</td>
     </tr>
     <tr>
       <td class="col-metric">
-        <span class="metric-bullet"></span>Produktivitas Toko (Daily Trx / Member)
+        <span class="metric-bullet"></span>Produktivitas Reseller (Daily Trx / Reseller)
       </td>
-      <td class="col-astaga"><strong>${Number(a.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/hari</span></td>
-      <td class="col-okipay"><strong>${Number(o.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/hari</span></td>
-      <td class="col-total"><strong>${Number(t.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/hari</span></td>
+      <td class="col-astaga"><strong>${Number(a.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/reseller/hari</span></td>
+      <td class="col-okipay"><strong>${Number(o.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/reseller/hari</span></td>
+      <td class="col-total"><strong>${Number(t.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/reseller/hari</span></td>
     </tr>
 
     <!-- SECTION III: SALURAN & PORSI PENJUALAN -->

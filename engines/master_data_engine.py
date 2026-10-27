@@ -23,7 +23,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MASTER_DIR = os.path.join(BASE_DIR, "MASTER")
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 DB_PATH = os.path.join(MASTER_DIR, "master_data.db")
-RAW_DATA_ROOT = r"C:\RAW DATA"
+DMS_RAW_DATA_ROOT = r"C:\DMS RAW DATA"
+RAW_DATA_ROOT = r"C:\DMS RAW DATA"
 
 # Definisi Akun Cabang ASTAGA
 ASTAGA_BRANCH_MAP = {
@@ -115,13 +116,25 @@ def has_active_date(val) -> bool:
 
 def find_latest_reseller_tsv(brand: str) -> str:
     """
-    Mencari file TSV reseller terbaru di C:\\RAW DATA\\<BRAND>\\.
-    Mendukung penamaan Reseller-YYYYMMDD.tsv atau file .tsv apa pun di folder tersebut.
-    Jika tidak ditemukan di RAW DATA, fallback ke MASTER/<brand>.tsv.
+    Mencari file TSV reseller terbaru di C:\\DMS RAW DATA\\MASTER\\ (RS_<BRAND>.tsv)
+    atau C:\\DMS RAW DATA\\<BRAND>\\. Fallback ke MASTER/<brand>.tsv jika tidak ada.
     """
     brand = brand.upper()
-    raw_folder = os.path.join(RAW_DATA_ROOT, brand)
     candidates = []
+
+    # 1. Cek C:\\DMS RAW DATA\\MASTER\\
+    dms_master = os.path.join(DMS_RAW_DATA_ROOT, "MASTER")
+    if os.path.isdir(dms_master):
+        exact_rs = os.path.join(dms_master, f"RS_{brand}.tsv")
+        if os.path.exists(exact_rs):
+            candidates.append((os.path.getmtime(exact_rs), exact_rs))
+        for entry in os.scandir(dms_master):
+            if entry.is_file() and entry.name.lower().endswith(".tsv"):
+                if brand.lower() in entry.name.lower() and not entry.name.lower().startswith("kontak"):
+                    candidates.append((entry.stat().st_mtime, entry.path))
+
+    # 2. Cek subfolder brand di DMS RAW DATA
+    raw_folder = os.path.join(DMS_RAW_DATA_ROOT, brand)
     if os.path.isdir(raw_folder):
         for entry in os.scandir(raw_folder):
             if entry.is_file() and entry.name.lower().endswith(".tsv"):
@@ -284,6 +297,50 @@ def init_db():
         conn.commit()
 
 
+
+def export_dim_csvs_to_dms(brand: str):
+    """Mengekspor tabel dimensi ke DMS RAW DATA MASTER"""
+    try:
+        brand = brand.upper()
+        dms_master = r"C:\DMS RAW DATA\MASTER"
+        if not os.path.isdir(dms_master):
+            return
+        with get_connection() as conn:
+            # 1. Dim_Agent
+            q_agent = '''
+                SELECT agen_id, nama_agen, cabang, type, sco, dso,
+                       CAST(ROUND(COALESCE(limit_saldo, 0)) AS INTEGER) AS limit_saldo,
+                       CAST(ROUND(COALESCE(markup, 0)) AS INTEGER) AS markup,
+                       tgl_daftar, tgl_aktivitas_terakhir, jadwal, location, kota_kab, kecamatan, kelurahan
+                FROM agents WHERE brand = ? ORDER BY agen_id
+            '''
+            df_agent = pd.read_sql_query(q_agent, conn, params=(brand,))
+            df_agent.to_csv(os.path.join(dms_master, f"Dim_Agent_{brand}.csv"), index=False, encoding='utf-8-sig')
+
+            # 2. Dim_Customer
+            q_cust = '''
+                SELECT r.kode_reseller, r.nama_reseller, r.grup, r.kode_upline, r.root_agen_id, 
+                       r.cabang, r.leveling, a.nama_agen AS nama_root_agen, a.type, a.sco, 
+                       CAST(ROUND(COALESCE(r.limit_saldo, 0)) AS INTEGER) AS limit_saldo,
+                       CAST(ROUND(COALESCE(r.markup, 0)) AS INTEGER) AS markup
+                FROM resellers r
+                LEFT JOIN agents a ON r.root_agen_id = a.agen_id AND r.brand = a.brand
+                WHERE r.brand = ? ORDER BY r.kode_reseller
+            '''
+            df_cust = pd.read_sql_query(q_cust, conn, params=(brand,))
+            df_cust.to_csv(os.path.join(dms_master, f"Dim_Customer_{brand}.csv"), index=False, encoding='utf-8-sig')
+
+            # 3. Dim_Product
+            q_prod = '''
+                SELECT kode_produk, nama_produk, kategori, operator, paket
+                FROM products WHERE brand = ? ORDER BY kode_produk
+            '''
+            df_prod = pd.read_sql_query(q_prod, conn, params=(brand,))
+            df_prod.to_csv(os.path.join(dms_master, f"Dim_Product_{brand}.csv"), index=False, encoding='utf-8-sig')
+            print(f"[DMS-MASTER] Berhasil export Dim CSV {brand} ke {dms_master}")
+    except Exception as e:
+        print(f"[WARN] Gagal export Dim CSV ke DMS RAW DATA: {e}")
+
 def migrate_astaga(tsv_path: str = None) -> dict:
     """
     Migrasi / Sinkronisasi data ASTAGA:
@@ -306,6 +363,16 @@ def migrate_astaga(tsv_path: str = None) -> dict:
         df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="utf-8")
     except UnicodeDecodeError:
         df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="latin-1")
+    df_tsv.columns = df_tsv.columns.astype(str).str.strip()
+
+    if 'Kode' not in df_tsv.columns:
+        if any(c in df_tsv.columns for c in ['TrxID', 'Produk', 'Tgl. Entri']):
+            return {"ok": False, "error": "File yang Anda unggah adalah file TRANSAKSI (TrxID), bukan Master Reseller. Silakan upload file ini ke card 'Pilih / Drag File TSV OtomaX (Otomatis Upsert ke Parquet)' di Tab 1 Ingestion."}
+        elif any(c in df_tsv.columns for c in ['Pengirim', 'Tipe']):
+            return {"ok": False, "error": "File yang Anda unggah adalah file KONTAK (Pengirim). File Master Reseller harus berisi kolom: Kode, Nama, Grup, Kode Upline, Saldo."}
+        else:
+            return {"ok": False, "error": f"Kolom 'Kode' tidak ditemukan. Kolom yang terdeteksi: {list(df_tsv.columns)[:5]}"}
+
     print(f"[MIGRATE] Membaca {len(df_tsv):,} raw baris dari {os.path.basename(tsv_path)}.")
 
     # Baca metadata existing dari database agents terlebih dahulu agar edit manual / SCO tidak hilang
@@ -478,6 +545,7 @@ def migrate_astaga(tsv_path: str = None) -> dict:
 
     # Refresh Parquet cache & memory cache
     sync_to_parquet("ASTAGA")
+    export_dim_csvs_to_dms("ASTAGA")
     try:
         import engines.customer_engine as ce
         ce.clear_cache()
@@ -518,6 +586,16 @@ def migrate_okipay(tsv_path: str = None) -> dict:
         df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="utf-8")
     except UnicodeDecodeError:
         df_tsv = pd.read_csv(tsv_path, sep="\t", encoding="latin-1")
+    df_tsv.columns = df_tsv.columns.astype(str).str.strip()
+
+    if 'Kode' not in df_tsv.columns:
+        if any(c in df_tsv.columns for c in ['TrxID', 'Produk', 'Tgl. Entri']):
+            return {"ok": False, "error": "File yang Anda unggah adalah file TRANSAKSI (TrxID), bukan Master Reseller. Silakan upload file ini ke card 'Pilih / Drag File TSV OtomaX (Otomatis Upsert ke Parquet)' di Tab 1 Ingestion."}
+        elif any(c in df_tsv.columns for c in ['Pengirim', 'Tipe']):
+            return {"ok": False, "error": "File yang Anda unggah adalah file KONTAK (Pengirim). File Master Reseller harus berisi kolom: Kode, Nama, Grup, Kode Upline, Saldo."}
+        else:
+            return {"ok": False, "error": f"Kolom 'Kode' tidak ditemukan. Kolom yang terdeteksi: {list(df_tsv.columns)[:5]}"}
+
     print(f"[MIGRATE] Membaca {len(df_tsv):,} raw baris dari {os.path.basename(tsv_path)}.")
 
     # Baca metadata existing dari database agents terlebih dahulu agar edit manual tidak hilang
@@ -686,6 +764,7 @@ def migrate_okipay(tsv_path: str = None) -> dict:
 
     # Refresh Parquet cache & memory cache
     sync_to_parquet("OKIPAY")
+    export_dim_csvs_to_dms("OKIPAY")
     try:
         import engines.customer_engine as ce
         ce.clear_cache()

@@ -543,37 +543,37 @@
     </div>
 
     <!-- STAT KPI SUMMARY CARDS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 14px;"
-      id="master-kpi-cards">
-      <div class="card-box" style="padding: 16px 18px;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Agen (Induk)</div>
-        <div style="font-size: 24px; font-weight: 800; color: var(--primary); font-family: var(--font-mono); margin-top: 4px;" id="kpi-total-agents">-</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Entitas induk terdaftar</div>
+    <!-- STAT KPI SUMMARY CARDS (PADAT GABUNGAN) -->
+    <div class="master-unified-kpi-bar" id="master-kpi-cards">
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Total Agen (Induk)</div>
+        <div class="master-kpi-val" style="color: var(--primary);" id="kpi-total-agents">-</div>
+        <div class="master-kpi-sub">Entitas induk terdaftar</div>
       </div>
-      <div class="card-box" style="padding: 16px 18px;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tim Sales (SCO)</div>
-        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;" id="kpi-sales-sco">-</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Ber-PIC sales lapangan</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Tim Sales (SCO)</div>
+        <div class="master-kpi-val" style="color: #16a34a;" id="kpi-sales-sco">-</div>
+        <div class="master-kpi-sub">Ber-PIC sales lapangan</div>
       </div>
-      <div class="card-box" style="padding: 16px 18px;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang (NON SCO)</div>
-        <div style="font-size: 24px; font-weight: 800; color: #475569; font-family: var(--font-mono); margin-top: 4px;" id="kpi-non-sco">-</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Omset langsung cabang fisik</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Cabang (NON SCO)</div>
+        <div class="master-kpi-val" style="color: #475569;" id="kpi-non-sco">-</div>
+        <div class="master-kpi-sub">Omset langsung cabang fisik</div>
       </div>
-      <div class="card-box" style="padding: 16px 18px;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang ONLINE</div>
-        <div style="font-size: 24px; font-weight: 800; color: #2563eb; font-family: var(--font-mono); margin-top: 4px;" id="kpi-online-sco">-</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Mandiri via PlayStore</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Cabang ONLINE</div>
+        <div class="master-kpi-val" style="color: #2563eb;" id="kpi-online-sco">-</div>
+        <div class="master-kpi-sub">Mandiri via PlayStore</div>
       </div>
-      <div class="card-box" style="padding: 16px 18px;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Belum Dipetakan</div>
-        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;" id="kpi-unmapped-sco">-</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="kpi-unmapped-sco-sub">Semua agen terpetakan</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Belum Dipetakan</div>
+        <div class="master-kpi-val" style="color: #16a34a;" id="kpi-unmapped-sco">-</div>
+        <div class="master-kpi-sub" id="kpi-unmapped-sco-sub">Semua agen terpetakan</div>
       </div>
-      <div class="card-box" style="padding: 16px 18px;">
-        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Reseller (MLM)</div>
-        <div style="font-size: 24px; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); margin-top: 4px;" id="kpi-total-resellers">-</div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Seluruh downline &amp; agen</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Total Reseller (MLM)</div>
+        <div class="master-kpi-val" style="color: var(--text-main);" id="kpi-total-resellers">-</div>
+        <div class="master-kpi-sub">Seluruh downline &amp; agen</div>
       </div>
     </div>
 
@@ -2217,6 +2217,84 @@
 
   .btn-system-refresh:hover svg {
     transform: rotate(180deg);
+  }
+
+  /* MASTER KPI CONTAINER (PADAT GABUNGAN) */
+  .master-unified-kpi-bar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .master-kpi-segment {
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid var(--surface-border);
+  }
+
+  .master-kpi-segment:last-child {
+    border-right: none;
+  }
+
+  .master-kpi-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .master-kpi-val {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    margin-top: 4px;
+    line-height: 1.2;
+  }
+
+  .master-kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 1200px) {
+    .master-unified-kpi-bar {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .master-kpi-segment:nth-child(3) {
+      border-right: none;
+    }
+    .master-kpi-segment:nth-child(1),
+    .master-kpi-segment:nth-child(2),
+    .master-kpi-segment:nth-child(3) {
+      border-bottom: 1px solid var(--surface-border);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .master-unified-kpi-bar {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .master-kpi-segment {
+      border-right: 1px solid var(--surface-border);
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .master-kpi-segment:nth-child(2n) {
+      border-right: none;
+    }
+    .master-kpi-segment:nth-last-child(-n+2) {
+      border-bottom: none;
+    }
   }
 </style>
 

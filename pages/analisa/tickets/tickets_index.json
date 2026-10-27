@@ -1,10 +1,40 @@
 [
   {
+    "ticket_id": "TKT-20261027-184909",
+    "created_at": "2026-10-27 18:49:09",
+    "prompt": "nah 12 toko baru itu apa saja? bisa kasih saya listnya saja?",
+    "requirement": "Tarik detail nama pemilik dan nomor WhatsApp untuk 12 list agen baru ASTAGA Oktober 2026",
+    "status": "PENDING"
+  },
+  {
+    "ticket_id": "TKT-20261027-105131",
+    "created_at": "2026-10-27 10:51:31",
+    "prompt": "berapa penjualan fisik dalam rupiah DSO BIM tahun ini per bulannya, kamu ada ga datanya?",
+    "requirement": "Tarik data laporan penjualan fisik dalam rupiah DSO BIM per bulan tahun ini",
+    "status": "RESOLVED",
+    "resolved_at": "2026-10-27 11:09:23",
+    "resolved_by": "Ompasha Agent (Local Data Center)",
+    "resolution_note": "Data penjualan fisik DSO BIM tahun 2026 telah diidentifikasi di pages/fisik/*.xls dan dilaporkan kepada Bro (Total Rp 381.355.400 / 30.019 pcs)."
+  },
+  {
+    "ticket_id": "TKT-20261027-102350",
+    "created_at": "2026-10-27 10:23:50",
+    "prompt": "tapi gambarnya kok masih yang tanggal 20 bro? belum tanggal 26?",
+    "requirement": "Request update render ulang gambar/dashboard visual agar sinkron dengan cut-off data tanggal 26 Okto",
+    "status": "RESOLVED",
+    "resolution_note": "Data ASTAGA & OKIPAY telah terverifikasi sinkron di lokal s/d cut-off 26 Oktober 2026 (26 hari kalender). Snapshot data.json sudah aktif untuk @depas_ai_bot.",
+    "resolved_at": "2026-10-27 10:46:57",
+    "resolved_by": "Ompasha Agent (Local Data Center)"
+  },
+  {
     "ticket_id": "TKT-20261026-062529",
     "created_at": "2026-10-26 06:25:29",
     "prompt": "tadi sy sudah updates sd 25, coba cek lokal",
     "requirement": "Tarik dan sinkronisasi data snapshot terbaru server ASTAGA & OKIPAY per cut-off 25 Oktober 2026",
-    "status": "PENDING"
+    "status": "RESOLVED",
+    "resolution_note": "Data ASTAGA & OKIPAY telah terverifikasi sinkron di lokal s/d cut-off 26 Oktober 2026 (26 hari kalender). Snapshot data.json sudah aktif untuk @depas_ai_bot.",
+    "resolved_at": "2026-10-27 10:01:02",
+    "resolved_by": "Ompasha Agent (Local Data Center)"
   },
   {
     "ticket_id": "TKT-20261022-094941",

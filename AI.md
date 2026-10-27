@@ -1,129 +1,212 @@
 # 🤖 DOKUMENTASI ARSITEKTUR & EKOSISTEM AI DEPAS
 
-Dokumen ini adalah panduan resmi dan catatan teknis mengenai arsitektur kecerdasan buatan (**Google Gemini AI**) serta integrasi multi-kanal (**WhatsApp Gateway & Telegram Bot**) di dalam ekosistem **Web Report Depo Cell (My Astaga! & OKIPAY)**.
+Dokumen ini adalah panduan resmi dan catatan teknis mengenai arsitektur kecerdasan buatan (**Google Gemini AI**) serta integrasi multi-kanal (**Telegram Bot & Controller**) di dalam ekosistem **Web Report Depo Cell (My Astaga! & OKIPAY)**.
+
+> [!IMPORTANT]
+> **STATUS INFRASTRUKTUR SAAT INI:**  
+> 1. **Server VPS:** **DINONAKTIFKAN TOTAL (OFF TOTAL / DECOMMISSIONED).**  
+> 2. **WhatsApp Gateway (Port 3000):** **DINONAKTIFKAN TOTAL (OFF TOTAL).** Seluruh aktivitas blast survei dan gateway outbound telah dihentikan permanen. Seluruh master data kontak valid dan histori tersimpan aman di database SQLite lokal.  
+> 3. **Pusat Ekosistem:** Seluruh infrastruktur Web Report, engine analitik, database, dan AI Bot kini berjalan **100% di Laptop Localhost**, dengan akses publik internet via **Cloudflare Tunnel (`https://depas.my.id`)**.
 
 ---
 
-## 1. Roadmap & Pemisahan 3 Modul (3-Room Architecture)
+## 1. Roadmap & Pemisahan 4 Modul (Multi-Agent Architecture)
 
-Untuk menjaga stabilitas operasional, keamanan data, dan menghindari tumpang tindih dengan divisi lain (terutama Divisi Customer Service resmi di nomor `0857-7197-5556`), ekosistem AI dibagi tegas menjadi 3 modul:
+Untuk menjaga stabilitas operasional, keamanan data, dan pemisahan wewenang, ekosistem AI dibagi tegas menjadi 4 modul:
 
-| Modul | Kanal & Endpoint | Karakteristik & Kebijakan | Status Implementasi |
+| Modul | Kanal & Endpoint | Karakteristik & Kebijakan | Status Operasional |
 | :--- | :--- | :--- | :--- |
-| **Task 1: WA Gateway Survei Churn** | WhatsApp (`081389779977`) via Baileys Port 3000 | • **Tanpa AI bebas** (menghindari jawaban salah / janji palsu ke konsumen).<br>• Outbound blast terukur dan terjadwal.<br>• Validasi nomor WhatsApp aktif (`onWhatsApp`).<br>• 1x Pesan penutup apresiasi mengarahkan ke CS resmi `0857-7197-5556`.<br>• Chat lanjutan dapat dibalas langsung manual lewat HP WhatsApp fisik bot. | **100% Selesai & Aktif di VPS** |
-| **Task 2: AI Copilot di Web Report** | Dashboard `depas.my.id` (Menu Chat / Widget) | • Chat widget terintegrasi langsung di dashboard browser.<br>• Otak: Google Gemini Flash via `.env`.<br>• Analisa data transaksi internal, cabang, dan produk secara interaktif.<br>• Menghasilkan ringkasan visual & tabel on-demand. | **Ditahan Sementara** (menunggu pengerjaan tim sebelah selesai) |
-| **Task 3: AI Asisten Pribadi Telegram** | Telegram Bot: **`@depas_ai_bot`** ([t.me/depas_ai_bot](https://t.me/depas_ai_bot)) | • Asisten pribadi 24 jam di smartphone manajemen.<br>• **100% Resmi & Anti-Banned** via Telegram Bot API.<br>• Fitur: Cek kesehatan VPS (`/server`), Daily Report (`/summary`), dan tanya jawab bebas berbasis Gemini AI.<br>• Service background: `depas-telebot.service`. | **100% Selesai & Aktif di VPS** |
+| **Task 1: WA Gateway Survei Churn** | WhatsApp (`081389779977`) Port 3000 | • Outbound blast survei churn & validasi `onWhatsApp`.<br>• Mengarahkan ke CS resmi `0857-7197-5556`.<br>• Layanan saat ini telah dihentikan total.<br>• Master database kontak valid tetap diarsipkan di lokal. | 🔴 **OFF TOTAL (Dinonaktifkan)** |
+| **Task 2: AI Copilot di Web Report** | Dashboard `depas.my.id` (Menu Chat / Widget) | • Chat widget terintegrasi langsung di dashboard browser.<br>• Otak: Google Gemini Flash via `.env`.<br>• Analisa data transaksi internal, cabang, dan produk secara interaktif.<br>• Menghasilkan ringkasan visual & tabel on-demand. | **Ditahan Sementara** (Dialihkan ke Bot Telegram) |
+| **Task 3: AI Asisten Eksekutif Telegram** | Telegram Bot: **`@depas_ai_bot`** ([t.me/depas_ai_bot](https://t.me/depas_ai_bot)) | • Asisten pribadi & reader data 24 jam untuk manajemen (**Bossque**).<br>• **100% Resmi & Anti-Banned** via Telegram Bot API.<br>• Fitur: Daily Report HD (`/summary`), performa cabang (`/cabang`), audit supplier (`/supplier`), pantau tiket eskalasi (`/tiket`), dan tanya jawab data transaksi.<br>• Mode: **Read-Only Data** dengan *Zero Hallucination*. | 🟢 **100% Aktif di Laptop** (`tele_bot.py`) |
+| **Task 4: Ompasha Laptop Dev Agent** | Telegram Bot: **`@ompasha_bot`** ([t.me/ompasha_bot](https://t.me/ompasha_bot)) | • Asisten dev & controller laptop pribadi (**Bro**) di `C:\LAPTOP_AGENT`.<br>• **Gemini Function Calling (Tool Use)**: PowerShell (`run_command`), baca/tulis/edit file, cek direktori.<br>• **Local Data Center**: Menyelesaikan tiket eskalasi (`resolve_ticket`) dari `@depas_ai_bot`.<br>• **Remote Control 100% Silent**: Menyalakan/mematikan Web Report port 8000 & Cloudflare Tunnel. | 🟢 **100% Aktif di Laptop** (`agent.py`) |
 
 ---
 
-## 2. Kredensial & Konfigurasi Environment (`.env`)
+## 2. Kredensial & Konfigurasi Environment (`.env` & `config.json`)
 
-Seluruh kunci rahasia disimpan di file `.env` di root server (`c:\WEB REPORT\.env` di lokal dan `/var/www/webreport/.env` di VPS) dengan izin akses ketat (`chmod 600`), serta didaftarkan ke `.gitignore` agar tidak pernah terunggah ke repositori publik:
+Seluruh kredensial rahasia disimpan di penyimpanan lokal laptop dan didaftarkan ke `.gitignore` agar tidak pernah terunggah ke repositori publik:
 
+### A. Environment Web Report & DepAs Copilot (`C:\WEB REPORT\.env`)
 ```ini
-# Google Gemini AI API Key (disimpan di .env, jangan di-commit ke Git)
+# Google Gemini AI API Key
 GEMINI_API_KEY="AQ.Ab8RN6...[DISIMPAN_DI_ENV]"
 
 # Telegram Bot HTTP API Token (@depas_ai_bot)
 TELEGRAM_BOT_TOKEN="8911669364:...[DISIMPAN_DI_ENV]"
 ```
 
+### B. Konfigurasi Laptop Dev Agent (`C:\LAPTOP_AGENT\config.json`)
+```json
+{
+  "telegram_token": "8818488536:...[DISIMPAN_DI_CONFIG]",
+  "gemini_api_keys": [
+    "AQ.Ab8RN6...[KEY_1]",
+    "AQ.Ab8RN6...[KEY_2]"
+  ],
+  "admin_chat_id": 6166710846,
+  "default_working_dir": "C:\\",
+  "models": [
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash"
+  ]
+}
+```
+
 ### Spesifikasi Model Gemini:
-* **Model Utama**: `gemini-flash-lite-latest` (Respon sub-detik ~0.3 - 0.5s, ultra-cepat, gratis kuota ribuan request harian).
-* **Multi-Model Auto-Fallback**:
-  Jika terjadi lonjakan trafik atau error HTTP 503 dari Google, sistem secara otomatis beralih ke model cadangan:
-  $$\text{gemini-flash-lite-latest} \longrightarrow \text{gemini-3-flash-preview} \longrightarrow \text{gemini-flash-latest} \longrightarrow \text{gemini-3.5-flash} \longrightarrow \text{gemini-3.8-flash}$$
+* **Model Utama**: `gemini-3.5-flash-lite` (Respon sub-detik ~0.3 - 0.5s, hemat kuota, minim latency).
+* **Model Cadangan (Fallback)**: `gemini-3.8-flash` (Kapasitas penalaran tinggi untuk analisa rumit dan eksekusi tool).
+* **Multi-Key Auto-Rotation**: Pada `C:\LAPTOP_AGENT`, agent mendukung rotasi otomatis antar API key jika salah satu kunci mencapai kuota limit harian (HTTP 429/503).
 
 ---
 
-## 3. Detail Teknis Task 1: Eliminasi Akun Zombie & Smart Multi-Number WA
+## 3. Catatan Master Reseller Bersih & Smart Multi-Number WA (Layanan WA: OFF Total)
+
+> [!NOTE]
+> **Layanan WhatsApp Gateway (Port 3000 Baileys) saat ini sudah DINONAKTIFKAN TOTAL (OFF).**  
+> Catatan teknis di bawah ini adalah dokumentasi hasil kurasi data pembersihan akun zombie yang tersimpan secara permanen di database lokal `MASTER/master_data.db` dan tetap digunakan oleh engine analitik Web Report.
 
 ### A. Eliminasi Akun Zombie (~18.000 Akun Dibuang)
-Pada master data mentah OtomaX (`C:\DEPASMYID\RESELLER\`), terdapat puluhan ribu data dari tahun 2014-2022 yang sudah tidak aktif:
+Pada master data mentah OtomaX (`C:\DEPASMYID\RESELLER\`), puluhan ribu data lama (2014-2022) telah dibersihkan:
 * **`RS_ASTAGA.tsv`**: 25.916 akun mentah $\rightarrow$ 7.914 akun kosong/zombie & 10.841 akun kuno (< 2023) dibuang $\rightarrow$ **Tersisa 7.161 reseller aktif ($\ge$ 2023)**.
 * **`RS_OKIPAY.tsv`**: 20.266 akun mentah $\rightarrow$ 17.646 akun kosong/zombie dibuang $\rightarrow$ **Tersisa 2.406 reseller aktif**.
-* **Total Master Kontak Bersih**: **9.555 kontak mitra valid** tersimpan di tabel `reseller_contacts` database `MASTER/master_data.db`.
+* **Total Master Kontak Bersih**: **9.555 kontak mitra valid** tersimpan di tabel `reseller_contacts` database SQLite lokal [`MASTER/master_data.db`](file:///c:/WEB%20REPORT/MASTER/master_data.db).
 
 ### B. Smart Multi-Number Detection & Auto-Promotion
 Sebanyak 17,5% reseller memiliki lebih dari satu nomor pengirim di OtomaX (kombinasi SMS, Jabber `@c.us`, dan WA Center).
 1. Seluruh nomor alternatif disimpan dalam format JSON di kolom `candidate_phones`.
-2. Saat pemindaian WhatsApp berlangsung, Baileys memeriksa seluruh nomor kandidat secara paralel.
-3. **Pemenang Otomatis**: Jika nomor awal berstatus Non-WA (mati), tetapi salah satu nomor alternatifnya aktif di WhatsApp, sistem otomatis mempromosikan nomor aktif tersebut menjadi `no_wa` utama dan menyimpannya ke database (`/api/survey/update-primary-phone`).
-4. **Contoh Nyata**:
-   * Reseller **NOVAL CELL (`AR02460`)** memiliki 4 nomor:
-     * `6285887462078` (Mati)
-     * `6285211059972` (Mati)
-     * `6285813880008` (Mati)
-     * `6281388980564` (🟢 **AKTIF DI WHATSAPP**)
-   * Sistem otomatis mempromosikan `6281388980564` sebagai nomor utama, menampilkan badge hijau 🟢 di UI Web Report, dan meloloskannya untuk survei batch.
+2. Jika nomor utama tidak aktif di WA, sistem memeriksa nomor alternatif.
+3. Nomor alternatif yang aktif otomatis dipromosikan menjadi `no_wa` utama di database (`/api/survey/update-primary-phone`).
 
 ---
 
-## 4. Detail Teknis Task 3: Telegram Bot Asisten Pribadi (`tele_bot.py`)
+## 4. Detail Teknis Task 3: Telegram Bot Asisten Eksekutif (`tele_bot.py`)
 
-### A. Arsitektur Layanan
+### A. Arsitektur Layanan di Laptop
 * **Metode Koneksi**: Long Polling Telegram Bot API (`getUpdates?timeout=30`).
-  * Keunggulan: Hemat RAM (~25 MB), tanpa perlu port terbuka, tanpa konfigurasi webhook/SSL tambahan, dan otomatis *reconnect* jika jaringan terputus.
-* **Service Background di VPS**:
-  Dikelola oleh Systemd di `/etc/systemd/system/depas-telebot.service`:
-  ```bash
-  systemctl status depas-telebot   # Cek status bot
-  systemctl restart depas-telebot  # Restart bot
-  journalctl -u depas-telebot -f   # Pantau log real-time
-  ```
+  * Hemat RAM (~25 MB), tanpa perlu port terbuka, tanpa webhook/SSL tambahan, otomatis *reconnect*.
+* **Pengelolaan Proses di Laptop**:
+  - Dijalankan otomatis bersamaan dengan web server melalui [`run_report.bat`](file:///c:/WEB%20REPORT/run_report.bat):
+    ```bat
+    start "DepAs Copilot" /MIN python tele_bot.py
+    python server.py
+    ```
+  - Dihentikan secara bersih melalui [`stop_report.bat`](file:///c:/WEB%20REPORT/stop_report.bat).
+  - Atau dikontrol hening (100% Silent) melalui Ompasha Agent (`@ompasha_bot`).
 
 ### B. Daftar Perintah Menu Resmi Telegram (`@depas_ai_bot`)
 
-Bot telah didaftarkan dengan menu resmi Telegram (`setMyCommands`) yang muncul pada tombol `[ Menu ≡ ]` di pojok kiri bawah keyboard:
+Menu resmi Telegram (`setMyCommands`) yang muncul pada tombol `[ Menu ≡ ]`:
 
-| Perintah | Deskripsi & Fitur |
-| :--- | :--- |
-| **`/summary`** | 📸 **Laporan Visual HD My Astaga** + Run-rate harian, total sukses MTD, SLA speed, % sukses, dan member aktif. |
-| **`/okipay`** | 📸 **Laporan Visual HD OKIPAY** + Run-rate harian, total sukses MTD, SLA speed, dan % sukses. |
-| **`/sco`** | 📸 **Laporan Visual Potret HD Rekap Sales Cabang (SCO)** siap kirim/forward ke WhatsApp + evaluasi visit & target. |
-| **`/cabang`** | 🏢 **Performa 5 Cabang** (BSD, ICON, PP, PRG, ONLINE) untuk server Astaga & OKIPAY lengkap dengan hit /hari. |
-| **`/supplier`** | ⚠️ **Audit Modul Supplier Gagal** (AMC, PCU, MR, MARKAZ, METRO, dll) untuk identifikasi jalur melambat. |
-| **`/drop`** | 📉 **Daftar 10 Toko/Agen Penurunan Terbesar** (run-rate drop /hari dan % penurunan MTD vs bulan lalu). |
-| **`/mitra`** | 👥 **Database Reseller Aktif** (Total mitra terdaftar >= 2023, kontak WA terverifikasi, dan sebaran per cabang). |
-| **`/server`** | 🖥️ **Kesehatan VPS** (Uptime, pemakaian RAM, sisa disk SSD, status service `webreport` & `wa-gateway`). |
-| **`/help`** | ❓ Panduan lengkap navigasi bot dan petunjuk penggunaan. |
+| Perintah | Label Menu (`setMyCommands`) | Deskripsi & Sumber Data |
+| :--- | :--- | :--- |
+| **`/overview`** | **Executive Overview** | 📊 Ringkasan konsolidasi perbandingan eksekutif ASTAGA vs OKIPAY vs TOTAL (Run-rate, hit sukses, speed SLA, basis reseller, dan top cabang). *(Sumber: `#overview`)* |
+| **`/summary`** | **Daily Astaga** | 📸 **Laporan Visual HD My Astaga** + Run-rate harian, total sukses MTD, SLA speed, % sukses, dan member aktif. *(Sumber: `Daily_Report_ASTAGA_2026-10.png` & `data.json`)* |
+| **`/okipay`** | **Daily Okipay** | 📸 **Laporan Visual HD OKIPAY** + Run-rate harian, total sukses MTD, SLA speed, dan % sukses. *(Sumber: `Daily_Report_OKIPAY_2026-10.png` & `data.json`)* |
+| **`/sco`** | **Daily SCO** | 📸 **Laporan Visual Rekap Sales Cabang (SCO)** siap kirim/forward ke WhatsApp + evaluasi visit & target. *(Sumber: `data_sco.json`)* |
+| **`/cabang`** | **Branch Perform** | 🏢 **Performa 5 Cabang** (BSD, ICON, PP, PRG, ONLINE) untuk server Astaga & OKIPAY lengkap dengan hit /hari. |
+| **`/supplier`** | **Most Failed Modul** | ⚠️ **Audit Modul Supplier Gagal** (AMC, PCU, MR, MARKAZ, METRO, dll) untuk identifikasi jalur melambat. |
+| **`/drop`** | **10 Worst Growth** | 📉 **Daftar 10 Toko/Agen Penurunan Terbesar** (run-rate drop /hari dan % penurunan MTD vs bulan lalu). |
+| **`/newmember`** | **New Active Members** | 👥 **Daftar Member Baru Bulan Ini** format `[arid-nama], [cab], total trx` untuk toko yang baru aktif bertransaksi. *(Sumber: `#agen?tab=reseller`)* |
+| **`/tiket`** | **Ticket Queue** | 🎫 **Status Antrean Tiket Data Center** (Melihat daftar kebutuhan data yang sedang diracik). |
+| **`/help`** | **Help & Guide** | ❓ Panduan lengkap navigasi bot dan petunjuk penggunaan. |
 
 ### C. Chatting Bebas, Model Fallback & Aturan Kejujuran (Strict Grounding)
 
 1. **Aturan Karakter & Sapaan**:
    * Sapaan pimpinan: **"Bossque"** (kata *"Juragan"* diblokir permanen).
-   * Mode: **Read-Only Data**. Tidak memberikan solusi/nasihat bisnis sok tahu kecuali jika diminta secara eksplisit.
-   * Gaya: Dingin, bersih, to-the-point, tanpa simbol markdown berlebihan (`***`) dan tanpa tag HTML bocor.
+   * Mode: **Read-Only Data**. Tidak memberikan opini fiktif tanpa data.
+   * Format: Bersih untuk layar smartphone, tanpa markdown tebal berlebihan (`***`), tanpa tabel pipa (`|`).
 
 2. **Aturan Kejujuran Mutlak (Zero Hallucination)**:
-   * Jika data yang ditanyakan Bossque tidak terdapat di dalam snapshot data resmi server, bot **WAJIB menjawab jujur**:  
-     `"Mohon maaf Bossque, data tersebut tidak tersedia di snapshot saya."`
-   * Dilarang keras mengarang atau berasumsi angka.
-
-3. **Multi-Model Fallback Resilient Chain**:
-   * Prioritas 1: `gemini-3.5-flash-lite` (Ultra-fast, zero 503 spike)
-   * Prioritas 2: `gemini-3-flash-preview`
-   * Prioritas 3: `gemini-3.5-flash`
-   * Prioritas 4: `gemini-3.7-flash`
-   * Prioritas 5: `gemini-3.8-flash`
-   * Timeout dinaikkan ke 25 detik dengan proteksi retry otomatis pada HTTP 503 / 429.
+   * Jika data yang ditanyakan Bossque tidak terdapat di dalam snapshot data resmi server, bot **DILARANG MENGARANG**.
+   * Bot merespon santun dan otomatis menerbitkan **Tiket Eskalasi ke Data Center**.
 
 ---
 
-## 5. Ringkasan File Terkait
+## 5. Sistem Tiketing & Eskalasi Data Center (`pages/analisa/tickets/`)
 
-| File | Lokasi | Deskripsi |
+Untuk menjawab kebutuhan analisa mendalam yang belum tercakup di snapshot cepat `data.json`:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1. BOSSQUE BERTANYA KE @depas_ai_bot                                   │
+│    (Misal: "Berapa tren omset voucher fisik per bulan tahun ini?")     │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │ Data spesifik belum ada di snapshot
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 2. @depas_ai_bot MENERBITKAN TIKET OTOMATIS:                           │
+│    • Bot menghasilkan tag: [[ESKALASI_TIKET: <kebutuhan data>]]        │
+│    • Tersimpan di: pages/analisa/tickets/TKT-YYYYMMDD-HHMMSS.json      │
+│    • Tercatat di: pages/analisa/tickets/tickets_index.json (PENDING)   │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │ Notifikasi ke Data Center
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 3. OMPASHA AGENT (@ompasha_bot) BERTINDAK SEBAGAI DATA CENTER:         │
+│    • Bro memeriksa tiket via /tiket atau Ompasha membaca tiket         │
+│    • Ompasha mengekstrak data dari sumber mentah (XLS/Parquet/DB)      │
+│    • Ompasha menyajikan hasil data ke Bro                              │
+│    • Tool `resolve_ticket` dijalankan ➔ Status berubah: RESOLVED       │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │ Update snapshot / API Admin
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 4. DASHBOARD ADMIN & @depas_ai_bot DAPAT MEMBACA DATA TERSEBUT         │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+* **Endpoint Web Report Admin**:
+  - `GET /api/admin/tickets/list` : Mengambil daftar antrean tiket.
+  - `POST /api/admin/tickets/resolve` : Menandai tiket selesai beserta catatan resolusi data.
+
+---
+
+## 6. Detail Teknis Task 4: Ompasha Laptop Dev Agent (`C:\LAPTOP_AGENT`)
+
+Ompasha Laptop Agent adalah AI pengendali teknis laptop dan asisten koding pribadi yang beroperasi langsung di sistem operasi Windows.
+
+* **Lokasi Kerja**: `C:\LAPTOP_AGENT`
+* **Bot Telegram**: **`@ompasha_bot`**
+* **Sapaan User**: **"Bro"** (santai, sigap, teknis)
+* **Karakteristik**: Memiliki akses langsung ke sistem operasi laptop melalui **Gemini Function Calling (Tool Use)**.
+
+### A. Fitur Remote Controller Layanan (100% Silent Mode)
+Menyediakan persistent keyboard di Telegram untuk mengontrol server tanpa membuka jendela CMD:
+* **`[🚀 Jalankan Web Report]`**: Menjalankan `server.py` (Port 8000) dan `@depas_ai_bot` di background hening.
+* **`[🌐 Jalankan Tunnel]`**: Menjalankan Cloudflare Tunnel (`scripts/tunnel.py`) untuk domain publik `https://depas.my.id`.
+* **`[📊 Status Laptop & Web]`**: Mengecek kondisi resource laptop (RAM, CPU, port, koneksi).
+* **`[🛑 Matikan Layanan]`**: Mematikan proses server dan bot secara bersih.
+
+### B. Gemini Function Calling Tools
+1. **`resolve_ticket`**: Menyelesaikan dan memvalidasi tiket eskalasi Data Center dari `@depas_ai_bot`.
+2. **`run_command`**: Menjalankan perintah PowerShell di laptop (git, python, npm, taskkill, dll).
+3. **`read_file`**: Membaca baris teks isi file proyek.
+4. **`write_file`**: Membuat file baru beserta isinya.
+5. **`edit_file`**: Mengganti teks/kode di file eksisting (*exact string replacement*).
+6. **`list_directory`**: Memeriksa struktur folder dan file di laptop.
+
+---
+
+## 7. Ringkasan File & Direktori Terkait
+
+| File / Direktori | Lokasi | Deskripsi |
 | :--- | :--- | :--- |
-| `tele_bot.py` | `c:\WEB REPORT\tele_bot.py` & `/var/www/webreport/` | Script utama Telegram Bot, routing menu, image sender & integrasi Gemini AI |
-| `.env` | Root folder (Lokal & VPS) | File rahasia berisi API key dan Bot token |
-| `pages/analisa/supplier_modules.json` | `pages/analisa/` (Lokal & VPS) | Audit performa modul/terminal supplier dan ranking transaksi gagal |
-| `Daily_Report_ASTAGA_2026-10.png` | Root folder (Lokal & VPS) | Visual HD infografis harian My Astaga |
-| `Daily_Report_OKIPAY_2026-10.png` | Root folder (Lokal & VPS) | Visual HD infografis harian OKIPAY |
-| `Laporan_SCO_2026-10-21.png` | Root folder (Lokal & VPS) | Visual HD potret rekap sales cabang SCO siap forward WA |
-| `engines/survey_engine.py` | `engines/` | Logika survei churn, multi-number lookup & promo kontak |
-| `pages/survey/survey.js` | `pages/survey/` | Frontend kontrol survei, verifikasi WA, dan badge nomor cadangan |
-| `scripts/import_reseller_contacts.py` | `scripts/` | Script pembersihan akun zombie & impor master kontak |
-| `MASTER/master_data.db` | `MASTER/` | Database SQLite berisi `resellers`, `reseller_contacts`, `survey_churn_logs` |
+| `tele_bot.py` | `C:\WEB REPORT\tele_bot.py` | Script Telegram Bot `@depas_ai_bot`, routing menu, analisis Gemini, & pembuat tiket |
+| `.env` | `C:\WEB REPORT\.env` | Kredensial rahasia Gemini API Key & Token `@depas_ai_bot` |
+| `run_report.bat` | `C:\WEB REPORT\run_report.bat` | Script batch menjalankan Web Report + DepAs Copilot sekaligus |
+| `stop_report.bat` | `C:\WEB REPORT\stop_report.bat` | Script batch menghentikan seluruh layanan Web Report & Copilot |
+| `run_tunnel.bat` | `C:\WEB REPORT\run_tunnel.bat` | Script batch menyalakan Cloudflare Tunnel `depas.my.id` |
+| `scripts/tunnel.py` | `C:\WEB REPORT\scripts\tunnel.py` | Engine Cloudflare Tunnel lokal |
+| `pages/analisa/tickets/` | `C:\WEB REPORT\pages\analisa\tickets\` | Direktori penyimpanan file tiket eskalasi Data Center (`TKT-*.json`) |
+| `agent.py` | `C:\LAPTOP_AGENT\agent.py` | Script utama Ompasha Laptop Agent (`@ompasha_bot`) & runtime function calling |
+| `config.json` | `C:\LAPTOP_AGENT\config.json` | Konfigurasi Token `@ompasha_bot`, multi Gemini API keys, & working dir |
+| `start_agent.bat` | `C:\LAPTOP_AGENT\start_agent.bat` | Script batch menjalankan Ompasha Agent di laptop |
+| `stop_agent.bat` | `C:\LAPTOP_AGENT\stop_agent.bat` | Script batch menghentikan Ompasha Agent |
+| `Daily_Report_ASTAGA_2026-10.png` | `C:\WEB REPORT\` | Visual HD infografis harian My Astaga |
+| `Daily_Report_OKIPAY_2026-10.png` | `C:\WEB REPORT\` | Visual HD infografis harian OKIPAY |
+| `MASTER/master_data.db` | `C:\WEB REPORT\MASTER\` | Database SQLite berisi `resellers`, `reseller_contacts`, `survey_churn_logs` |
 
 ---
-*Dokumen ini diperbarui secara berkala sebagai Single Source of Truth teknis untuk seluruh integrasi AI di ekosistem DepAs.*
+*Dokumen ini adalah Single Source of Truth teknis untuk seluruh integrasi AI di ekosistem DepAs (Web Report & Laptop Agent).*

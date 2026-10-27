@@ -7,7 +7,8 @@ tanpa komputasi ulang Parquet/Database (Zero Re-computation).
 import os
 from typing import Dict, Any
 import engines.analisa_engine as ae
-import engines.agen_engine as age
+import engines.reseller_engine as re_eng
+import engines.daily_engine as de
 import engines.metrics_engine as me
 
 _OVERVIEW_MATRIX_CACHE: Dict[str, Any] = {}
@@ -44,14 +45,22 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
         a_mod = astaga_res.get("modules_summary", {})
         o_mod = okipay_res.get("modules_summary", {})
 
-        # 2. Tarik ringkasan Agen & Reseller (Basis Toko & Member)
-        astaga_agen = age.calculate_agen_dashboard(brand="ASTAGA", month_code=ym, year=year)
-        okipay_agen = age.calculate_agen_dashboard(brand="OKIPAY", month_code=ym, year=year)
+        # 2. Tarik ringkasan Reseller Downline (#agen?tab=reseller)
+        astaga_reseller = re_eng.calculate_reseller_dashboard(brand="ASTAGA", month_code=ym, year=year)
+        okipay_reseller = re_eng.calculate_reseller_dashboard(brand="OKIPAY", month_code=ym, year=year)
 
-        a_kpi = astaga_agen.get("kpi", {})
-        o_kpi = okipay_agen.get("kpi", {})
+        a_kpi = astaga_reseller.get("kpi", {})
+        o_kpi = okipay_reseller.get("kpi", {})
 
-        # 3. Hitung Global / Gabungan (Konsolidasi)
+        # 3. Tarik metrik AVG DAILY MEMBER dari daily_engine (#daily)
+        astaga_daily = de.calculate_daily_report(brand="ASTAGA", curr_month=ym, year=year)
+        okipay_daily = de.calculate_daily_report(brand="OKIPAY", curr_month=ym, year=year)
+
+        a_avg_daily_mem = float(astaga_daily.get("kpi", {}).get("avg_mem_curr", 0.0))
+        o_avg_daily_mem = float(okipay_daily.get("kpi", {}).get("avg_mem_curr", 0.0))
+        tot_avg_daily_mem = round(a_avg_daily_mem + o_avg_daily_mem, 1)
+
+        # 4. Hitung Global / Gabungan (Konsolidasi)
         active_days = a_sum.get("active_days") or a_sum.get("total_points") or 26
         month_label = a_sum.get("granularity_label", f"Harian (Bulan {latest_month} {year})")
 
@@ -65,9 +74,11 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
         a_sukses_str = a_sum.get("avg_sukses_str", "0.0%")
         a_active_cust = a_kpi.get("active_current", 0)
         a_retained = a_kpi.get("retained", 0)
-        a_new_reactivated = (a_kpi.get("new_active", 0) + a_kpi.get("reactivated", 0))
+        a_new = a_kpi.get("new_active", 0)
+        a_reactivated = a_kpi.get("reactivated", 0)
+        a_new_reactivated = a_new + a_reactivated
         a_churn = a_kpi.get("churned", 0)
-        a_tpm = a_sum.get("avg_tpm", 0.0)
+        a_tpm = round(a_daily / a_active_cust, 2) if a_active_cust > 0 else 0.0
         a_top_cat = a_sum.get("top_category", "TELCO")
         a_ewallet_pct = a_kpi.get("avg_pct_ewallet", 0.0)
         a_top_branch = a_sum.get("top_branch", "BSD")
@@ -82,9 +93,11 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
         o_sukses_str = o_sum.get("avg_sukses_str", "0.0%")
         o_active_cust = o_kpi.get("active_current", 0)
         o_retained = o_kpi.get("retained", 0)
-        o_new_reactivated = (o_kpi.get("new_active", 0) + o_kpi.get("reactivated", 0))
+        o_new = o_kpi.get("new_active", 0)
+        o_reactivated = o_kpi.get("reactivated", 0)
+        o_new_reactivated = o_new + o_reactivated
         o_churn = o_kpi.get("churned", 0)
-        o_tpm = o_sum.get("avg_tpm", 0.0)
+        o_tpm = round(o_daily / o_active_cust, 2) if o_active_cust > 0 else 0.0
         o_top_cat = o_sum.get("top_category", "TELCO")
         o_ewallet_pct = o_kpi.get("avg_pct_ewallet", 0.0)
         o_top_branch = o_sum.get("top_branch", "H2H")
@@ -102,7 +115,9 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
 
         tot_active_cust = a_active_cust + o_active_cust
         tot_retained = a_retained + o_retained
-        tot_new_reactivated = a_new_reactivated + o_new_reactivated
+        tot_new = a_new + o_new
+        tot_reactivated = a_reactivated + o_reactivated
+        tot_new_reactivated = tot_new + tot_reactivated
         tot_churn = a_churn + o_churn
         tot_tpm = round(tot_daily / tot_active_cust, 2) if tot_active_cust > 0 else 0.0
 
@@ -129,7 +144,10 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
                 "sukses_str": a_sukses_str,
                 "sukses_pct": a_sukses_pct,
                 "active_cust": a_active_cust,
+                "avg_daily_mem": a_avg_daily_mem,
                 "retained_cust": a_retained,
+                "new_cust": a_new,
+                "reactivated_cust": a_reactivated,
                 "new_and_reactivated": a_new_reactivated,
                 "churn_cust": a_churn,
                 "tpm": a_tpm,
@@ -152,7 +170,10 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
                 "sukses_str": o_sukses_str,
                 "sukses_pct": o_sukses_pct,
                 "active_cust": o_active_cust,
+                "avg_daily_mem": o_avg_daily_mem,
                 "retained_cust": o_retained,
+                "new_cust": o_new,
+                "reactivated_cust": o_reactivated,
                 "new_and_reactivated": o_new_reactivated,
                 "churn_cust": o_churn,
                 "tpm": o_tpm,
@@ -175,7 +196,10 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
                 "sukses_str": tot_sukses_str,
                 "sukses_pct": tot_sukses_pct,
                 "active_cust": tot_active_cust,
+                "avg_daily_mem": tot_avg_daily_mem,
                 "retained_cust": tot_retained,
+                "new_cust": tot_new,
+                "reactivated_cust": tot_reactivated,
                 "new_and_reactivated": tot_new_reactivated,
                 "churn_cust": tot_churn,
                 "tpm": tot_tpm,

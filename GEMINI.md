@@ -157,5 +157,189 @@ Tipe agen untuk brand ASTAGA memiliki tepat 3 klasifikasi resmi (DILARANG menggu
   4. Pada elemen dropdown `<select>`, opsi teks **WAJIB teks bersih profesional** tanpa awalan/akhiran emoji.
 
 ---
+
+## 10. HUKUM STANDAR ARSITEKTUR & DESAIN PAGE: BLUEPRINT #YOY (GOLD STANDARD)
+> **Single Source of Truth Desain Halaman:**
+> Seluruh halaman baru atau pembaruan halaman lama di Web Report **WAJIB MENGIKUTI STRUKTUR & BENTUK VISUAL DARI `http://localhost:8000/#yoy` (`pages/yoy/index.html`)**.
+> Dilarang membuat variasi container tab bertumpuk, segmented pill box kuno, atau tata letak header acak-acakan.
+
+* **ANATOMI STRUKTUR WAJIB SETIAP HALAMAN:**
+
+  ### 1. Root Container & Top Header (`.page-header`)
+  * Container terluar memiliki layout flex column vertikal dengan `gap: 16px; padding-bottom: 40px;`.
+  * Header berada di posisi paling atas dengan layout flex horizontal (`justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;`).
+  * **Kiri (Title Group)**:
+    - Judul utama menggunakan tag `<h1>` (`font-size: 20px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-main); margin: 0;`).
+    - Subtitle / badge keterangan menggunakan pill badge dengan dot bulat (`.period-pill` / `.period-dot`, misal `#0284c7` atau `#059669`).
+  * **Kanan (Unified Brand Switcher)**:
+    - Jika halaman mendukung multi-brand (ASTAGA / OKIPAY), switch brand ditaruh di sisi kanan header menggunakan `.unified-brand-switcher`.
+
+  ### 2. Navigasi Tab Halaman (`.page-tabs` / Border-Bottom Underline)
+  * Bar navigasi tab terbentang penuh di bawah header dengan garis batas bawah halus (`border-bottom: 1px solid var(--surface-border); padding-bottom: 2px; margin-top: 4px; overflow-x: auto; scrollbar-width: thin;`).
+  * Tombol tab (`.tab-btn`):
+    - Background transparan, tanpa border samping/atas (`background: transparent; border: none; border-bottom: 2px solid transparent;`).
+    - Padding proporsional (`padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;`).
+    - Efek aktif: Warna teks berubah ke `var(--primary)` dan garis bawah aktif `border-bottom-color: var(--primary)`.
+    - Setiap tab memiliki Vector SVG icon (14px) + label terstruktur (misal: `Tab 1: ...`, `Tab 2: ...`).
+
+  ### 3. Panel Konten & Kartu Analisa (`.chart-panel` / Border-First)
+  * Hindari card tebal bertumpuk. Gunakan container bersih border-first:
+    ```css
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    ```
+  * Panel header memiliki judul ber-dot indikator warna (`.chart-panel-title-dot`) dan sub-toggle ramping jika ada multi-view (`.chart-subtoggle` & `.chart-subtoggle-btn`).
+
+* **TEMPLATE RESMI ARSITEKTUR HTML & CSS (CONTEKAN WAJIB):**
+```html
+<style>
+  .modul-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 40px;
+  }
+
+  .modul-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .modul-title-group h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .modul-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .modul-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0284c7;
+  }
+
+  /* TABS NAVIGATION (IDENTIK #YOY) */
+  .modul-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .modul-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .modul-tab-btn:hover {
+    color: var(--text-main);
+  }
+
+  .modul-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: transparent;
+    box-shadow: none;
+  }
+</style>
+
+<div class="modul-container">
+
+  <!-- TOP HEADER -->
+  <div class="modul-header">
+    <div class="modul-title-group">
+      <h1>Judul Modul Halaman</h1>
+      <div class="modul-period-pill">
+        <span class="modul-period-dot"></span>
+        <span id="modul-subtitle-label">Deskripsi atau subtitle status modul</span>
+      </div>
+    </div>
+
+    <!-- Unified Brand Switcher (Opsional jika modul butuh ASTAGA vs OKIPAY) -->
+    <div class="unified-brand-switcher" id="modul-brand-switcher">
+      <button type="button" id="btn-brand-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchModulBrand('ASTAGA')">
+        <span class="brand-dot"></span>
+        ASTAGA
+      </button>
+      <button type="button" id="btn-brand-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchModulBrand('OKIPAY')">
+        <span class="brand-dot" style="background:#dc2626;"></span>
+        OKIPAY
+      </button>
+    </div>
+  </div>
+
+  <!-- TAB NAVIGATION -->
+  <div class="modul-tabs">
+    <button type="button" class="modul-tab-btn active" id="tab-btn-1" onclick="switchModulTab('tab1')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Tab 1: Ringkasan Utama</span>
+    </button>
+    <button type="button" class="modul-tab-btn" id="tab-btn-2" onclick="switchModulTab('tab2')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        <line x1="3" y1="9" x2="21" y2="9"></line>
+        <line x1="9" y1="21" x2="9" y2="9"></line>
+      </svg>
+      <span>Tab 2: Analisa Detil</span>
+    </button>
+  </div>
+
+  <!-- CONTENT VIEW SECTION (Tab 1) -->
+  <div id="content-tab-1" style="display: flex; flex-direction: column; gap: 18px;">
+    <!-- Konten Tab 1 -->
+  </div>
+
+  <!-- CONTENT VIEW SECTION (Tab 2) -->
+  <div id="content-tab-2" style="display: none; flex-direction: column; gap: 18px;">
+    <!-- Konten Tab 2 -->
+  </div>
+
+</div>
+```
+
+---
 *Pedoman ini dibuat agar seluruh AI Agent di thread/chat mana pun memiliki output angka yang 100% konsisten, adil, dan valid, serta tampilan antarmuka yang modern, presisi, dan berstandar enterprise.*
 

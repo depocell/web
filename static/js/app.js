@@ -55,6 +55,10 @@ function applyAuthUI() {
   if (adminNav && adminNav.closest("li")) {
     adminNav.closest("li").style.display = isAdmin ? "block" : "none";
   }
+  const pivotAdminNav = document.getElementById("nav-pivot-admin");
+  if (pivotAdminNav && pivotAdminNav.closest("li")) {
+    pivotAdminNav.closest("li").style.display = isAdmin ? "block" : "none";
+  }
   const dailyNav = document.getElementById("nav-daily");
   if (dailyNav && dailyNav.closest("li")) {
     dailyNav.closest("li").style.display = isAdmin ? "block" : "none";
@@ -102,6 +106,12 @@ const ROUTES = {
     pageUrl: "./pages/admin/index.html",
     scriptUrl: "./pages/admin/admin.js",
     initFn: "loadAdmin"
+  },
+  "#pivot-admin": {
+    title: "Pivot Admin",
+    pageUrl: "./pages/pivot_admin/index.html",
+    scriptUrl: "./pages/pivot_admin/pivot_admin.js",
+    initFn: "loadPivotAdmin"
   },
   "#overview": {
     title: "Overview Dashboard",
@@ -162,6 +172,13 @@ const ROUTES = {
     pageUrl: "./pages/survey/index.html",
     scriptUrl: "./pages/survey/survey.js",
     initFn: "loadSurveyPage"
+  }
+,
+  "#ewallet": {
+    title: "E-Wallet Monitoring",
+    pageUrl: "./pages/ewallet/index.html",
+    scriptUrl: "./pages/ewallet/ewallet.js",
+    initFn: "loadEwallet"
   }
 };
 
@@ -246,15 +263,23 @@ async function navigate() {
     window.location.replace("#produk?tab=harga");
     return;
   }
+  if (rawHash === "#agen?tab=fraud" || rawHash.includes("tab=fraud")) {
+    window.location.replace("#ewallet");
+    return;
+  }
+  if (window.location.hash.includes("#admin?tab=financial")) {
+    window.location.replace("#pivot-admin");
+    return;
+  }
   if (window.location.hash.includes("#admin?tab=pivot")) {
-    window.location.replace("#pivot");
+    window.location.replace("#pivot-admin");
     return;
   }
 
   // Proteksi Menu Admin & Setting: Hanya dapat diakses oleh Administrator
   const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
   const isAdmin = isLocal || currentAuthUser.role === "admin";
-  const adminOnlyRoutes = ["#admin", "#daily", "#sco"];
+  const adminOnlyRoutes = ["#admin", "#daily", "#sco", "#pivot-admin"];
   const isTargetAdminOnly = adminOnlyRoutes.some(r => hash === r || hash.startsWith(r + "?") || hash.startsWith(r + "/"));
   if (isTargetAdminOnly && !isAdmin) {
     alert("Akses ditolak: Menu di bawah Admin & Setting hanya dapat diakses oleh Administrator.");

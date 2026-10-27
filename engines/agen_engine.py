@@ -470,15 +470,17 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
             if val > 0:
                 has_any = True
 
-        yoy_base = round(float(daily_1025.get(aid, 0.0)), 1)
-        if yoy_base > 0:
-            has_any = True
         if not has_any:
             continue
 
-        curr_val = monthly_map.get("1026", 0.0)
-        diff_yoy = round(curr_val - yoy_base, 1)
-        pct_yoy = round((diff_yoy / yoy_base * 100), 1) if yoy_base > 0 else (100.0 if curr_val > 0 else 0.0)
+        # Evaluasi YTD Δ: Perbandingan Bulan Berjalan (1026/Okt 26) vs Awal Tahun (0126/Jan 26)
+        base_code = month_headers[0]["code"] if month_headers else "0126"
+        curr_code = month_headers[-1]["code"] if month_headers else "1026"
+
+        curr_val = monthly_map.get(curr_code, 0.0)
+        ytd_base = monthly_map.get(base_code, 0.0)
+        diff_ytd = round(curr_val - ytd_base, 1)
+        pct_ytd = round((diff_ytd / ytd_base * 100), 1) if ytd_base > 0 else (100.0 if curr_val > 0 else 0.0)
 
         agent_rows.append({
             "aid": aid,
@@ -493,10 +495,13 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
             "sparkline": vals,
             "max_val": max(vals) if vals else 0.0,
             "curr_val": curr_val,
-            "yoy_base": yoy_base,
-            "diff_yoy": diff_yoy,
-            "pct_yoy": pct_yoy,
-            "trend": "UP" if diff_yoy >= 0 else "DOWN"
+            "ytd_base": ytd_base,
+            "yoy_base": ytd_base,  # kompatibilitas
+            "diff_ytd": diff_ytd,
+            "diff_yoy": diff_ytd,  # kompatibilitas
+            "pct_ytd": pct_ytd,
+            "pct_yoy": pct_ytd,    # kompatibilitas
+            "trend": "UP" if diff_ytd >= 0 else "DOWN"
         })
 
     agent_rows.sort(key=lambda x: x["curr_val"], reverse=True)
@@ -508,7 +513,8 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
         "brand": brand,
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "months": month_headers,
-        "yoy_baseline": {"code": "1025", "label": "Okt 25", "days": days_1025},
+        "ytd_baseline": {"code": "0126", "label": "Jan 26"},
+        "yoy_baseline": {"code": "0126", "label": "Jan 26"},
         "agents_count": len(agent_rows),
         "all_cabangs": all_cabangs,
         "all_scos": all_scos,

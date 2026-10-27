@@ -64,7 +64,7 @@ def load_master_customers():
                 df_a = pd.read_sql_query("""
                     SELECT agen_id AS "AGEN ID", nama_agen AS "AGEN NAME", cabang AS CABANG,
                            type AS TYPE, sco AS SCO, dso AS DSO, jadwal AS JADWAL,
-                           location AS LOCATION, 1 AS STATUS
+                           location AS LOCATION, 1 AS STATUS, ABS(limit_saldo) AS "LIMIT"
                     FROM agents WHERE brand = ?
                 """, conn, params=('ASTAGA',))
             for c in df_a.columns:
@@ -133,7 +133,7 @@ def load_master_customers():
             "type": str(row.get("TYPE", "")).strip(),
             "location": str(row.get("LOCATION", "")).strip(),
             "jadwal": str(row.get("JADWAL", "")).strip(),
-            "limit": float(row.get("LIMIT", 0)) if pd.notna(row.get("LIMIT")) and row.get("LIMIT") != "" else 0.0,
+            "limit": abs(float(row.get("LIMIT", 0))) if pd.notna(row.get("LIMIT")) and row.get("LIMIT") != "" else 0.0,
             "status": str(row.get("STATUS", "")).strip(),
         }
 
@@ -714,7 +714,7 @@ def generate_reseller_data(df_sukses: pd.DataFrame = None, months: list = None) 
             agen_to_cabang[aid] = cab
             agen_to_jadwal[aid] = jadwal
             try:
-                agen_to_limit[aid] = float(row.get("LIMIT", 0))
+                agen_to_limit[aid] = abs(float(row.get("LIMIT", 0)))
             except Exception:
                 agen_to_limit[aid] = 0.0
 

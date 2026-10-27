@@ -21,7 +21,7 @@ import openpyxl
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MASTER_DIR = os.path.join(BASE_DIR, "MASTER")
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
-RAW_DATA_ROOT = r"C:\RAW DATA"
+RAW_DATA_ROOT = r"C:\DMS RAW DATA"
 DB_PATH = os.path.join(MASTER_DIR, "master_data.db")
 
 

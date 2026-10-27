@@ -122,12 +122,11 @@ function loadAdmin() {
   }
   updateStreamUrls();
   const hash = window.location.hash || "";
-  if (hash.includes("tab=users")) {
+  if (hash.includes("tab=financial") || hash.includes("tab=pivot")) {
+    window.location.replace("#pivot-admin");
+    return;
+  } else if (hash.includes("tab=users")) {
     switchAdminTab("users");
-  } else if (hash.includes("tab=financial")) {
-    switchAdminTab("financial");
-  } else if (hash.includes("tab=pivot")) {
-    switchAdminTab("pivot");
   } else if (hash.includes("tab=system")) {
     switchAdminTab("system");
   } else if (hash.includes("tab=products")) {
@@ -196,7 +195,10 @@ async function switchAdminTab(tabName) {
   if (btnUsers) btnUsers.classList.remove("active");
   if (btnTickets) btnTickets.classList.remove("active");
 
-  if (tabName === "tickets") {
+  if (tabName === "financial" || tabName === "pivot") {
+    window.location.replace("#pivot-admin");
+    return;
+  } else if (tabName === "tickets") {
     if (viewTickets) viewTickets.style.display = "flex";
     if (btnTickets) btnTickets.classList.add("active");
     await loadAdminTickets();
@@ -204,18 +206,10 @@ async function switchAdminTab(tabName) {
     if (viewUsers) viewUsers.style.display = "flex";
     if (btnUsers) btnUsers.classList.add("active");
     await loadAdminUsers();
-  } else if (tabName === "financial") {
-    if (viewFinancial) viewFinancial.style.display = "flex";
-    if (btnFinancial) btnFinancial.classList.add("active");
-    await loadAdminFinancial();
   } else if (tabName === "ingestion") {
     if (viewIngestion) viewIngestion.style.display = "flex";
     if (btnIngestion) btnIngestion.classList.add("active");
     loadAdminStatus();
-  } else if (tabName === "pivot") {
-    if (viewPivot) viewPivot.style.display = "flex";
-    if (btnPivot) btnPivot.classList.add("active");
-    await loadAdminPivot();
   } else if (tabName === "products") {
     if (viewProducts) viewProducts.style.display = "flex";
     if (btnProducts) btnProducts.classList.add("active");
@@ -539,7 +533,7 @@ function renderAdminDashboard(data) {
               </div>
             ` : `
               <div style="font-size: 12.5px; color: var(--text-muted); padding: 8px 0;">
-                Tidak ada file <code>.tsv</code> di <code>C:\\RAW DATA\\${brand}\\2026\\</code>.<br>
+                Tidak ada file <code>.tsv</code> di <code>C:\\DMS RAW DATA\\UPSERT HARIAN\\</code>.<br>
                 Simpan hasil export OtomaX ke folder tersebut, lalu klik <strong>Pindai Radar TSV</strong>.
               </div>
             `}
@@ -1238,7 +1232,7 @@ async function checkResellerRadar() {
           container.style.borderLeft = "4px solid #ef4444";
         }
         if (iconWrap) iconWrap.style.color = "#ef4444";
-        if (descEl) descEl.textContent = `Belum ada file TSV di C:\\RAW DATA\\${b}`;
+        if (descEl) descEl.textContent = `Belum ada file TSV di C:\\DMS RAW DATA\\MASTER\\`;
         if (badgeEl) {
           badgeEl.textContent = "File Tidak Ditemukan";
           badgeEl.style.background = "#fee2e2";

@@ -54,9 +54,20 @@ def get_available_periods(brand: str = "ASTAGA", year: str = "2026") -> List[Dic
     except Exception:
         return []
 
+_DAILY_REPORT_CACHE = {}
+
+def clear_daily_cache():
+    global _DAILY_REPORT_CACHE
+    _DAILY_REPORT_CACHE.clear()
+
 def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_month: str = None, year: str = "2026") -> Dict[str, Any]:
     """Kalkulasi lengkap untuk Daily Summary Report."""
+    global _DAILY_REPORT_CACHE
     brand = brand.upper()
+    cache_key = (brand, str(curr_month or ""), str(prev_month or ""), str(year))
+    if cache_key in _DAILY_REPORT_CACHE:
+        return _DAILY_REPORT_CACHE[cache_key]
+
     cfg = BRAND_CONFIG.get(brand, BRAND_CONFIG["ASTAGA"])
     
     df = te.load(brand, year)
@@ -365,7 +376,7 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
     grand_total_prod = build_row("GRAND TOTAL", 0, "grand_total", m_c_grand, m_p_grand)
     grand_total_prod["bar_pct"] = 100.0
 
-    return {
+    res = {
         "brand": brand,
         "curr_month": curr_month,
         "prev_month": prev_month,
@@ -378,3 +389,5 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
         "products": prod_rows,
         "grand_total_prod": grand_total_prod
     }
+    _DAILY_REPORT_CACHE[cache_key] = res
+    return res
