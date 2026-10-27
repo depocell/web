@@ -1,9 +1,9 @@
-<!-- pages/home/index.html — Overview Dashboard (Unified Strip Container) -->
+<!-- pages/home/index.html — Executive Overview Matrix (Zero Switcher, Padat & Ringkas) -->
 <style>
   .overview-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
   }
 
   .overview-header {
@@ -11,219 +11,326 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 14px;
-    margin-bottom: 2px;
+    gap: 12px;
   }
 
   .overview-title-group h1 {
-    font-size: 1.35rem;
-    font-weight: 800;
-    letter-spacing: -0.4px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
     margin: 0;
     color: var(--text-main);
   }
 
-  .overview-title-group p {
-    font-size: 0.88rem;
-    color: var(--text-muted);
-    margin: 3px 0 0;
-  }
-
-  /* Section Title Bar */
-  .overview-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-
-  .overview-brand-badge {
+  .overview-period-pill {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    padding: 4px 10px;
-    border-radius: 6px;
-  }
-
-  /* UNIFIED STRIP CONTAINER (Panjang Terpadu ala Analisa Revenue) */
-  .unified-strip-container {
-    background: var(--surface);
-    border: 1px solid var(--surface-border);
-    border-radius: 12px;
-    padding: 14px 20px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    align-items: center;
-    gap: 0;
-    box-shadow: var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.04));
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-  }
-
-  .unified-strip-container:hover {
-    box-shadow: var(--card-shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.07));
-  }
-
-  .unified-strip-col {
-    padding: 6px 18px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-right: 1px solid var(--surface-border);
-  }
-
-  .unified-strip-col:first-child {
-    padding-left: 6px;
-  }
-
-  .unified-strip-col:last-child {
-    border-right: none;
-    padding-right: 6px;
-  }
-
-  .strip-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.35px;
-    display: flex;
-    align-items: center;
     gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
   }
 
-  .strip-dot {
+  .overview-period-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    display: inline-block;
-    flex-shrink: 0;
+    background: #059669;
   }
 
-  .strip-val {
-    font-family: var(--font-mono, 'JetBrains Mono', monospace);
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1.15;
-    margin-top: 5px;
-    letter-spacing: -0.4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  /* TOP SUMMARY RIBBON (3 CARDS) */
+  .overview-ribbon {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
   }
 
-  .strip-sub {
-    font-size: 10.5px;
+  .ribbon-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .ribbon-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: var(--text-muted);
-    margin-top: 2px;
-    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
   }
 
-  /* Color Variations */
-  .color-blue {
+  .ribbon-val {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text-main);
+    letter-spacing: -0.4px;
+  }
+
+  .ribbon-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  /* MATRIX TABLE CARD */
+  .matrix-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .matrix-table th {
+    background: var(--table-header);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .matrix-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--surface-border);
+    color: var(--text-main);
+    vertical-align: middle;
+  }
+
+  .matrix-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .matrix-table tr:hover td {
+    background: var(--table-hover);
+  }
+
+  /* Section Divider Row */
+  .matrix-section-row td {
+    background: var(--surface-bg);
+    color: var(--text-main);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 7px 14px;
+    border-top: 1px solid var(--surface-border);
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .col-metric {
+    width: 40%;
+    font-weight: 500;
+  }
+
+  .col-astaga {
+    width: 20%;
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+
+  .col-okipay {
+    width: 20%;
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+
+  .col-total {
+    width: 20%;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    background: rgba(99, 102, 241, 0.03);
+  }
+
+  .metric-bullet {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    margin-right: 8px;
+    vertical-align: middle;
+    opacity: 0.6;
+  }
+
+  .pill-metric {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    margin-left: 5px;
+  }
+
+  .pill-prima {
+    background: rgba(5, 150, 105, 0.12);
+    color: #059669;
+  }
+
+  .pill-waspada {
+    background: rgba(217, 119, 6, 0.12);
+    color: #d97706;
+  }
+
+  .pill-blue {
+    background: rgba(2, 132, 199, 0.12);
     color: #0284c7;
   }
-  .strip-dot-blue {
-    background: #0284c7;
-  }
-  html[data-theme="dark"] .strip-val-blue {
-    color: #38bdf8;
+
+  .pill-purple {
+    background: rgba(139, 92, 246, 0.12);
+    color: #7c3aed;
   }
 
-  .color-green {
-    color: #10b981;
-  }
-  .strip-dot-green {
-    background: #10b981;
-  }
-  html[data-theme="dark"] .strip-val-green {
-    color: #34d399;
-  }
-
-  .color-purple {
-    color: #8b5cf6;
-  }
-  .strip-dot-purple {
-    background: #8b5cf6;
-  }
-  html[data-theme="dark"] .strip-val-purple {
-    color: #c084fc;
+  /* REFRESH BUTTON */
+  .btn-ov-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
 
-  .color-orange {
-    color: #f59e0b;
-  }
-  .strip-dot-orange {
-    background: #f59e0b;
-  }
-  html[data-theme="dark"] .strip-val-orange {
-    color: #fbbf24;
+  .btn-ov-refresh:hover {
+    background: var(--table-header);
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
-  /* Responsif Tablet & Mobile */
-  @media (max-width: 900px) {
-    .unified-strip-container {
-      grid-template-columns: repeat(2, 1fr);
-      row-gap: 16px;
-      padding: 16px 18px;
-    }
-    .unified-strip-col:nth-child(2) {
-      border-right: none;
-    }
-    .unified-strip-col:nth-child(3) {
-      padding-left: 6px;
-    }
-  }
-
-  @media (max-width: 540px) {
-    .unified-strip-container {
+  @media (max-width: 768px) {
+    .overview-ribbon {
       grid-template-columns: 1fr;
-      row-gap: 14px;
+      gap: 10px;
     }
-    .unified-strip-col {
-      border-right: none !important;
-      border-bottom: 1px solid var(--surface-border);
-      padding: 0 0 12px 0 !important;
+    .col-metric {
+      width: 45%;
+      font-size: 12px;
     }
-    .unified-strip-col:last-child {
-      border-bottom: none !important;
-      padding-bottom: 0 !important;
+    .col-astaga, .col-okipay, .col-total {
+      font-size: 12px;
     }
   }
 </style>
 
 <div class="overview-container">
 
-  <!-- TOP HEADER & BRAND SWITCHER -->
+  <!-- TOP HEADER -->
   <div class="overview-header">
     <div class="overview-title-group">
       <h1>Executive Overview</h1>
-      <p id="overview-subtitle" style="display: none;"></p>
+      <div class="overview-period-pill" id="ov-period-pill">
+        <span class="overview-period-dot"></span>
+        <span id="ov-month-label">Memuat periode...</span>
+      </div>
     </div>
 
-    <!-- Unified Brand Switcher -->
-    <div class="unified-brand-switcher" id="overview-brand-switcher">
-      <button type="button" id="btn-ov-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchOverviewBrand('ASTAGA')">
-        <span class="brand-dot"></span>
-        ASTAGA
-      </button>
-      <button type="button" id="btn-ov-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchOverviewBrand('OKIPAY')">
-        <span class="brand-dot"></span>
-        OKIPAY
-      </button>
-      <button type="button" id="btn-ov-both" class="unified-brand-btn" data-brand="BOTH" onclick="switchOverviewBrand('BOTH')">
-        <span class="brand-dot" style="background: #8b5cf6;"></span>
-        Keduanya
+    <div>
+      <button type="button" class="btn-ov-refresh" onclick="loadOverview(true)" title="Segarkan Data Overview">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Refresh</span>
       </button>
     </div>
   </div>
 
-  <!-- CONTAINER KONTEN DINAMIS -->
-  <div id="overview-content">
-    <div class="card" style="padding: 24px; text-align: center; color: var(--text-muted);">
-      Memuat ringkasan data transaksi...
+  <!-- TOP 3 KPI SUMMARY RIBBON -->
+  <div class="overview-ribbon">
+    <!-- Card 1: Total Daily Run-rate -->
+    <div class="ribbon-card">
+      <div class="ribbon-label">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: #0284c7;"></span>
+        TOTAL DAILY RUN-RATE
+      </div>
+      <div class="ribbon-val" style="color: #0284c7;" id="ribbon-daily-trx">-</div>
+      <div class="ribbon-sub" id="ribbon-daily-sub">Akumulasi - Total Sukses</div>
+    </div>
+
+    <!-- Card 2: Basis Toko / Member Aktif -->
+    <div class="ribbon-card">
+      <div class="ribbon-label">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: #059669;"></span>
+        TOTAL BASIS MEMBER AKTIF
+      </div>
+      <div class="ribbon-val" style="color: #059669;" id="ribbon-active-cust">-</div>
+      <div class="ribbon-sub" id="ribbon-active-sub">Pelanggan Setia / Retained -</div>
+    </div>
+
+    <!-- Card 3: Global Service SLA -->
+    <div class="ribbon-card">
+      <div class="ribbon-label">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: #7c3aed;"></span>
+        KUALITAS &amp; SLA LAYANAN
+      </div>
+      <div class="ribbon-val" style="color: #7c3aed;" id="ribbon-sla">-</div>
+      <div class="ribbon-sub" id="ribbon-sla-sub">Rata-rata Kecepatan Server -</div>
+    </div>
+  </div>
+
+  <!-- MAIN COMPARISON MATRIX TABLE -->
+  <div class="matrix-card">
+    <div style="overflow-x: auto;">
+      <table class="matrix-table" id="ov-matrix-table">
+        <thead>
+          <tr>
+            <th class="col-metric" style="text-align: left;">INDIKATOR &amp; METRIK UTAMA</th>
+            <th class="col-astaga" style="color: #0284c7;">
+              ASTAGA RELOAD
+              <div style="font-size: 10.5px; font-weight: 500; text-transform: none; color: var(--text-muted); margin-top: 1px;">Retail &amp; Cabang Fisik</div>
+            </th>
+            <th class="col-okipay" style="color: #dc2626;">
+              OKIPAYMENT
+              <div style="font-size: 10.5px; font-weight: 500; text-transform: none; color: var(--text-muted); margin-top: 1px;">Online &amp; H2H Channel</div>
+            </th>
+            <th class="col-total" style="color: var(--text-main);">
+              KONSOLIDASI
+              <div style="font-size: 10.5px; font-weight: 500; text-transform: none; color: var(--text-muted); margin-top: 1px;">Total Seluruh Server</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="ov-matrix-tbody">
+          <tr>
+            <td colspan="4" style="text-align: center; padding: 36px; color: var(--text-muted);">
+              Memuat data Executive Overview Matrix...
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 

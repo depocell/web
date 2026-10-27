@@ -1,170 +1,234 @@
-// home.js — Logika Tampilan Overview (Unified Strip ala Analisa Revenue)
+// home.js — Logika Tampilan Executive Overview Matrix (Zero Switcher, Zero Re-computation)
 
-let cachedOverviewData = null;
-let activeOverviewBrand = "ASTAGA";
+let cachedOverviewMatrix = null;
 
-function formatNumber(num) {
+function formatNum(num) {
   if (num === null || num === undefined || isNaN(num)) return "0";
   return Number(Math.round(num)).toLocaleString("id-ID");
 }
 
-function renderBrandCardBlock(brandKey, bData, showHeader = false) {
-  if (!bData) return "";
+function renderOverviewMatrix(data) {
+  if (!data || !data.astaga || !data.okipay || !data.total) return;
 
-  const brandTagHtml = showHeader ? `
-    <div class="overview-section-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="overview-brand-badge" style="background: ${brandKey === 'ASTAGA' ? 'rgba(37, 99, 235, 0.12)' : 'rgba(220, 38, 38, 0.12)'}; color: ${brandKey === 'ASTAGA' ? '#2563eb' : '#dc2626'};">
-          ${bData.brand_title || brandKey}
-        </span>
-        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
-          ${bData.brand_tag || ''}
-        </span>
-      </div>
-    </div>
-  ` : "";
+  const a = data.astaga;
+  const o = data.okipay;
+  const t = data.total;
 
-  return `
-    <div style="margin-bottom: ${showHeader ? '20px' : '0'};">
-      ${brandTagHtml}
-      <div class="unified-strip-container">
-        <!-- Col 1: Daily Transaksi -->
-        <div class="unified-strip-col">
-          <div class="strip-label color-blue">
-            <span class="strip-dot strip-dot-blue"></span>
-            DAILY TRANSAKSI
-          </div>
-          <div class="strip-val strip-val-blue color-blue">${formatNumber(bData.daily_trx)}</div>
-          <div class="strip-sub">Total Sebulan (${formatNumber(bData.total_trx)} Total)</div>
-        </div>
-
-        <!-- Col 2: Rata-rata Customer Aktif -->
-        <div class="unified-strip-col">
-          <div class="strip-label color-green">
-            <span class="strip-dot strip-dot-green"></span>
-            RATA-RATA CUSTOMER AKTIF
-          </div>
-          <div class="strip-val strip-val-green color-green">${formatNumber(bData.avg_cust)}</div>
-          <div class="strip-sub">Customer Aktif / Hari</div>
-        </div>
-
-        <!-- Col 3: Rata-rata Daily Trx / Member -->
-        <div class="unified-strip-col">
-          <div class="strip-label color-purple">
-            <span class="strip-dot strip-dot-purple"></span>
-            RATA-RATA DAILY TRX / MEMBER
-          </div>
-          <div class="strip-val strip-val-purple color-purple">${Number(bData.avg_tpm || 0).toFixed(2)}</div>
-          <div class="strip-sub">Daily Trx / Member (Trx/Hari)</div>
-        </div>
-
-        <!-- Col 4: Top Cabang / Channel -->
-        <div class="unified-strip-col">
-          <div class="strip-label color-orange">
-            <span class="strip-dot strip-dot-orange"></span>
-            TOP CABANG / CHANNEL
-          </div>
-          <div class="strip-val strip-val-orange color-orange">${bData.top_branch || "-"}</div>
-          <div class="strip-sub">Porsi Transaksi Tertinggi</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderOverviewView() {
-  const container = document.getElementById("overview-content");
-  if (!container || !cachedOverviewData || !cachedOverviewData.brands) return;
-
-  const brands = cachedOverviewData.brands;
-  let html = "";
-
-  if (activeOverviewBrand === "BOTH") {
-    html += renderBrandCardBlock("ASTAGA", brands["ASTAGA"], true);
-    html += renderBrandCardBlock("OKIPAY", brands["OKIPAY"], true);
-  } else {
-    const bData = brands[activeOverviewBrand];
-    html = renderBrandCardBlock(activeOverviewBrand, bData, false);
+  // 1. Update Header Label
+  const labelEl = document.getElementById("ov-month-label");
+  if (labelEl) {
+    labelEl.textContent = `Periode: ${data.month_label || 'Bulan Berjalan'} (Cut-off ${data.active_days || 26} Hari)`;
   }
 
-  container.innerHTML = html;
+  // 2. Update Top Ribbon Cards
+  const rDaily = document.getElementById("ribbon-daily-trx");
+  const rDailySub = document.getElementById("ribbon-daily-sub");
+  if (rDaily) rDaily.textContent = `${formatNum(t.daily_trx)} /hari`;
+  if (rDailySub) rDailySub.textContent = `Akumulasi ${formatNum(t.total_sukses)} Hits Sukses (${formatNum(t.total_trx)} Total Masuk)`;
+
+  const rCust = document.getElementById("ribbon-active-cust");
+  const rCustSub = document.getElementById("ribbon-active-sub");
+  if (rCust) rCust.textContent = `${formatNum(t.active_cust)} Member`;
+  if (rCustSub) rCustSub.textContent = `${formatNum(t.retained_cust)} Toko/Member Setia (Retained)`;
+
+  const rSla = document.getElementById("ribbon-sla");
+  const rSlaSub = document.getElementById("ribbon-sla-sub");
+  if (rSla) rSla.textContent = `${t.sukses_str} Sukses`;
+  if (rSlaSub) rSlaSub.textContent = `Kecepatan Rata-rata ${t.speed_str} (${t.speed_status})`;
+
+  // 3. Render Table Rows
+  const tbody = document.getElementById("ov-matrix-tbody");
+  if (!tbody) return;
+
+  const html = `
+    <!-- SECTION I: PERFORMA TRANSAKSI & RUN-RATE -->
+    <tr class="matrix-section-row">
+      <td colspan="4">I. PERFORMA TRANSAKSI &amp; RUN-RATE (MTD ${data.month_label || ''})</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span><strong>Daily Trx (Run-rate Harian)</strong>
+      </td>
+      <td class="col-astaga"><strong>${formatNum(a.daily_trx)}</strong> <span style="font-size:11px; color:var(--text-muted);">/hari</span></td>
+      <td class="col-okipay"><strong>${formatNum(o.daily_trx)}</strong> <span style="font-size:11px; color:var(--text-muted);">/hari</span></td>
+      <td class="col-total"><span style="color:var(--primary); font-size:14px;">${formatNum(t.daily_trx)}</span> <span style="font-size:11px; color:var(--text-muted);">/hari</span></td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Total Transaksi Masuk
+      </td>
+      <td class="col-astaga">${formatNum(a.total_trx)}</td>
+      <td class="col-okipay">${formatNum(o.total_trx)}</td>
+      <td class="col-total">${formatNum(t.total_trx)}</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Total Trx Sukses (Hits)
+      </td>
+      <td class="col-astaga">${formatNum(a.total_sukses)}</td>
+      <td class="col-okipay">${formatNum(o.total_sukses)}</td>
+      <td class="col-total">${formatNum(t.total_sukses)}</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>SLA Kecepatan Layanan (Avg Speed)
+      </td>
+      <td class="col-astaga">
+        ${a.speed_str}
+        <span class="pill-metric ${a.speed_status === 'Prima' ? 'pill-prima' : 'pill-waspada'}">${a.speed_status}</span>
+      </td>
+      <td class="col-okipay">
+        ${o.speed_str}
+        <span class="pill-metric ${o.speed_status === 'Prima' ? 'pill-prima' : 'pill-waspada'}">${o.speed_status}</span>
+      </td>
+      <td class="col-total">
+        ${t.speed_str}
+        <span class="pill-metric pill-prima">${t.speed_status}</span>
+      </td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Tingkat Keberhasilan (% Sukses)
+      </td>
+      <td class="col-astaga"><strong style="color:#059669;">${a.sukses_str}</strong></td>
+      <td class="col-okipay"><strong style="color:${o.sukses_pct >= 95 ? '#059669' : '#d97706'};">${o.sukses_str}</strong></td>
+      <td class="col-total"><strong>${t.sukses_str}</strong></td>
+    </tr>
+
+    <!-- SECTION II: KESEHATAN BASIS TOKO & MEMBER (AGEN) -->
+    <tr class="matrix-section-row">
+      <td colspan="4">II. KESEHATAN BASIS TOKO &amp; MEMBER (AGEN &amp; RESELLER)</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Toko / Member Aktif Bertransaksi
+      </td>
+      <td class="col-astaga"><strong>${formatNum(a.active_cust)}</strong> toko</td>
+      <td class="col-okipay"><strong>${formatNum(o.active_cust)}</strong> akun</td>
+      <td class="col-total"><strong>${formatNum(t.active_cust)}</strong> member</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Pelanggan Setia (Retained Toko)
+      </td>
+      <td class="col-astaga">${formatNum(a.retained_cust)} toko</td>
+      <td class="col-okipay">${formatNum(o.retained_cust)} akun</td>
+      <td class="col-total">${formatNum(t.retained_cust)} member</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Toko Baru &amp; Reaktivasi (+)
+      </td>
+      <td class="col-astaga"><span style="color:#059669; font-weight:600;">+${formatNum(a.new_and_reactivated)}</span> toko</td>
+      <td class="col-okipay"><span style="color:#059669; font-weight:600;">+${formatNum(o.new_and_reactivated)}</span> akun</td>
+      <td class="col-total"><span style="color:#059669; font-weight:700;">+${formatNum(t.new_and_reactivated)}</span> member</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Toko Berhenti / Churn (-)
+      </td>
+      <td class="col-astaga"><span style="color:#dc2626; font-weight:600;">-${formatNum(a.churn_cust)}</span> toko</td>
+      <td class="col-okipay"><span style="color:#dc2626; font-weight:600;">-${formatNum(o.churn_cust)}</span> akun</td>
+      <td class="col-total"><span style="color:#dc2626; font-weight:700;">-${formatNum(t.churn_cust)}</span> member</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Produktivitas Toko (Daily Trx / Member)
+      </td>
+      <td class="col-astaga"><strong>${Number(a.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/hari</span></td>
+      <td class="col-okipay"><strong>${Number(o.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/hari</span></td>
+      <td class="col-total"><strong>${Number(t.tpm || 0).toFixed(2)}</strong> <span style="font-size:11px; color:var(--text-muted);">trx/hari</span></td>
+    </tr>
+
+    <!-- SECTION III: SALURAN & PORSI PENJUALAN -->
+    <tr class="matrix-section-row">
+      <td colspan="4">III. SALURAN, PORSI PENJUALAN &amp; SUPLIER</td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Kategori Produk Terbesar
+      </td>
+      <td class="col-astaga"><span class="pill-metric pill-blue">${a.top_category}</span></td>
+      <td class="col-okipay"><span class="pill-metric pill-blue">${o.top_category}</span></td>
+      <td class="col-total"><span class="pill-metric pill-blue">${t.top_category}</span></td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Porsi Transaksi E-Wallet (Transfer Saldo)
+      </td>
+      <td class="col-astaga"><strong style="color:#7c3aed;">${Number(a.ewallet_pct || 0).toFixed(1)}%</strong></td>
+      <td class="col-okipay"><strong style="color:#7c3aed;">${Number(o.ewallet_pct || 0).toFixed(1)}%</strong></td>
+      <td class="col-total"><strong>${Number(t.ewallet_pct || 0).toFixed(1)}%</strong></td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Saluran / Cabang Terbesar
+      </td>
+      <td class="col-astaga"><strong>${a.top_branch}</strong></td>
+      <td class="col-okipay"><strong>${o.top_branch}</strong></td>
+      <td class="col-total"><strong>${t.top_branch}</strong></td>
+    </tr>
+    <tr>
+      <td class="col-metric">
+        <span class="metric-bullet"></span>Kesehatan Suplier (Gate/Modul Aktif)
+      </td>
+      <td class="col-astaga">
+        <span style="color:#059669; font-weight:600;">${a.modules_prima} Prima</span> / 
+        <span style="color:#d97706; font-weight:600;">${a.modules_waspada} Waspada</span>
+      </td>
+      <td class="col-okipay">
+        <span style="color:#059669; font-weight:600;">${o.modules_prima} Prima</span> / 
+        <span style="color:#d97706; font-weight:600;">${o.modules_waspada} Waspada</span>
+      </td>
+      <td class="col-total">
+        <span style="color:#059669; font-weight:700;">${t.modules_prima} Prima</span> / 
+        <span style="color:#d97706; font-weight:700;">${t.modules_waspada} Waspada</span>
+      </td>
+    </tr>
+  `;
+
+  tbody.innerHTML = html;
 }
 
-function switchOverviewBrand(brand) {
-  activeOverviewBrand = brand;
+async function loadOverview(force = false) {
+  const tbody = document.getElementById("ov-matrix-tbody");
 
-  // Update status aktif switcher button
-  const btns = document.querySelectorAll(".unified-brand-btn");
-  btns.forEach(b => {
-    if (b.getAttribute("data-brand") === brand) {
-      b.classList.add("active");
-    } else {
-      b.classList.remove("active");
-    }
-  });
+  // Pakai cache in-memory jika ada dan bukan force refresh
+  if (cachedOverviewMatrix && !force) {
+    renderOverviewMatrix(cachedOverviewMatrix);
+    return;
+  }
 
-  renderOverviewView();
-}
-
-async function loadOverview() {
-  const container = document.getElementById("overview-content");
-  if (container) {
-    container.innerHTML = `
-      <div class="card" style="padding: 24px; text-align: center; color: var(--text-muted);">
-        Memuat data summary analisa distribusi...
-      </div>
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="text-align: center; padding: 36px; color: var(--text-muted);">
+          Memuat data Executive Overview Matrix...
+        </td>
+      </tr>
     `;
   }
 
   try {
-    let json = null;
-
-    // 1. Prioritaskan API live /api/overview agar selalu real-time dengan data transaksi terbaru
-    try {
-      const resApi = await fetch(`/api/overview?t=${Date.now()}`);
-      if (resApi.ok) {
-        const apiJson = await resApi.json();
-        if (apiJson && apiJson.ok && apiJson.data && apiJson.data.brands && apiJson.data.brands.ASTAGA && apiJson.data.brands.ASTAGA.daily_trx) {
-          json = apiJson;
-        }
-      }
-    } catch (e) {
-      console.warn("[Overview] Gagal fetch live API, mencoba fallback static snapshot:", e);
-    }
-
-    // 2. Fallback baca snapshot static jika API server offline / belum merespons
-    if (!json || !json.data || !json.data.brands || !json.data.brands.ASTAGA || !json.data.brands.ASTAGA.daily_trx) {
-      try {
-        const resStatic = await fetch(`./pages/home/overview_data.json?t=${Date.now()}`);
-        if (resStatic.ok) {
-          const staticJson = await resStatic.json();
-          if (staticJson && staticJson.data && staticJson.data.brands) {
-            json = staticJson;
-          }
-        }
-      } catch (_) {}
-    }
+    const res = await fetch(`/api/overview?force=${force ? '1' : '0'}&t=${Date.now()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
 
     if (json && json.ok && json.data) {
-      cachedOverviewData = json.data;
-
-      // Update subtitle label
-      const subEl = document.getElementById("overview-subtitle");
-      if (subEl && json.data.month_label) {
-        subEl.textContent = `Ringkasan Analisa Distribusi • ${json.data.month_label}`;
-      }
-
-      renderOverviewView();
+      cachedOverviewMatrix = json.data;
+      renderOverviewMatrix(cachedOverviewMatrix);
     } else {
-      throw new Error("Gagal memuat ringkasan data overview");
+      throw new Error(json.error || "Gagal memuat data matrix overview");
     }
   } catch (err) {
-    console.error("Overview error:", err);
-    if (container) {
-      container.innerHTML = `
-        <div class="card" style="padding: 24px; text-align: center; color: var(--negative);">
-          Terjadi kesalahan saat memuat data: ${err.message}
-        </div>
+    console.error("[Overview Matrix Error]:", err);
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; padding: 36px; color: var(--negative);">
+            Terjadi kesalahan saat memuat matrix: ${err.message}
+          </td>
+        </tr>
       `;
     }
   }
@@ -172,8 +236,3 @@ async function loadOverview() {
 
 // Global exports
 window.loadOverview = loadOverview;
-window.switchOverviewBrand = switchOverviewBrand;
-
-window.addEventListener("themechange", () => {
-  renderOverviewView();
-});
