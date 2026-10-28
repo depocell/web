@@ -1,401 +1,316 @@
-# 🛡️ PANDUAN TEKNIS & DOKUMENTASI RESMI: ADMIN DATA & MASTER HUB
+# PANDUAN TEKNIS & DOKUMENTASI RESMI: ADMIN DATA & MASTER HUB
 
-Dokumen ini adalah spesifikasi arsitektur, panduan teknis, dan standar operasional resmi untuk modul **Admin Data & Master Hub (`#admin`)** pada sistem **WEB REPORT BI** per **08 Oktober 2026**.
+Dokumen ini adalah **Single Source of Truth (SOP Wajib)** untuk modul **Admin Data & Master Hub (`http://localhost:8000/#admin`)** pada sistem **WEB REPORT BI & ANALYTICS**, diperbarui secara komprehensif per **28 Oktober 2026**.
 
 ---
 
-## 📌 DAFTAR ISI
+## DAFTAR ISI
 1. [Filosofi & Arsitektur Web-First](#1-filosofi--arsitektur-web-first)
-2. [Sub-Tab 1: Ingestion & Radar TSV OtomaX](#2-sub-tab-1-ingestion--radar-tsv-otomax)
-3. [Sub-Tab 2: Master Agen & Reseller MLM](#3-sub-tab-2-master-agen--reseller-mlm)
-4. [Sub-Tab 3: Master Produk & Kategori](#4-sub-tab-3-master-produk--kategori)
-5. [Arsitektur Caching Berjenjang (Hierarchical Cache)](#5-arsitektur-caching-berjenjang)
-6. [Katalog API Endpoints (`server.py`)](#6-katalog-api-endpoints)
-7. [Matriks Integrasi 10 Engine Analitikal](#7-matriks-integrasi-10-engine-analitikal)
-8. [Panduan Operasional & Troubleshooting](#8-panduan-operasional--troubleshooting)
+2. [Standar Desain & Navigasi Halaman (Blueprint #yoy)](#2-standar-desain--navigasi-halaman-blueprint-yoy)
+3. [Tab 1: Ingestion, Radar TSV & Data Stream Hub](#3-tab-1-ingestion-radar-tsv--data-stream-hub)
+4. [Tab 2: Master Agen & Reseller (Pohon Hierarki MLM & Kontak Pengirim)](#4-tab-2-master-agen--reseller-pohon-hierarki-mlm--kontak-pengirim)
+5. [Tab 3: Master Produk & Kategori (Composite Key & Integrasi E-Wallet)](#5-tab-3-master-produk--kategori-composite-key--integrasi-e-wallet)
+6. [Tab 4: Pengaturan User (Keamanan & Hak Akses)](#6-tab-4-pengaturan-user-keamanan--hak-akses)
+7. [Tab 5: Status Freshness Sistem (Monitoring Integritas Data & Cache)](#7-tab-5-status-freshness-sistem-monitoring-integritas-data--cache)
+8. [Tab 6: Eskalasi AI / Help Me Please (Pusat Tiket Otomasi CS)](#8-tab-6-eskalasi-ai--help-me-please-pusat-tiket-otomasi-cs)
+9. [Pemisahan Modul Rekap Finansial ke Halaman #pivot-admin](#9-pemisahan-modul-rekap-finansial-ke-halaman-pivot-admin)
+10. [Arsitektur Caching Berjenjang (Hierarchical Cache L1-L4)](#10-arsitektur-caching-berjenjang-hierarchical-cache-l1-l4)
+11. [Katalog Lengkap REST API Endpoints (`server.py`)](#11-katalog-lengkap-rest-api-endpoints-serverpy)
+12. [Panduan Operasional & Troubleshooting](#12-panduan-operasional--troubleshooting)
 
 ---
 
 ## 1. FILOSOFI & ARSITEKTUR WEB-FIRST
 
-Sebelumnya, pembaruan master data customer dan produk bergantung pada pengeditan manual file Microsoft Excel (`CUSTOMER_ASTAGA.xlsx`, `CUSTOMER_OKI.xlsx`, `PRODUCT_ASTAGA.xlsx`, `PRODUCT_OKI.xlsx`). Pendekatan ini memiliki kelemahan:
-- **Resiko Human Error**: Kolom tergeser, spasi tak terlihat (`\xa0`), format teks korup.
-- **Konflik Kode Produk Antar-Brand**: 395 kode produk identik antara ASTAGA dan OKIPAY berisiko tertimpa jika disatukan sembarangan.
-- **Lambat**: Membaca file Excel berukuran besar memakan waktu $3 - 8$ detik setiap query analitikal.
-- **Tidak Terpusat**: Setiap perubahan file Excel membutuhkan restart server agar in-memory cache ter-refresh.
+Sebelumnya, manajemen data transaksi dan master customer bergantung pada pengeditan file spreadsheet manual (`CUSTOMER_ASTAGA.xlsx`, `PRODUCT_ASTAGA.xlsx`, dll). Pendekatan tersebut memiliki kelemahan mendasar:
+- **Resiko Human Error**: Kolom tergeser, spasi tidak terlihat, atau duplikasi kode.
+- **Konflik Antar Brand**: Kode produk yang sama antara ASTAGA dan OKIPAY (misal `DN100`, `T150`) berisiko tertimpa jika tidak diisolasi dengan *composite key*.
+- **Ketergantungan Restart**: Setiap kali file diedit manual, server web harus di-restart agar memori cache terbarui.
+- **Pemisahan Database OtomaX**: Di server OtomaX, data akun reseller (`reseller`) dan nomor kontak (`pengirim`) tersimpan pada tabel terpisah, membutuhkan rekonsiliasi otomatis saat ditarik ke sistem BI.
 
 ### Solusi: Arsitektur Modern Web-First (SQLite + Parquet + RAM)
-Modul **Admin Data & Master Hub** memusatkan seluruh manajemen master dan data transaksi ke antarmuka web interaktif (`#admin`):
+Modul **Admin Data & Master Hub** memusatkan seluruh manajemen data ke dalam satu panel terpadu:
 ```mermaid
 graph TD
-    UI[🖥️ Antarmuka Web Admin: #admin] --> API[⚡ REST API Endpoints: server.py]
-    API --> DB[(🗄️ Single Source of Truth: MASTER/master_data.db)]
-    DB --> SYNC[🔄 Auto-Sync Engine: master_data_engine & master_product_engine]
-    SYNC --> PQ[(⚡ Fast Parquet Cache: .cache/cust_*.parquet & prod_*.parquet)]
-    SYNC --> RAM[🧠 RAM Engine Cache: product_engine, customer_engine, reseller_engine]
-    RAM --> ENGINES[📊 10 Engine Analitikal: Daily, Pivot, Analisa, SCO, Agen, dll]
+    UI["Antarmuka Web Admin: #admin"] --> API["REST API Endpoints: server.py"]
+    API --> DB[("Single Source of Truth: MASTER/master_data.db (SQLite)")]
+    DB --> SYNC["Auto-Sync Engine: master_data_engine & master_product_engine"]
+    SYNC --> PQ[("Fast Parquet Cache: .cache/cust_*.parquet & prod_*.parquet")]
+    SYNC --> RAM["RAM In-Memory Cache: product_engine, customer_engine, reseller_engine"]
+    RAM --> ENGINES["10+ Engine Analitikal: Overview, Daily, SCO, Agen, E-Wallet, Pivot, dll"]
 ```
 
 ---
 
-## 2. SUB-TAB 1: INGESTION & RADAR TSV OTOMAX
+## 2. STANDAR DESAIN & NAVIGASI HALAMAN (BLUEPRINT #YOY)
 
-Sub-tab **⚡ Ingestion & Radar TSV** bertugas mengotomasi alur masuk data transaksi harian dari server OtomaX ke dalam pipeline BI tanpa intervensi manual yang rentan salah.
-
-### 2.1. Cara Kerja Radar Deteksi
-1. Sistem memonitor direktori:
-   - ASTAGA: `C:\RAW DATA\ASTAGA\2026\`
-   - OKIPAY: `C:\RAW DATA\OKIPAY\2026\`
-2. Mendeteksi file TSV baru hasil ekspor otomatis OtomaX.
-3. Membaca **Watermark Cut-Off**:
-   - Memeriksa file bulanan aktif (misal `1026.xlsx` atau `OP1026.xlsx`).
-   - Mengambil `last_trx_id`, `max_date`, dan `total_rows`.
-
-### 2.2. Aturan Filter & Pembersihan (Conditional Upsert)
-Saat pengguna menekan tombol **Eksekusi Upsert**, sistem secara otomatis menerapkan filter bisnis ketat:
-* **Exclusion Akun Internal / Testing:**
-  - Khusus **ASTAGA**: Transaksi milik akun internal `AR00037` (H2H OKIPAY), `AR00009` (Akun Internal), dan `AR20408` (Internal Testing) secara otomatis **di-take out total** dari database dan pipeline transaksi untuk mencegah bias & double-counting.
-  - Khusus **OKIPAY**: Akun `OP00037` (Achmad Efendi) dan `OP00009` **TETAP DISIMPAN (TIDAK DI-TAKEOUT)** sebagai transaksi pelanggan yang sah.
-* **Conditional Takeout OKIPAY:**
-  - `Harga Jual == 0` $\rightarrow$ Transaksi sampah / promo hangus di-take out.
-  - `Harga Jual == 1` $\rightarrow$ Transaksi testing / bypass Rp 1 di-take out.
-* **Status Transaksi:**
-  Hanya transaksi yang valid yang diproses; status transaksi lama diperbarui jika ada perubahan status dari *Pending* menjadi *Sukses*.
-
-### 2.3. Siklus Eksekusi Aman (Zero Data Loss)
-1. **Auto-Backup**: Membuat salinan file Excel bulanan menjadi `.xlsx.bak`.
-2. **Upsert Data**: Menyisipkan baris transaksi baru dan memperbarui status baris lama.
-3. **Sinkronisasi Parquet**: Memperbarui partisi cache `.cache/parts/` dan cache tahunan `.cache/trx_<brand>_2026.parquet`.
-4. **Pembersihan File**: Menghapus file TSV yang telah selesai diproses untuk mencegah pemrosesan ganda.
-5. **Background Task**: Seluruh proses berjalan di thread background dengan indikator progres realtime pada UI.
+Halaman `#admin` mengadopsi standar arsitektur desain visual dari **Blueprint `#yoy`** sesuai pedoman non-negotiable pada `GEMINI.md`:
+1. **Top Header (`.admin-header`)**:
+   - Flex horizontal ramping dengan judul `<h1>Admin &amp; Olah Data</h1>`.
+   - Subtitle berbentuk pill badge border-first dengan dot indikator warna (`.period-pill` & `.period-dot`).
+2. **Navigasi Tab (`.admin-tabs`)**:
+   - Garis batas bawah halus (`border-bottom: 1px solid var(--surface-border)`).
+   - Tombol tab flat transparan dengan efek garis bawah aktif `border-bottom: 2px solid var(--primary)`.
+   - Menggunakan icon Vector SVG murni (Feather/Lucide style, `stroke-width="2"`, tanpa karakter emoji Unicode).
+   - Penomoran terstruktur 6 Tab:
+     - `Tab 1: Ingestion & Radar TSV`
+     - `Tab 2: Master Agen & Reseller`
+     - `Tab 3: Master Produk & Kategori`
+     - `Tab 4: Pengaturan User`
+     - `Tab 5: Status Freshness Sistem`
+     - `Tab 6: Eskalasi AI (Help Me Please)`
+3. **UI Dark Mode & High Contrast**:
+   - Seluruh kontainer kartu (`.card-box`), dropzone, dan input file menggunakan token variabel CSS `--surface`, `--surface-card`, `--surface-bg`, `--surface-border`, dan `--text-main` untuk menjamin kontras rasio tinggi (>10:1) di tema gelap maupun terang.
 
 ---
 
-## 3. SUB-TAB 2: MASTER AGEN & RESELLER MLM
+## 3. TAB 1: INGESTION, RADAR TSV & DATA STREAM HUB
 
-Sub-tab **👥 Master Agen & Reseller** mengelola data hierarki keagenan, pemetaan cabang, Tim Sales Lapangan (**SCO & DSO**), dan pohon downline toko.
+Tab 1 bertugas mengotomasi pipeline penerimaan data transaksi harian dari server OtomaX ke dalam penyimpanan Parquet dan database BI lokal, serta menyediakan jalur data stream ke aplikasi eksternal.
 
-#### Definisi Tim Sales:
-- **SCO (Sales Collection Officer)**: Petugas penagihan & koordinator sales cluster wilayah toko/agen. Pilihan nama petugas tersedia dalam bentuk dropdown list dinamis dengan opsi penambahan personel baru.
-- **DSO (Direct Sales Officer)**: Tenaga sales langsung / lapangan (Direct Sales). Pilihan nama DSO juga tersedia dalam bentuk dropdown list dinamis dengan opsi penambahan personel baru.
+### 3.1. Direct TSV Uploader & Fast Parquet
+- **Dropzone Adaptif (`.admin-dropzone`)**: Operator dapat menarik (*drag-and-drop*) atau memilih file TSV mentah transaksi harian OtomaX (`direct-tsv-file-input`).
+- **Otomasi Pemrosesan**: Setelah file dipilih, engine otomatis mengeksekusi upsert ke partisi bulanan Parquet (`.cache/parts/astaga_YYYY_MMYY.parquet`) dan Parquet tahunan (`.cache/trx_astaga_YYYY.parquet`).
+- **Hasil Pemrosesan Real-time**: Menampilkan total baris mentah, baris bersih, baris baru yang di-append, baris lama yang di-update statusnya, dan durasi engine dalam detik.
 
-### 3.1. Skema Database Relasional (`master_data.db`)
+### 3.2. Integrasi Data Stream (Live Web Stream untuk Power BI & Excel)
+Menyediakan URL endpoint yang dapat disalin (*Copy Link*) atau diunduh langsung untuk ditarik secara otomatis oleh Power BI Desktop / Excel Power Query via konektor *From Web*:
+1. **Transaksi Excel Power Query (CSV Stream)**:
+   `https://depas.my.id/api/export/transactions.csv?brand=ASTAGA&year=2026&month=2026-10&key=depas2026`
+2. **Transaksi Power BI Desktop (Parquet Stream)**:
+   `https://depas.my.id/api/export/transactions.parquet?brand=ASTAGA&year=2026&month=2026-10&key=depas2026`
+3. **Master Toko & Reseller Downline (Customer Stream)**:
+   `https://depas.my.id/api/export/customers.csv?brand=ASTAGA&key=depas2026`
+4. **Master Toko Induk / Agen dengan GPS (Agent Stream)**:
+   `https://depas.my.id/api/export/agents.csv?brand=ASTAGA&key=depas2026`
+5. **Master SKU & Kategori Produk (Product Stream)**:
+   `https://depas.my.id/api/export/products.csv?brand=ASTAGA&key=depas2026`
+6. **Rekap Finansial Bulanan (Excel Stream)**:
+   `https://depas.my.id/api/export/finance-rekap.xlsx?brand=ASTAGA&year=2026&month=2026-10&key=depas2026`
 
-Pembaruan per 08 Oktober 2026 mengintegrasikan 4 kolom master penting (**Limit Saldo**, **Markup**, **Tgl. Daftar**, dan **Tgl. Aktivitas Terakhir**) dari raw TSV OtomaX untuk kebutuhan analitikal jangka panjang (churn rate, cohort retention, analisa limit & margin).
-
-#### Tabel `agents` (Agen Induk):
-```sql
-CREATE TABLE agents (
-    brand                   TEXT NOT NULL,
-    agen_id                 TEXT NOT NULL,
-    nama_agen               TEXT NOT NULL,
-    cabang                  TEXT NOT NULL,
-    type                    TEXT DEFAULT 'Standard',
-    sco                     TEXT DEFAULT 'NON SCO',
-    dso                     TEXT DEFAULT '-',
-    limit_saldo             REAL DEFAULT 0.0,
-    markup                  REAL DEFAULT 0.0,
-    tgl_daftar              TEXT,
-    tgl_aktivitas_terakhir  TEXT,
-    location                TEXT,
-    kota_kab                TEXT,
-    kecamatan               TEXT,
-    kelurahan               TEXT,
-    jadwal                  TEXT DEFAULT '-',
-    is_active               INTEGER DEFAULT 1,
-    updated_at              TEXT,
-    PRIMARY KEY (brand, agen_id)
-);
-```
-
-#### Tabel `resellers` (Toko Downline):
-```sql
-CREATE TABLE resellers (
-    brand                   TEXT NOT NULL,
-    kode_reseller           TEXT NOT NULL,
-    nama_reseller           TEXT NOT NULL,
-    grup                    TEXT,
-    kode_upline             TEXT,
-    root_agen_id            TEXT,
-    cabang                  TEXT NOT NULL,
-    leveling                TEXT DEFAULT 'DOWNLINE',
-    saldo                   REAL DEFAULT 0.0,
-    limit_saldo             REAL DEFAULT 0.0,
-    markup                  REAL DEFAULT 0.0,
-    tgl_daftar              TEXT,
-    tgl_aktivitas_terakhir  TEXT,
-    updated_at              TEXT,
-    PRIMARY KEY (brand, kode_reseller)
-);
-```
-
-### 3.2. Aturan Ingesti TSV & Filter Aktivitas (Takeout Rule)
-1. **Filter Aktivitas Wajib (Takeout Inaktif):**
-   - Sebelum dimasukkan ke dalam database, sistem memeriksa kolom `Tgl. Aktivitas Terakhir`.
-   - Jika `Tgl. Aktivitas Terakhir` bernilai kosong, `<null>`, atau NaN $\rightarrow$ **di-take out** (tidak dimasukkan ke database). Hanya member dengan riwayat aktivitas aktif yang disimpan.
-   - **Penting:** Graph pohon hierarki MLM (`parent_map`) dibangun dari **seluruh baris TSV** sebelum pemfilteran dilakukan, sehingga rantai downline dari upline yang pasif tidak terputus dan tetap bermuara ke cabang yang benar.
-2. **Pengecualian Akun (Exclusion & Whitelist):**
-   - **ASTAGA:** Akun `AR00037` (H2H OKIPAY), `AR00009` (Internal), dan `AR20408` (Internal Testing) secara otomatis **di-take out total** dari database dan pipeline transaksi.
-   - **OKIPAY:** Akun `OP00037` (Achmad Efendi) dan `OP00009` (Branch Kosong 7) **TETAP DISIMPAN (TIDAK DI-TAKEOUT)**.
-3. **Pemetaan Cabang ASTAGA (Konsolidasi DEPO JASINGA ke PP):**
-   - Cabang resmi ASTAGA terdiri dari 5 cabang operasional: **BSD**, **PP** (Depo Parung Panjang), **ICON**, **PRG** (Depo Parung Bogor), dan **ONLINE**.
-   - **Kebijakan DEPO JASINGA (`AR00007`)**: Seluruh jaringan keagenan dan toko reseller yang berpangkal pada `AR00007` (Management Jasinga / Depo Jasinga) secara resmi **dialihkan dan digabungkan (SWITCH KE PP)** ke cabang **PP (Depo Parung Panjang)**.
-   - Tabel Upline Cabang ASTAGA:
-     | Kode Upline / Akun | Nama Akun / Cabang | Mapping Cabang | Status / Keterangan |
-     | :--- | :--- | :--- | :--- |
-     | `AR00001` | ASTAGA System Root | *(System Root)* | TAKE OUT |
-     | `AR00002` | Management BSD | **BSD** | KEEP |
-     | `AR00003` | Management Parung | **PRG** | KEEP |
-     | `AR00004` | Management Online | **ONLINE** | KEEP |
-     | `AR00005` | Management Cimone / ICON | **ICON** | KEEP |
-     | `AR00006` | Management Parung Panjang | **PP** | KEEP |
-     | `AR00007` | Management Jasinga | **PP** | **SWITCH KE PP** *(Depo Jasinga merger ke PP)* |
-     | `AR00008` | Pasar Gudang Tigaraksa | **BSD** | SWITCH KE BSD |
-     | `AR00009` | Akun Internal | **INTERNAL** | TAKE OUT |
-     | `AR00010` | Testing Akun | **BSD** | SWITCH KE BSD |
-     | `AR00037` | H2H OKIPAY | **H2H OKIPAY** | TAKE OUT |
-     | `AR20408` | Internal Testing | **INTERNAL** | TAKE OUT |
-4. **Pemetaan Cabang OKIPAY (Tanpa Field Force SCO/DSO):**
-   - Seluruh agen OKIPAY tidak memiliki field force: `SCO = 'NON SCO'`, `DSO = '-'`.
-   - Pemetaan cabang OKIPAY mengikuti tabel upline resmi:
-     | Kode Upline / Akun | Nama Akun | Mapping Cabang | Status |
-     | :--- | :--- | :--- | :--- |
-     | `OP00001` | OKI Payment | *(System Root)* | TAKE OUT |
-     | `OP00002` | Management OKI Pay | **ONLINE** | KEEP |
-     | `OP00003` | Management Facebook | **ONLINE** | KEEP |
-     | `OP00004` | Management Offline | **ONLINE** | KEEP |
-     | `OP00005` | Management H2H | **H2H** | KEEP |
-     | `OP00006` | Management Bogor | **ONLINE** | KEEP |
-     | `OP00007` | Branch Kosong 5 | **ONLINE** | KEEP |
-     | `OP00008` | Branch Kosong 6 | **ONLINE** | KEEP |
-     | `OP00009` | Branch Kosong 7 | **ONLINE** | KEEP |
-     | `OP00010` | Branch Kosong 8 | **ONLINE** | KEEP |
-
-### 3.3. Algoritma Resolusi Pohon MLM (Graph Traversal)
-- Sistem memproses relasi multi-level marketing (MLM) antara reseller downline hingga bermuara ke **Agen Induk** (*root agen*).
-- Algoritma traversal rekursif menyelesaikan pemetaan reseller aktif:
-  - **ASTAGA:** 17.975 Reseller aktif terpetakan ke 7.066 Agen Induk (BSD: 6.579, PP: 4.502, ICON: 3.858, ONLINE: 1.464, PRG: 1.430, UNMAPPED: 142; *Depo Jasinga sebanyak 42 reseller & 1 agen telah dimerge penuh ke PP*).
-  - **OKIPAY:** 2.618 Reseller aktif terpetakan ke 1.486 Agen Induk (ONLINE: 2.615, H2H: 3).
-
-### 3.4. Fitur Utama Web Admin Agen:
-* **KPI Header**: Total Agen Induk, Total Toko Reseller, Rata-rata Downline per Agen, dan Agen Non-SCO.
-* **Pohon Hierarki Downline (`🌳 Modal`)**:
-  Klik tombol downline pada tabel agen untuk membuka pohon hierarki lengkap: daftar toko reseller anak, level kedalaman, upline langsung, saldo, limit saldo, markup, tgl daftar, dan tgl aktivitas terakhir.
-* **Fitur Tambah Agen Baru (`+ Tambah Agen`)**:
-  - Tombol **+ Tambah Agen** di toolbar memungkinkan pendaftaran Agen Induk baru secara cepat langsung dari web interface.
-  - Membuka form modal dengan kolom Kode Agen (ID) aktif yang dapat diinput manual.
-  - Secara otomatis mendaftarkan agen ke tabel `agents` dan `resellers` (leveling ROOT), memetakan ke cabang induk pilihan, serta langsung menyinkronkan Parquet Cache dan me-reset in-memory RAM cache tanpa perlu restart server.
-* **Modal Edit Agen & Auto-Propagasi**:
-  Mengubah data **Cabang Induk** pada form Agen Induk secara otomatis mempropagasi seluruh toko downline di bawahnya dan langsung menyinkronkan Parquet Cache tanpa restart server.
-* **Preservasi Metadata SCO / Wilayah**:
-  Migrasi otomatis mempertahankan seluruh pemetaan manual SCO/DSO/Jadwal/Wilayah yang sudah dibuat sebelumnya (1.668 agen SCO ASTAGA tetap utuh).
-* **Ekspor Excel Resmi**:
-  Tombol **Unduh Excel** mengekspor seluruh master agen dan reseller langsung dari SQLite ke file `.xlsx` resmi lengkap dengan 4 kolom baru.
+### 3.3. Radar Audit Master (Deteksi Unmapped Reseller & Produk)
+- Memindai otomatis setiap baris transaksi yang baru masuk:
+  - **Unmapped Reseller**: Reseller yang aktif bertransaksi namun kodenya belum terdaftar di tabel `resellers`.
+  - **Unmapped Produk**: SKU produk yang memiliki transaksi namun belum terdaftar di katalog `products`.
+- Menyediakan tombol 1-klik `+ Tambah` yang langsung membuka form modal untuk mendaftarkan kode tersebut ke Master tanpa perlu mengetik ulang.
 
 ---
 
-## 4. SUB-TAB 3: MASTER PRODUK & KATEGORI
+## 4. TAB 2: MASTER AGEN & RESELLER (POHON HIERARKI MLM & KONTAK PENGIRIM)
 
-Sub-tab **📦 Master Produk & Kategori** adalah modul manajemen katalog SKU produk telekomunikasi, e-wallet, voucher game, token PLN, dan PPOB.
+Tab 2 mengelola seluruh struktur keagenan, hierarki MLM downline, pemetaan cabang, tim sales lapangan (SCO/DSO), dan basis data nomor kontak pengirim.
 
-### 4.1. Masalah Kode Produk Ganda & Solusi Composite Key
-ASTAGA dan OKIPAY memiliki **395 kode produk yang sama persis** (contoh: `T150`, `I60`, `DN100`, `S10`). Jika disimpan tanpa isolasi, produk OKIPAY akan menimpa produk ASTAGA atau sebaliknya.
+### 4.1. Twin Upload Cards (Dua Uploader Berdampingan)
+Di bagian atas tab terdapat dua kartu unggah berdampingan yang menyelesaikan tantangan terpisahnya database OtomaX:
+1. **Kartu Kiri (Aksen Cyan - Akun & Pohon MLM)**:
+   - Digunakan untuk mengunggah file Master Reseller dari OtomaX (`astaga.tsv` / `okipay.tsv`).
+   - Memetakan relasi `Kode` $\rightarrow$ `Kode Upline` secara rekursif hingga menemukan Toko Induk (`root_agen_id`) dan cabang resmi.
+   - Menyimpan saldo, limit saldo, markup, tanggal daftar, dan tanggal aktivitas terakhir ke tabel SQLite `agents` dan `resellers`.
+2. **Kartu Kanan (Aksen Emerald - Nomor Pengirim SMS & WA)**:
+   - Digunakan untuk mengunggah file Master Pengirim dari OtomaX (`KONTAK_ASTAGA.tsv` / `KONTAK_OKIPAY.tsv`).
+   - Menyaring nomor HP jalur SMS (`S`), WhatsApp (`W`), dan Jabber (`G`, `J`, `IP`).
+   - Membersihkan nomor ke format standar `628xxxxxxxxxx`.
+   - Mengelompokkan seluruh nomor unik reseller ke kolom `candidate_phones` (JSON array) pada tabel `reseller_contacts`.
 
-**Solusi:** Diterapkan skema **Composite Primary Key** pada tabel `products`:
+### 4.2. Logika Sinergi Self-Transaksi E-Wallet (Gestun Detection)
+Nomor pengirim yang diimpor pada Kartu Kanan terhubung langsung dengan engine analisa fraud di halaman **`#ewallet`** (`engines/fraud_engine.py`):
+$$\text{Self-Transaksi (Gestun)} \iff \text{clean\_tujuan (Trx)} \in \text{candidate\_phones (Reseller)}$$
+Jika reseller mengisi saldo e-wallet (DANA, OVO, GOPAY, ShopeePay, dll) ke nomor HP yang identik dengan nomor pengirim yang didaftarkannya di sistem, transaksi tersebut otomatis diklasifikasikan sebagai **Self-Transaksi**.
+
+### 4.3. Unified KPI Summary Bar (`.master-unified-kpi-bar`)
+Menampilkan ringkasan metrik dalam satu bar horizontal ramping border-first:
+- **Total Agen (Induk)**: Jumlah entitas toko induk terdaftar (`#kpi-total-agents`).
+- **Tim Sales (SCO)**: Toko binaan yang memiliki PIC sales lapangan (`#kpi-sales-sco`).
+- **Cabang (NON SCO)**: Omset langsung cabang fisik tanpa tim sales lapangan (`#kpi-non-sco`).
+- **Cabang ONLINE**: Pendaftaran mandiri PlayStore / non-fisik (`#kpi-online-sco`).
+- **Belum Dipetakan**: Status agen yang belum memiliki pemetaan cabang/SCO (`#kpi-unmapped-sco`).
+- **Total Reseller (MLM)**: Seluruh jaringan downline dan toko induk (`#kpi-total-resellers`).
+
+### 4.4. Hukum Bisnis Tipe Agen & Tim Sales (GEMINI.md Rules 7 & 8)
+- **3 Klasifikasi Tipe Agen Resmi ASTAGA**:
+  1. `Limit`: Agen dengan fasilitas plafon kredit/limit saldo aktif (`limit_saldo != 0`).
+  2. `Non Limit`: Agen cabang fisik non-prima yang limit saldonya di-nolkan (`limit_saldo == 0`).
+  3. `Prima`: Reseller grup P reguler dan seluruh pendaftaran mandiri cabang `ONLINE`.
+- **Aturan Tim Sales (SCO)**:
+  - Cabang `ONLINE` **WAJIB** memiliki `SCO = 'ONLINE'`.
+  - Cabang Fisik (`BSD`, `ICON`, `PP`, `PRG`) berstatus nama petugas sales masing-masing atau `NON SCO` (untuk agen walk-in fisik). Cabang fisik dilarang berstatus `ONLINE`.
+
+### 4.5. Fitur CRUD & Modal Live Edit:
+- **Pohon Hierarki Downline (`Modal Downline`)**: Menampilkan seluruh anak ranting reseller di bawah toko induk, lengkap dengan kedalaman level, upline langsung, dan saldo.
+- **Form Edit Agen**: Memungkinkan pengubahan nama agen, cabang induk (otomatis mempropagasi seluruh downline di bawahnya), tipe agen, nama SCO, DSO, jadwal kunjungan, dan koordinat GPS.
+- **Tambah Agen Baru**: Mendaftarkan akun agen induk baru langsung dari browser.
+- **Unduh Excel**: Mengekspor master agen dan reseller lengkap ke format `.xlsx`.
+
+---
+
+## 5. TAB 3: MASTER PRODUK & KATEGORI (COMPOSITE KEY & INTEGRASI E-WALLET)
+
+Tab 3 mengelola katalog seluruh SKU produk voucher pulsa, paket data, token PLN, e-wallet, dan tagihan PPOB.
+
+### 5.1. Masalah Kode Produk Ganda & Solusi Composite Key
+ASTAGA dan OKIPAY memiliki 395 kode produk yang sama persis (contoh: `DN100`, `T150`, `S10`). Untuk mencegah saling timpa, tabel `products` menggunakan **Composite Primary Key**:
 ```sql
 CREATE TABLE products (
-    brand           TEXT NOT NULL,
-    kode_produk     TEXT NOT NULL,
-    nama_produk     TEXT NOT NULL,
-    kategori        TEXT NOT NULL,
-    operator        TEXT NOT NULL,
-    paket           TEXT,
-    tipe_produk     TEXT,
-    is_active       INTEGER DEFAULT 1,
-    updated_at      TEXT,
+    brand        TEXT NOT NULL,
+    kode_produk  TEXT NOT NULL,
+    nama_produk  TEXT NOT NULL,
+    kategori     TEXT NOT NULL,
+    operator     TEXT NOT NULL,
+    paket        TEXT,
+    is_active    INTEGER DEFAULT 1,
+    updated_at   TEXT,
     PRIMARY KEY (brand, kode_produk)
 );
 ```
-Dengan skema ini, `(ASTAGA, T150)` dan `(OKIPAY, T150)` tersimpan berdampingan secara mandiri dengan metadata masing-masing:
-- ASTAGA `T150`: Kategori `TELCO`, Operator `TRI`, Paket `REGULER`, Tipe `REGULER`.
-- OKIPAY `T150`: Kategori `TELCO`, Operator `TRI`, Paket `MOBILE`, Tipe `-`.
 
-### 4.2. Statistik Katalog SKU
-* **ASTAGA**: **3.579 SKU**
-  - Kategori (6): `TELCO`, `EWALLET`, `TOKEN PLN`, `PPOB`, `VOUCHER GAME`, `TRANSFER STOK`.
-  - Operator (16): `TELKOMSEL`, `INDOSAT`, `XL - AXIS`, `TRI`, `SMARTFREN`, `DANA`, `GOPAY`, `OVO`, `SHOPEEPAY`, `GRAB`, `EMONEY`, `TOKEN PLN`, `PPOB`, `VOUCHER GAME`, `TRANSFER STOK`, `OTHERS`.
-  - Paket (5): `REGULER`, `DATA`, `INJECT`, `NOMINAL`, `BEBAS NOMINAL`.
-* **OKIPAY**: **2.193 SKU**
-  - Kategori (5): `TELCO`, `EWALLET`, `TOKEN PLN`, `PPOB`, `VOUCHER GAME`.
-  - Operator (17): `TELKOMSEL`, `INDOSAT`, `AXIS/XL`, `TRI`, `SMARTFREN`, `DANA`, `GOPAY`, `OVO`, `SHOPEEPAY`, `LINKAJA`, `MAXIM`, `GRAB`, `EMONEY`, `TOKEN PLN`, `PPOB`, `VOUCHER GAME`, `LAINNYA`.
-  - Paket (8): `MOBILE`, `MOBILE DATA`, `SMS`, `DANA BEBAS`, `DANA CEK`, `DANA NOMINAL`, `TV K-VISION`, `LAINNYA`.
+### 5.2. Unified KPI Summary Bar Produk (`.product-unified-kpi-bar`)
+- **Total Produk**: Item SKU terdaftar di sistem (`#kpi-total-products`).
+- **Total Kategori**: TELCO, EWALLET, PLN, PPOB, dll (`#kpi-total-categories`).
+- **Total Operator**: Provider telekomunikasi & merchant e-wallet (`#kpi-total-operators`).
+- **Unmapped / Belum Kategori**: SKU berkategori LAINNYA yang butuh klasifikasi (`#kpi-unmapped-categories`).
 
-### 4.3. Fitur Utama Web Admin Produk:
-* **KPI Header Live**: Total Produk SKU, Total Kategori, Total Operator, dan Unmapped / Kategori LAINNYA.
-* **Filter Multi-Kriteria**:
-  - Pill Selector Brand (`ASTAGA` vs `OKIPAY`).
-  - Search box instan (mencari kode SKU atau nama produk).
-  - Dropdown filter dinamis Kategori, Operator, dan Paket.
-  - Tombol Reset Filter.
-* **Fitur Tambah Produk Baru (`+ Tambah Produk`)**:
-  - Tombol **+ Tambah Produk** di toolbar produk memungkinkan pengguna mendaftarkan SKU baru secara langsung melalui web interface.
-  - Membuka modal input dengan field Kode Produk aktif (dapat diketik manual).
-  - Menyimpan langsung ke SQLite (`INSERT OR REPLACE INTO products`) serta menyinkronkan Parquet Cache (`prod_<brand>.parquet`) dan in-memory cache RAM seketika tanpa perlu restart server.
-* **Modal Live Edit & Datalist Autocomplete**:
-  - Kode Produk (Readonly saat mode edit, editable saat mode tambah produk baru).
-  - Nama Produk.
-  - Kategori & Operator dengan autocomplete datalist dari opsi yang sudah ada atau opsi custom.
-  - Paket & Tipe Produk.
-  - Perubahan langsung menyelaraskan Parquet Cache dan me-reset in-memory cache RAM.
-* **Ekspor Excel Master Produk**:
-  - Mengunduh file Excel resmi `MASTER_PRODUCT_<BRAND>_<TIMESTAMP>.xlsx` yang digenerate langsung dari SQLite.
+### 5.3. Fitur Utama Web Admin Produk:
+- **Pencarian Cepat & Filter Multi-Kategori**: Filter Brand, Kategori, Operator, dan Paket.
+- **Modal Tambah & Edit Produk**: Autocomplete datalist kategori dan operator dari database existing.
+- **Ekspor Excel**: Mengunduh katalog master produk resmi ke format Microsoft Excel.
 
 ---
 
-## 5. ARSITEKTUR CACHING BERJENJANG
+## 6. TAB 4: PENGATURAN USER (KEAMANAN & HAK AKSES)
 
-Untuk menjamin kecepatan dashboard tetap berada di bawah **50 milidetik**, diterapkan strategi caching 4 lapis:
+Tab 4 mengelola akses login dan kredensial pengguna aplikasi Web Report.
+
+### 6.1. Penyimpanan & Enkripsi Kredensial
+- Kredensial tersimpan secara terisolasi di `MASTER/auth_users.json`.
+- Password dienkripsi menggunakan hashing kriptografi aman **SHA-256 dengan Salt Dinamis**:
+  $$\text{hash} = \text{SHA256}(\text{salt} + \text{password\_plain})$$
+- Password plain text tidak pernah disimpan di database atau memori log.
+
+### 6.2. Role & Tingkat Kewenangan:
+1. `admin`: Akses penuh terhadap seluruh modul pelaporan, ingestion data, manajemen master agen/produk, pengaturan user, dan ekspor data.
+2. `management`: Akses penuh terhadap seluruh dashboard analitika eksekutif, rekap finansial, laporan harian, dan ringkasan SCO (read-only pada tabel master).
+3. `viewer`: Akses terbatas untuk monitoring laporan operasional tanpa akses ke pengaturan dapur/admin.
+
+### 6.3. Fitur Manajemen User:
+- Penambahan akun pengguna baru (*Create User*).
+- Pengubahan password pengguna yang aman (*Reset / Change Password*).
+- Pengaktifan/penonaktifan akses user tanpa menghapus histori akun.
+
+---
+
+## 7. TAB 5: STATUS FRESHNESS SISTEM (MONITORING INTEGRITAS DATA & CACHE)
+
+Tab 5 adalah pusat telemetri dan diagnostik kesehatan data server lokal.
+
+### 7.1. Komponen Monitoring:
+- **Status Parquet Transaksi**: Memeriksa keberadaan dan ukuran file partisi bulanan (`.cache/parts/`) serta cache master tahunan.
+- **Timestamp Terakhir (Freshness Watermark)**: Menampilkan tanggal dan jam transaksi terakhir yang berhasil masuk ke sistem.
+- **Integritas Database SQLite**: Memeriksa jumlah baris tabel `agents`, `resellers`, `reseller_contacts`, dan `products`.
+- **Status Sinkronisasi VPS Cloud**: Memantau konektivitas sinkronisasi data stream antara server lokal dan domain public `https://depas.my.id`.
+
+### 7.2. Tombol Aksi Sistem:
+- **Bersihkan & Rebuild Cache (Clear RAM & Parquet Cache)**: Membersihkan memory leak, memaksa engine analitikal memuat ulang data dari SQLite dan Parquet terbaru.
+- **Trigger Sync VPS**: Memicu sinkronisasi manual file partisi ke server cloud.
+
+---
+
+## 8. TAB 6: ESKALASI AI / HELP ME PLEASE (PUSAT TIKET OTOMASI CS)
+
+Tab 6 adalah antarmuka pemantauan tiket kendala yang diajukan oleh agen atau tim operasional melalui bot Telegram terintegrasi (**`@depas_ai_bot`** / `tele_bot.py`).
+
+### 8.1. Alur Penanganan Tiket:
+1. **Penerimaan Tiket**: Saat agen melaporkan kendala saldo, transaksi pending, atau verifikasi akun ke bot Telegram, sistem otomatis membuat ID tiket unik (misal: `TKT-20261028-XXXXXX`).
+2. **Klasifikasi AI**: Copilot AI secara cerdas menganalisis sentimen, kategori kendala, serta mengecek status transaksi terkait di database.
+3. **Antrean di Web Admin**: Tiket muncul di tabel antrean Tab 6 lengkap dengan nama toko/agen, nomor WA/Telegram, ringkasan masalah, tingkat urgensi (*Urgent, Normal, Low*), dan status (*Open, In Progress, Resolved*).
+4. **Penyelesaian**: Tim admin dapat mengubah status tiket dan mengirimkan balasan langsung ke Telegram agen dari sistem.
+
+---
+
+## 9. PEMISAHAN MODUL REKAP FINANSIAL KE HALAMAN #PIVOT-ADMIN
+
+Sesuai pembaruan arsitektur antarmuka:
+- Modul rekapitulasi finansial bulanan (Omset, Modal, Gross Margin, Komisi Markup Upline, dan Net Profit Server) yang sebelumnya berada di tab internal admin, kini telah **DIPISAHKAN SECARA RESMI MENJADI HALAMAN MANDIRI**.
+- Halaman tersebut dapat diakses melalui menu sidebar di bawah menu Admin dengan rute:
+  👉 **`http://localhost:8000/#pivot-admin`** (`pages/pivot_admin/index.html`)
+- Halaman ini menggunakan *financial pivot engine* terdedikasi (`engines/profit_engine.py`) dengan dukungan ekspor Excel resmi, filter multi-tahun, dan perhitungan net yield per transaksi.
+
+---
+
+## 10. ARSITEKTUR CACHING BERJENJANG (HIERARCHICAL CACHE L1-L4)
+
+Untuk menjamin kecepatan dashboard tetap berada di bawah **50 milidetik**, sistem menerapkan strategi caching 4 lapis:
 
 | Lapis | Media Simpan | Komponen | Waktu Akses | Mekanisme Refresh |
-|---|---|---|:---:|---|
-| **Level 1** | In-Memory RAM | `_PROD_MAP`, `_CABANG_MAP`, `_MEMORY_CACHE` | $< 0.001\text{ s}$ | Invalidate otomatis saat endpoint `/save` dipanggil via `clear_cache()`. |
-| **Level 2** | Fast Parquet | `.cache/prod_*.parquet`, `.cache/cust_*.parquet` | $< 0.005\text{ s}$ | Auto-generate oleh `master_product_engine` & `master_data_engine`. |
-| **Level 3** | Relational DB | `MASTER/master_data.db` (SQLite) | $< 0.020\text{ s}$ | Single Source of Truth; ACID compliant, terindeks `(brand, kode_produk)`. |
-| **Level 4** | Dokumen Arsip | File Excel `.xlsx` di folder `MASTER/` | - | Hanya dibuat on-demand saat user menekan tombol **Unduh Excel**. |
+|:---:|---|---|:---:|---|
+| **Level 1** | In-Memory RAM | `_PROD_MAP`, `_CABANG_MAP`, `_MEMORY_CACHE` | $< 0.001\text{ s}$ | Invalidate otomatis via `clear_cache()` saat ada update master/transaksi. |
+| **Level 2** | Fast Parquet | `.cache/cust_*.parquet`, `.cache/prod_*.parquet`, partisi trx | $< 0.005\text{ s}$ | Auto-generate oleh engine master data saat TSV di-upsert. |
+| **Level 3** | Relational DB | `MASTER/master_data.db` (SQLite) | $< 0.020\text{ s}$ | Single Source of Truth; ACID compliant, terindeks `(brand, kode)`. |
+| **Level 4** | Dokumen Ekspor | File Excel `.xlsx` dan CSV di `C:\DMS RAW DATA\MASTER\` | On-Demand | Dibuat saat tombol export ditekan atau auto-backup sinkronisasi. |
 
 ---
 
-## 6. KATALOG API ENDPOINTS (`server.py`)
+## 11. KATALOG LENGKAP REST API ENDPOINTS (`server.py`)
 
 Seluruh komunikasi frontend Web Admin dengan backend menggunakan Starlette REST API:
 
-### A. Master Produk
-* **`GET /api/admin/products`**
-  - Query params: `brand`, `kategori`, `operator`, `paket`, `search`, `page`, `page_size`.
-  - Response: `{ ok: true, data: { total_count, page, total_pages, rows: [...] }, options: { categories, operators, pakets, stats } }`
-* **`GET /api/admin/products/detail`**
-  - Query params: `brand`, `kode_produk`.
-  - Response: `{ ok: true, data: { found: true, product: { ... } } }`
-* **`POST /api/admin/products/save`**
-  - Body: `{ brand: "ASTAGA", kode_produk: "T10", data: { nama_produk, kategori, operator, paket, tipe_produk } }`
-  - Response: `{ ok: true, message: "Produk T10 berhasil disimpan!", data: { ... } }`
-* **`GET /api/admin/products/export`**
-  - Query params: `brand`.
-  - Response: Stream binary download file `.xlsx`.
+### A. Ingestion & Upload File
+* **`POST /api/admin/upload-tsv`**: Mengunggah dan upsert transaksi harian langsung ke Parquet bulanan/tahunan.
+* **`POST /api/admin/upload-reseller-tsv`**: Mengunggah master reseller OtomaX (`astaga.tsv` / `okipay.tsv`), rekursi pohon MLM, dan update tabel `agents` & `resellers`.
+* **`POST /api/admin/upload-pengirim-tsv`**: Mengunggah master nomor pengirim OtomaX (`KONTAK_ASTAGA.tsv` / `KONTAK_OKIPAY.tsv`) dan update tabel `reseller_contacts`.
+* **`GET /api/admin/status`**: Memeriksa status watermark transaksi dan ketersediaan file TSV baru.
+* **`POST /api/admin/upsert`**: Memicu background upsert job dari folder RAW DATA.
+* **`GET /api/admin/job-status`**: Memeriksa progres realtime job upsert yang sedang berjalan.
 
-### B. Master Agen & Reseller
-* **`GET /api/admin/agents`**
-  - Query params: `brand`, `cabang`, `sco`, `type`, `search`, `page`, `page_size`.
-  - Response: `{ ok: true, data: { total_count, page, total_pages, rows: [...] }, options: { cabangs, scos, types, stats } }`
-* **`GET /api/admin/agents/detail`**
-  - Query params: `brand`, `agen_id`.
-  - Response: `{ ok: true, data: { found: true, agent: { ... }, downlines: [...] } }`
-* **`POST /api/admin/agents/save`**
-  - Body: `{ brand, agen_id, data: { nama_agen, cabang, type, sco, dso, jadwal, location } }`
-  - Response: `{ ok: true, message: "Data agen berhasil disimpan!", data: { ... } }`
-* **`GET /api/admin/agents/export`**
-  - Query params: `brand`.
-  - Response: Stream binary download file `.xlsx`.
+### B. Master Reseller & Agen
+* **`GET /api/admin/agents`**: Query daftar agen induk dengan filter brand, cabang, SCO, tipe, pencarian nama/ID, dan paginasi.
+* **`GET /api/admin/agents/detail`**: Mengambil detail profil toko induk beserta daftar seluruh pohon downline di bawahnya.
+* **`POST /api/admin/agents/save`**: Menyimpan perubahan metadata profil agen (SCO, DSO, cabang, jadwal, lokasi GPS, tipe).
+* **`GET /api/admin/agents/export`**: Mengunduh master agen dan reseller dalam format Microsoft Excel.
 
-### C. Ingestion & Status
-* **`GET /api/admin/status`**
-  - Query params: `year`.
-  - Response: `{ ok: true, data: { ASTAGA: { ... }, OKIPAY: { ... } } }`
-* **`POST /api/admin/upsert`**
-  - Body: `{ brand, year }`
-  - Response: `{ ok: true, job_id: "uuid" }`
-* **`GET /api/admin/job-status`**
-  - Query params: `job_id`.
-  - Response: `{ ok: true, status: "RUNNING" | "DONE" | "ERROR", progress: ..., log: [...] }`
+### C. Master Produk SKU
+* **`GET /api/admin/products`**: Query katalog SKU dengan filter kategori, operator, paket, pencarian, dan paginasi.
+* **`GET /api/admin/products/detail`**: Mengambil detail atribut produk tertentu.
+* **`POST /api/admin/products/save`**: Menyimpan atau mendaftarkan SKU produk baru ke database dan cache Parquet.
+* **`GET /api/admin/products/export`**: Mengunduh katalog master produk dalam format Microsoft Excel.
+
+### D. Live Data Stream (Power BI & Excel)
+* **`GET /api/export/transactions.csv`**: Stream transaksi format CSV dengan parameter `brand`, `year`, `month`, dan `key`.
+* **`GET /api/export/transactions.parquet`**: Stream transaksi mentah format Parquet biner teroptimasi.
+* **`GET /api/export/customers.csv`**: Stream data toko reseller dan agen.
+* **`GET /api/export/agents.csv`**: Stream data toko induk dan koordinat wilayah.
+* **`GET /api/export/products.csv`**: Stream katalog SKU produk.
+* **`GET /api/export/finance-rekap.xlsx`**: Stream rekapitulasi finansial Excel.
+
+### E. User & Tiket Eskalasi
+* **`GET /api/admin/users`**: Mengambil daftar user terdaftar.
+* **`POST /api/admin/users/save`**: Menambah user baru atau mengubah password/role.
+* **`POST /api/admin/users/delete`**: Menghapus akun user.
+* **`GET /api/admin/tickets`**: Mengambil daftar tiket antrean kendala agen dari bot AI.
+* **`POST /api/admin/tickets/update`**: Memperbarui status tiket (*In Progress, Resolved*).
 
 ---
 
-## 7. MATRIKS INTEGRASI 10 ENGINE ANALITIKAL
+## 12. PANDUAN OPERASIONAL & TROUBLESHOOTING
 
-Semua engine pada sistem telah lolos uji verifikasi (*Audit Pass*) dan terintegrasi penuh tanpa ketergantungan pada file Excel:
+### 12.1. Alur Rutin Sinkronisasi Master Data Bulanan
+1. Unduh file Master Reseller terbaru dari OtomaX (`astaga.tsv` atau `okipay.tsv`).
+2. Buka **`#admin?tab=master`**, arahkan ke kartu sebelah kiri (**Upload & Sinkronisasi Data Reseller**).
+3. Pilih file TSV reseller. Dalam 1–2 detik, hierarki pohon MLM akan terpetakan ulang dan status toko ter-refresh.
+4. Unduh file Master Pengirim terbaru dari OtomaX (`KONTAK_ASTAGA.tsv` atau `KONTAK_OKIPAY.tsv`).
+5. Pada tab yang sama, arahkan ke kartu sebelah kanan (**Upload & Sinkronisasi Nomor Pengirim**).
+6. Pilih file kontak pengirim. Dalam < 1 detik, seluruh nomor WA dan SMS reseller akan terbarui di database SQLite, dan modul deteksi self-transaksi di `#ewallet` otomatis siap digunakan.
 
-| # | File Engine | Sumber Data Utama | Integritas Master Produk & Customer |
-|---|---|---|---|
-| 1 | `engines/product_engine.py` | RAM $\rightarrow$ Parquet $\rightarrow$ SQLite | Menyediakan `get_product_map(brand)` untuk seluruh engine. |
-| 2 | `engines/master_product_engine.py` | SQLite `master_data.db` | Mengelola CRUD, search, filter, export, dan sync Parquet. |
-| 3 | `engines/customer_engine.py` | Parquet $\rightarrow$ SQLite | Menyediakan `get_ar_to_cabang(brand)` (25.873 AR ASTAGA & 2.587 AR OKIPAY). |
-| 4 | `engines/master_data_engine.py` | SQLite `master_data.db` | Mengelola relasi agen, pohon downline, dan auto-propagasi. |
-| 5 | `engines/daily_engine.py` | Parquet Trx + `product_engine` | Mengelompokkan transaksi harian berdasarkan kategori & operator produk (ASTAGA: 6 kategori; OKIPAY: 5 kategori resmi `TELCO`, `EWALLET`, `TOKEN PLN`, `PPOB`, `VOUCHER GAME` + dynamic discovery). |
-| 6 | `engines/overview_engine.py` | Parquet Trx + Master Hub | Mendeteksi unmapped reseller & unmapped produk di transaksi baru. |
-| 7 | `engines/agen_engine.py` | Parquet Trx + Master Hub | Menghitung produktivitas Agen Induk, ranking, dan komposisi % EWALLET. |
-| 8 | `engines/reseller_engine.py` | Parquet Trx + Master Hub | Segmentasi keaktifan reseller (Aktif, Baru, Churn) & limit kredit. |
-| 9 | `engines/sco_engine.py` | SQLite `master_data.db` + Trx | Mengagregasi KPI SCO bulanan dan analitika downline bebas Excel. |
-| 10 | `engines/pivot_engine.py` | `prod_full_*.parquet` + SQLite | Menyediakan pivot multidimensi produk (Kode, Nama, Kategori, Operator, Paket, Tipe). |
-| 11 | `engines/analisa_engine.py` | Parquet Trx 2026 + Master Hub (Hybrid 2023-2026) | Komputasi tren multi-tahun & bulanan dinamis. Data 2026 dihitung otomatis dari Parquet riil (identik 100% dengan Pivot & Daily) dengan auto-invalidation mtime & cache terintegrasi (`.cache/analisa_gold_2026.json`). |
+### 12.2. Mengatasi Reseller atau Produk yang Muncul di Peringatan Unmapped
+1. Buka **`#admin?tab=ingestion`**.
+2. Gulir ke bawah pada bagian **Audit Master: Kode Baru Terdeteksi di Transaksi**.
+3. Jika ada item yang muncul, klik tombol **`+ Tambah`** di samping kode tersebut.
+4. Form modal pendaftaran akan terbuka otomatis dengan ID yang sudah terisi.
+5. Lengkapi data (misal pilih Cabang untuk Agen, atau Kategori untuk Produk) lalu klik **Simpan**. Peringatan unmapped seketika hilang.
 
----
-
-## 8. PANDUAN OPERASIONAL & TROUBLESHOOTING
-
-### 8.1. Cara Menambah atau Mengubah Kategori Produk
-1. Buka browser: `http://localhost:8000/#admin`
-2. Klik sub-tab **📦 Master Produk & Kategori**.
-3. Pilih brand (**ASTAGA** atau **OKIPAY**).
-4. Gunakan kotak pencarian untuk menemukan Kode SKU (misal: `T10` atau `APTS3`).
-5. Klik tombol **✏️ Edit** di kolom kanan.
-6. Perbarui field **Kategori** (misal: ganti menjadi `TELCO` atau `EWALLET`), **Operator**, atau **Paket**.
-7. Klik **Simpan Produk**.
-8. Perubahan langsung tersimpan ke SQLite, Parquet Cache ter-update otomatis, dan seluruh laporan (Daily Summary, Pivot, Analisa) langsung menggunakan kategori baru tanpa perlu me-restart server.
-
-### 8.2. Cara Memindahkan Cabang Agen (Propagasi Downline)
-1. Buka sub-tab **👥 Master Agen & Reseller**.
-2. Cari ID Agen yang ingin dipindahkan.
-3. Klik tombol **✏️ Edit**.
-4. Pilih **Cabang Induk** baru pada dropdown.
-5. Klik **Simpan Perubahan**.
-6. Sistem akan otomatis memindahkan seluruh toko downline yang bernaung di bawah agen tersebut ke cabang baru, serta memperbarui Parquet Cache.
-
-### 8.3. Cara Menjalankan Ekspor Excel Master
-- Pada tab **Master Agen & Reseller**, klik tombol hijau **Unduh Excel** untuk mengunduh master agen dan toko reseller terbaru.
-- Pada tab **Master Produk & Kategori**, klik tombol hijau **Unduh Excel** untuk mengunduh katalog SKU produk terbaru.
-
-### 8.4. Cara Menambah Agen Baru Langsung via Web Admin
-1. Buka sub-tab **👥 Master Agen & Reseller**.
-2. Pilih toggle brand (**ASTAGA** atau **OKIPAY**).
-3. Klik tombol biru **`+ Tambah Agen`** di samping tombol *Filter Data*.
-4. Masukkan **Kode Agen (ID)**, **Nama Toko/Agen**, dan pilih **Cabang Induk** penempatan.
-5. (Opsional) Lengkapi Tipe Reseller, Tim Sales (pilih dari dropdown **SCO: Sales Collection Officer** dan **DSO: Direct Sales Officer** atau input baru), **Jadwal Kunjungan** (dropdown: *Senin,Kamis*, *Selasa,Jum'at*, *Rabu,Sabtu*, *-*, atau input kustom), dan Lokasi Wilayah.
-6. Klik **Simpan Agen Baru**.
-7. Sistem otomatis mendaftarkan agen ke tabel `agents` dan `resellers` (leveling ROOT), memetakan ke cabang yang dipilih, serta menyinkronkan Parquet Cache & RAM seketika tanpa perlu restart server.
-
-### 8.5. Cara Menambah Produk SKU Baru Langsung via Web Admin
-1. Buka sub-tab **📦 Master Produk & Kategori**.
-2. Pilih toggle brand (**ASTAGA** atau **OKIPAY**).
-3. Klik tombol biru **`+ Tambah Produk`** di samping tombol *Filter Produk*.
-4. Masukkan **Kode Produk (SKU)** baru (misal: `TMA1`).
-5. Masukkan **Nama Produk**, **Kategori** (pilih rekomendasi dropdown atau ketik baru), **Operator**, **Paket**, dan **Tipe Produk**.
-6. Klik **Simpan Produk Baru**.
-7. SKU langsung terdaftar di SQLite, disinkronkan ke `prod_<brand>.parquet`, dan langsung aktif digunakan di seluruh engine analitikal.
-
-### 8.6. Logika Takeout Akun Internal & Penanganan Unmapped di Tab Ingestion (#admin?tab=ingestion)
-1. **Takeout Akun Internal ASTAGA:**
-   - Akun `AR00037` (H2H OKIPAY), `AR00009` (Akun Internal), dan `AR20408` (Internal Testing) secara otomatis di-take out total dari partisi parquet, database, dan engine transaksi.
-   - Ketiga akun tersebut tidak akan memicu peringatan unmapped pada radar audit.
-2. **Whitelist Akun OKIPAY:**
-   - Akun `OP00037` (Achmad Efendi) dan `OP00009` tetap disimpan sebagai transaksi pelanggan yang sah.
-3. **Peringatan Dini Unmapped Radar pada Halaman Ingestion:**
-   - Modul radar audit dipusatkan secara eksklusif pada sub-tab **Ingestion & Radar TSV** (`#admin?tab=ingestion`). Halaman Home/Overview tetap bersih dan fokus pada metrik performa eksekutif.
-   - Setiap kali proses Ingestion selesai dijalankan (atau saat tab Ingestion dimuat), sistem otomatis memindai transaksi apakah ada member atau produk baru yang belum tercatat di Master:
-     `👤 Reseller Belum Ada di Master Customer: ARxxxxx — [Nama Toko] (X trx)`
-     `📦 Produk SKU Belum Ada di Master Produk: KODExx (X trx)`
-   - Tersedia tombol cepat **`+ Tambah Agen`** dan **`+ Tambah Produk`** langsung di samping tiap item yang secara otomatis mengarahkan ke tab master dan mem-prefill kode ID serta nama toko ke form modal, sehingga operator dapat mendaftarkannya dengan 1-klik tanpa perlu mengetik ulang.
-   - Setelah didaftarkan, peringatan unmapped seketika bersih kembali (0 item).
-
-### 8.7. Sinkronisasi Otomatis Modul Analisa Distribusi (#analisa-distribusi)
-1. **Arsitektur Hybrid (Historis 2023-2025 + Parquet 2026):**
-   - Modul Analisa Distribusi menggabungkan benchmark data historis (2023–2025) dengan komputasi dinamis dari Parquet aktual (`trx_<brand>_2026.parquet`) untuk seluruh bulan di tahun 2026.
-2. **Auto Mtime Invalidation & Fast Cache:**
-   - Ringkasan agregasi 2026 disimpan di `.cache/analisa_gold_2026.json` untuk menjamin render grafik kilat (< 5 ms).
-   - Setiap kali terjadi penambahan data transaksi TSV baru atau perubahan master data, engine secara otomatis mendeteksi perubahan `mtime` file Parquet dan meregenerasi data analitika 2026 tanpa perlu restart server.
-3. **Integritas Metrik:**
-   - Metrik Daily Trx pada grafik bulanan dihitung murni dari **Transaksi Sukses $\div$ Jumlah Hari Aktif Cut-Off**.
-   - Angka bulanan untuk 2026 di Analisa Distribusi dijamin **100% klop dan identik** dengan Pivot Transaksi (`#transaksi`) dan Daily Summary (`#daily`).
+### 12.3. Mengatasi Cache Macet atau Angka Tidak Berubah
+1. Buka **`#admin?tab=status`**.
+2. Klik tombol **Bersihkan & Rebuild Cache (Clear Cache)**.
+3. Sistem akan menghapus in-memory cache RAM dan membaca ulang file Parquet terbaru.
 
 ---
-
-*Dokumen ini diperbarui oleh Tim Arsitektur & IT Management WEB REPORT per 08 Oktober 2026 sebagai standar acuan sistem resmi.*
+*Dokumen ini adalah spesifikasi arsitektur resmi WEB REPORT yang dijaga integritasnya untuk seluruh pengembangan modul Administrasi & Master Hub.*
