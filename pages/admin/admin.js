@@ -1079,7 +1079,7 @@ function renderAgentsTable(rows) {
             Upline: <strong style="font-family: var(--font-mono); color: var(--text-main);">${escapeHtml(r.kode_upline || '-')}</strong>
           </div>
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px;" title="${isAgen ? 'Akun Mandiri' : 'Toko Induk: ' + escapeHtml(r.nama_root_agen || r.root_agen_id)}">
-            Induk: <strong style="color: ${isAgen ? '#059669' : '#0284c7'};">${isAgen ? 'Mandiri (Root)' : escapeHtml(r.nama_root_agen || r.root_agen_id)}</strong>
+            Induk: <strong style="color: ${isAgen ? '#059669' : '#0284c7'};">${isAgen ? 'Cabang' : escapeHtml(r.nama_root_agen || r.root_agen_id)}</strong>
           </div>
         </td>
 
