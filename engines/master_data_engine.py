@@ -310,37 +310,47 @@ def export_dim_csvs_to_dms(brand: str):
             return
         with get_connection() as conn:
             # 1. Dim_Agent
-            q_agent = '''
-                SELECT agen_id, nama_agen, cabang, type, sco, dso,
-                       CAST(ROUND(COALESCE(limit_saldo, 0)) AS INTEGER) AS limit_saldo,
-                       CAST(ROUND(COALESCE(markup, 0)) AS INTEGER) AS markup,
-                       tgl_daftar, tgl_aktivitas_terakhir, jadwal, location, kota_kab, kecamatan, kelurahan
-                FROM agents WHERE brand = ? ORDER BY agen_id
-            '''
-            df_agent = pd.read_sql_query(q_agent, conn, params=(brand,))
-            df_agent.to_csv(os.path.join(dms_master, f"Dim_Agent_{brand}.csv"), index=False, encoding='utf-8-sig')
+            try:
+                q_agent = '''
+                    SELECT agen_id, nama_agen, cabang, type, sco, dso,
+                           CAST(ROUND(COALESCE(limit_saldo, 0)) AS INTEGER) AS limit_saldo,
+                           CAST(ROUND(COALESCE(markup, 0)) AS INTEGER) AS markup,
+                           tgl_daftar, tgl_aktivitas_terakhir, jadwal, location, kota_kab, kecamatan, kelurahan
+                    FROM agents WHERE brand = ? ORDER BY agen_id
+                '''
+                df_agent = pd.read_sql_query(q_agent, conn, params=(brand,))
+                df_agent.to_csv(os.path.join(dms_master, f"Dim_Agent_{brand}.csv"), index=False, encoding='utf-8-sig')
+            except Exception as e:
+                print(f"[WARN] Gagal export Dim_Agent_{brand}.csv (mungkin file sedang dibuka Excel): {e}")
 
             # 2. Dim_Customer
-            q_cust = '''
-                SELECT r.kode_reseller, r.nama_reseller, r.grup, r.kode_upline, r.root_agen_id, 
-                       r.cabang, r.leveling, a.nama_agen AS nama_root_agen, a.type, a.sco, 
-                       CAST(ROUND(COALESCE(r.limit_saldo, 0)) AS INTEGER) AS limit_saldo,
-                       CAST(ROUND(COALESCE(r.markup, 0)) AS INTEGER) AS markup
-                FROM resellers r
-                LEFT JOIN agents a ON r.root_agen_id = a.agen_id AND r.brand = a.brand
-                WHERE r.brand = ? ORDER BY r.kode_reseller
-            '''
-            df_cust = pd.read_sql_query(q_cust, conn, params=(brand,))
-            df_cust.to_csv(os.path.join(dms_master, f"Dim_Customer_{brand}.csv"), index=False, encoding='utf-8-sig')
+            try:
+                q_cust = '''
+                    SELECT r.kode_reseller, r.nama_reseller, r.grup, r.kode_upline, r.root_agen_id, 
+                           r.cabang, r.leveling, a.nama_agen AS nama_root_agen, a.type, a.sco, 
+                           CAST(ROUND(COALESCE(r.limit_saldo, 0)) AS INTEGER) AS limit_saldo,
+                           CAST(ROUND(COALESCE(r.markup, 0)) AS INTEGER) AS markup
+                    FROM resellers r
+                    LEFT JOIN agents a ON r.root_agen_id = a.agen_id AND r.brand = a.brand
+                    WHERE r.brand = ? ORDER BY r.kode_reseller
+                '''
+                df_cust = pd.read_sql_query(q_cust, conn, params=(brand,))
+                df_cust.to_csv(os.path.join(dms_master, f"Dim_Customer_{brand}.csv"), index=False, encoding='utf-8-sig')
+            except Exception as e:
+                print(f"[WARN] Gagal export Dim_Customer_{brand}.csv (mungkin file sedang dibuka Excel): {e}")
 
             # 3. Dim_Product
-            q_prod = '''
-                SELECT kode_produk, nama_produk, kategori, operator, paket
-                FROM products WHERE brand = ? ORDER BY kode_produk
-            '''
-            df_prod = pd.read_sql_query(q_prod, conn, params=(brand,))
-            df_prod.to_csv(os.path.join(dms_master, f"Dim_Product_{brand}.csv"), index=False, encoding='utf-8-sig')
-            print(f"[DMS-MASTER] Berhasil export Dim CSV {brand} ke {dms_master}")
+            try:
+                q_prod = '''
+                    SELECT kode_produk, nama_produk, kategori, operator, paket
+                    FROM products WHERE brand = ? ORDER BY kode_produk
+                '''
+                df_prod = pd.read_sql_query(q_prod, conn, params=(brand,))
+                df_prod.to_csv(os.path.join(dms_master, f"Dim_Product_{brand}.csv"), index=False, encoding='utf-8-sig')
+            except Exception as e:
+                print(f"[WARN] Gagal export Dim_Product_{brand}.csv (mungkin file sedang dibuka Excel): {e}")
+
+            print(f"[DMS-MASTER] Selesai sinkronisasi Dim CSV {brand} ke {dms_master}")
     except Exception as e:
         print(f"[WARN] Gagal export Dim CSV ke DMS RAW DATA: {e}")
 
@@ -1585,6 +1595,16 @@ def save_reseller_account(brand: str, data: dict) -> dict:
     saldo = float(data.get("saldo", 0.0) or 0.0)
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Format Tanggal Daftar / Registrasi (Reg Date)
+    raw_reg = data.get("tgl_daftar")
+    if raw_reg and str(raw_reg).strip() and str(raw_reg).strip() not in ("-", "None", "<null>", ""):
+        t_str = str(raw_reg).strip().replace("T", " ")
+        if len(t_str) == 10:
+            t_str = f"{t_str} 00:00:00"
+        tgl_daftar_val = t_str
+    else:
+        tgl_daftar_val = None
+
     # Tentukan root_agen_id
     if leveling == "AGEN":
         root_agen_id = code
@@ -1626,11 +1646,12 @@ def save_reseller_account(brand: str, data: dict) -> dict:
                 leveling = excluded.leveling,
                 limit_saldo = excluded.limit_saldo,
                 markup = excluded.markup,
+                tgl_daftar = COALESCE(excluded.tgl_daftar, resellers.tgl_daftar),
                 updated_at = excluded.updated_at
         """, (
             brand, code, nama, grup, upline, root_agen_id, cabang, leveling,
             saldo, limit_saldo, markup,
-            data.get("tgl_daftar"), brand, code,
+            tgl_daftar_val, brand, code,
             data.get("tgl_aktivitas_terakhir"), brand, code,
             now_str
         ))
@@ -1662,11 +1683,12 @@ def save_reseller_account(brand: str, data: dict) -> dict:
                     jadwal = excluded.jadwal,
                     location = excluded.location,
                     is_active = excluded.is_active,
+                    tgl_daftar = COALESCE(excluded.tgl_daftar, agents.tgl_daftar),
                     updated_at = excluded.updated_at
             """, (
                 brand, code, nama, cabang, typ, sco, dso,
                 limit_saldo, markup, jadwal, location, now_str,
-                data.get("tgl_daftar"), brand, code, brand, code
+                tgl_daftar_val, brand, code, brand, code
             ))
 
             # Update juga cabang semua reseller yang bernaung di bawah root_agen_id ini

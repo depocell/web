@@ -1696,6 +1696,12 @@ function openAddAgentModal(prefillId = "") {
   const grupEl = document.getElementById("edit-agent-grup");
   if (grupEl) grupEl.value = curBrand === "OKIPAY" ? "O" : "P";
 
+  const tglDaftarEl = document.getElementById("edit-agent-tgl-daftar");
+  if (tglDaftarEl) {
+    const todayStr = new Date().toISOString().split("T")[0];
+    tglDaftarEl.value = todayStr;
+  }
+
   const uplineEl = document.getElementById("edit-agent-upline");
   if (uplineEl) uplineEl.value = "";
 
@@ -1791,6 +1797,15 @@ async function openEditAgentModal(agenId) {
 
     const grupEl = document.getElementById("edit-agent-grup");
     if (grupEl) grupEl.value = ag.grup || "P";
+
+    const tglDaftarEl = document.getElementById("edit-agent-tgl-daftar");
+    if (tglDaftarEl) {
+      if (ag.tgl_daftar && ag.tgl_daftar !== "-") {
+        tglDaftarEl.value = ag.tgl_daftar.split(" ")[0].replace("T", "");
+      } else {
+        tglDaftarEl.value = new Date().toISOString().split("T")[0];
+      }
+    }
 
     const uplineEl = document.getElementById("edit-agent-upline");
     if (uplineEl) uplineEl.value = ag.kode_upline || "";
@@ -1930,6 +1945,7 @@ async function submitEditAgent(event) {
       kode_reseller: agenId,
       nama_reseller: document.getElementById("edit-agent-nama").value.trim(),
       grup: (document.getElementById("edit-agent-grup") ? document.getElementById("edit-agent-grup").value.trim() : "P"),
+      tgl_daftar: (document.getElementById("edit-agent-tgl-daftar") ? document.getElementById("edit-agent-tgl-daftar").value : null),
       kode_upline: (document.getElementById("edit-agent-upline") ? document.getElementById("edit-agent-upline").value.trim().toUpperCase() : ""),
       leveling: (document.getElementById("edit-agent-leveling") ? document.getElementById("edit-agent-leveling").value : "AGEN"),
       root_agen_id: (document.getElementById("edit-agent-root") ? document.getElementById("edit-agent-root").value.trim().toUpperCase() : ""),
