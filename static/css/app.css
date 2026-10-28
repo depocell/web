@@ -1983,3 +1983,48 @@ html[data-theme="dark"] .depas-ai-fab .fab-status-dot {
     display: none;
   }
 }
+
+
+/* ─── Modern Segmented Sub-Toggle (#YOY Gold Standard) ─── */
+.chart-subtoggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.chart-subtoggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  outline: none;
+}
+
+.chart-subtoggle-btn:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.chart-subtoggle-btn.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.chart-subtoggle-btn svg {
+  flex-shrink: 0;
+}

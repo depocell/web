@@ -3210,6 +3210,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
                     path.startswith("/pages/admin") or
 
+                    path.startswith("/pages/bot_ai") or
+
                     path.startswith("/pages/daily") or
 
                     path.startswith("/pages/sco")

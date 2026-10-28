@@ -1,0 +1,287 @@
+<!-- PAGES/BOT_AI/INDEX.HTML — Pengaturan Bot AI & Eskalasi Data Center -->
+<style>
+  .modul-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 40px;
+  }
+
+  .modul-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .modul-title-group h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .modul-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .modul-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8b5cf6;
+  }
+
+  /* TABS NAVIGATION (IDENTIK #YOY) */
+  .modul-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .modul-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .modul-tab-btn:hover {
+    color: var(--text-main);
+  }
+
+  .modul-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .bot-kpi-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .bot-kpi-item {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-right: 1px solid var(--surface-border);
+  }
+
+  .bot-kpi-item:last-child {
+    border-right: none;
+  }
+
+  .bot-kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 768px) {
+    .bot-kpi-bar {
+      grid-template-columns: 1fr;
+    }
+    .bot-kpi-item {
+      border-right: none;
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .bot-kpi-item:last-child {
+      border-bottom: none;
+    }
+  }
+</style>
+
+<div class="modul-container">
+
+  <!-- TOP HEADER -->
+  <div class="modul-header">
+    <div class="modul-title-group">
+      <h1>Pengaturan Bot AI</h1>
+      <div class="modul-period-pill">
+        <span class="modul-period-dot"></span>
+        <span id="bot-subtitle-label">Pusat Antrean Tiket Eskalasi &amp; Konfigurasi Asisten AI (@depas_ai_bot)</span>
+      </div>
+    </div>
+
+    <!-- Quick Bot Status Indicator -->
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--surface); border: 1px solid var(--surface-border); border-radius: 8px; font-size: 12px;">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 6px rgba(22,163,74,0.4);"></span>
+      <span style="font-weight: 700; color: var(--text-main);">Bot Telegram:</span>
+      <span style="color: var(--text-muted); font-family: var(--font-mono);">@depas_ai_bot</span>
+    </div>
+  </div>
+
+  <!-- TABS NAVIGATION -->
+  <div class="modul-tabs">
+    <button type="button" class="modul-tab-btn active" id="tab-btn-tickets" onclick="switchBotAITab('tickets')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span>Tab 1: Tiket Eskalasi Bot AI</span>
+    </button>
+  </div>
+
+  <!-- CONTENT VIEW: TAB 1 (TIKET ESKALASI) -->
+  <div id="content-tab-tickets" style="display: flex; flex-direction: column; gap: 18px;">
+
+    <!-- HEADER STRIP WITH ACTION -->
+    <div class="card-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 18px 20px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main);">
+            Antrean Tiket Eskalasi AI (Help Me Please)
+          </h3>
+          <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2);">
+            Data Center Queue
+          </span>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
+          Log pertanyaan Bossque di Telegram yang membutuhkan racikan atau agregasi data baru di Data Center.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button type="button" onclick="loadBotAITickets()" class="btn-system-refresh" title="Muat Ulang Antrean Tiket">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>Refresh Tiket</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STATS KPI BAR -->
+    <div class="bot-kpi-bar">
+      <!-- 1. TOTAL -->
+      <div class="bot-kpi-item">
+        <div class="bot-kpi-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
+            <path d="M13 5v2"></path><path d="M13 17v2"></path><path d="M13 11v2"></path>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Tiket</div>
+          <div id="stat-total-tickets" style="font-size: 22px; font-weight: 800; font-family: var(--font-mono); color: var(--text-main); line-height: 1.2;">0</div>
+        </div>
+      </div>
+
+      <!-- 2. PENDING -->
+      <div class="bot-kpi-item">
+        <div class="bot-kpi-icon" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: #d97706; text-transform: uppercase; letter-spacing: 0.5px;">Menunggu Data Center (Pending)</div>
+          <div id="stat-pending-tickets" style="font-size: 22px; font-weight: 800; font-family: var(--font-mono); color: #d97706; line-height: 1.2;">0</div>
+        </div>
+      </div>
+
+      <!-- 3. RESOLVED -->
+      <div class="bot-kpi-item">
+        <div class="bot-kpi-icon" style="background: rgba(16, 185, 129, 0.1); color: #059669;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Sudah Terpenuhi (Resolved)</div>
+          <div id="stat-resolved-tickets" style="font-size: 22px; font-weight: 800; font-family: var(--font-mono); color: #059669; line-height: 1.2;">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE PANEL -->
+    <div class="card-box" style="padding: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--surface-border); border-radius: 8px;">
+      <div style="padding: 14px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">Daftar Tiket Permintaan Analisis</span>
+        </div>
+
+        <div>
+          <select id="filter-ticket-status" onchange="filterBotAITickets()" style="font-size: 12.5px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-weight: 600; cursor: pointer;">
+            <option value="ALL">Semua Status</option>
+            <option value="PENDING" selected>Hanya PENDING</option>
+            <option value="RESOLVED">Hanya RESOLVED</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead>
+            <tr style="background: var(--surface-bg); text-align: left; border-bottom: 1px solid var(--surface-border);">
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 180px;">ID Tiket</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 160px;">Waktu &amp; Pengirim</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted);">Pertanyaan Asli Bossque</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted);">Kebutuhan Data Center</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 120px; text-align: center;">Status</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 130px; text-align: right;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bot-tickets-table-body">
+            <tr>
+              <td colspan="6" style="padding: 30px; text-align: center; color: var(--text-muted);">
+                Memuat antrean tiket eskalasi...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>

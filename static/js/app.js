@@ -101,6 +101,12 @@ if (document.readyState === "loading") {
 }
 
 const ROUTES = {
+  "#bot-ai": {
+    title: "Pengaturan Bot AI",
+    pageUrl: "./pages/bot_ai/index.html",
+    scriptUrl: "./pages/bot_ai/bot_ai.js",
+    initFn: "loadBotAI"
+  },
   "#admin": {
     title: "Admin & Olah Data",
     pageUrl: "./pages/admin/index.html",
@@ -226,6 +232,11 @@ async function navigate() {
   let [hash] = rawHash.split("?");
 
   // Redirect legacy / bookmark routes to subtabs
+  if (rawHash === "#admin?tab=tickets" || rawHash.startsWith("#admin?tab=tickets")) {
+    window.location.replace("#bot-ai?tab=tickets");
+    return;
+  }
+
   if (hash === "#transaksi") {
     window.location.replace("#admin?tab=pivot");
     return;
