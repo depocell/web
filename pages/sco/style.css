@@ -146,14 +146,21 @@ body {
   width: 38px;
   height: 38px;
   border-radius: var(--radius-md);
-  background: var(--primary-gradient);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 18px;
-  box-shadow: 0 4px 12px var(--primary-glow);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.brand-icon img,
+img.brand-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  display: block;
 }
 
 .brand-logo-img {

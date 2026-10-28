@@ -2315,7 +2315,7 @@
           <div class="sidebar-header">
             <a href="#ringkasan" class="brand-box">
               <div class="brand-icon">
-                <i class="fa-solid fa-layer-group"></i>
+                <img src="/static/img/dp_icon.png" onerror="this.onerror=null; this.src='dp_icon.png';" alt="Depo Cell">
               </div>
               <div class="brand-text">
                 <span class="brand-title">SCO SUITE</span>
