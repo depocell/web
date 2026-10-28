@@ -580,44 +580,86 @@
   <!-- ========================================================================= -->
   <div id="view-admin-master" style="display: none; flex-direction: column; gap: 20px;">
 
-    <!-- DIRECT UPLOAD MASTER RESELLER TSV -->
-    <div class="card-box" style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #0891b2; display: flex; flex-direction: column; gap: 12px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(8,145,178,0.1); display: flex; align-items: center; justify-content: center; color: #0891b2;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
+    <!-- DIRECT UPLOAD MASTER RESELLER & PENGIRIM TSV (TWIN CARDS) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+      
+      <!-- CARD 1: DIRECT UPLOAD MASTER RESELLER TSV -->
+      <div class="card-box" style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #0891b2; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(8,145,178,0.1); display: flex; align-items: center; justify-content: center; color: #0891b2;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">Upload &amp; Sinkronisasi Data Reseller (Pohon MLM)</div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Database Akun/Member OtomaX (astaga.tsv / okipay.tsv)</div>
+            </div>
           </div>
-          <div>
-            <div style="font-weight: 700; font-size: 14px;">Upload &amp; Sinkronisasi Data Reseller Langsung</div>
-            
+          
+          <!-- BRAND SELECTOR -->
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+              <input type="radio" name="reseller-upload-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
+              <span>ASTAGA</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+              <input type="radio" name="reseller-upload-brand" value="OKIPAY" style="accent-color: var(--primary);" />
+              <span>OKIPAY</span>
+            </label>
           </div>
         </div>
-        
-        <!-- BRAND SELECTOR -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
-            <input type="radio" name="reseller-upload-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
-            <span>ASTAGA</span>
-          </label>
-          <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
-            <input type="radio" name="reseller-upload-brand" value="OKIPAY" style="accent-color: var(--primary);" />
-            <span>OKIPAY</span>
-          </label>
+
+        <!-- FILE INPUT -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="file" id="reseller-tsv-file-input" class="admin-file-input" accept=".tsv,.txt" onchange="handleResellerTsvFileSelect(event)" />
         </div>
+
+        <!-- PROGRESS & RESULT BOX -->
+        <div id="reseller-upload-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
       </div>
 
-      <!-- FILE INPUT -->
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <input type="file" id="reseller-tsv-file-input" class="admin-file-input" accept=".tsv,.txt" onchange="handleResellerTsvFileSelect(event)" />
+      <!-- CARD 2: DIRECT UPLOAD NOMOR PENGIRIM TSV (SMS & JABBER/WA) -->
+      <div class="card-box" style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #10b981; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16,185,129,0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">Upload &amp; Sinkronisasi Nomor Pengirim (SMS &amp; WA)</div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Export tabel Pengirim OtomaX (KONTAK_ASTAGA / OKIPAY)</div>
+            </div>
+          </div>
+          
+          <!-- BRAND SELECTOR -->
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+              <input type="radio" name="pengirim-upload-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
+              <span>ASTAGA</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+              <input type="radio" name="pengirim-upload-brand" value="OKIPAY" style="accent-color: var(--primary);" />
+              <span>OKIPAY</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- FILE INPUT -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="file" id="pengirim-tsv-file-input" class="admin-file-input" accept=".tsv,.txt,.csv" onchange="handlePengirimTsvFileSelect(event)" />
+        </div>
+
+        <!-- PROGRESS & RESULT BOX -->
+        <div id="pengirim-upload-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
       </div>
 
-      <!-- PROGRESS & RESULT BOX -->
-      <div id="reseller-upload-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
     </div>
 
     <!-- STAT KPI SUMMARY CARDS -->

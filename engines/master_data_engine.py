@@ -17,6 +17,9 @@ import time
 from datetime import datetime
 import pandas as pd
 import openpyxl
+import re
+import json
+from typing import Optional, Any
 import engines.metrics_engine as me
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -778,6 +781,213 @@ def migrate_okipay(tsv_path: str = None) -> dict:
         "tsv_file": os.path.basename(tsv_path),
         "total_agents": len(agent_records),
         "total_resellers": len(reseller_records)
+    }
+
+
+def clean_phone_number(raw_val) -> Optional[str]:
+    """Standarisasi format nomor HP Indonesia ke format murni 628xxxxxxxxxx."""
+    if not raw_val:
+        return None
+    s = str(raw_val).strip()
+    s = re.sub(r"@\.?c\.us$", "", s, flags=re.IGNORECASE)
+    s = s.replace("+", "").replace("-", "").replace(" ", "").replace(".", "")
+    s = re.sub(r"[^0-9]", "", s)
+    if not s:
+        return None
+    if s.startswith("08"):
+        s = "628" + s[2:]
+    elif s.startswith("8"):
+        s = "628" + s[1:]
+    return s if s.startswith("628") and len(s) >= 10 else None
+
+
+def migrate_pengirim(tsv_path: str, brand: str = "ASTAGA") -> dict:
+    """
+    Mengimpor dan memperbarui database nomor pengirim (SMS, WA, Jabber) dari file export OtomaX.
+    1. Membaca file TSV/CSV mentah (misal KONTAK_ASTAGA.tsv atau KONTAK_OKIPAY.tsv).
+    2. Deteksi otomatis kolom Pengirim, Kode Reseller, Nama Reseller, Tipe.
+    3. Filter akun aktif pada tabel 'resellers' untuk brand yang dipilih.
+    4. Menyimpan daftar nomor unik pada kolom 'candidate_phones' (JSON).
+    5. Menentukan no_wa dan no_sms utama secara cerdas.
+    6. Update tabel reseller_contacts di SQLite master_data.db.
+    7. Backup file ke C:\\DMS RAW DATA\\MASTER jika direktori tersedia.
+    """
+    import time
+    from collections import defaultdict
+    import csv
+    import shutil
+    from datetime import datetime
+
+    t0 = time.time()
+    brand = (brand or "ASTAGA").strip().upper()
+
+    if not tsv_path or not os.path.exists(tsv_path):
+        return {"ok": False, "error": f"File TSV Pengirim tidak ditemukan: {tsv_path}"}
+
+    rows = []
+    delimiter = "\t"
+
+    for enc in ["utf-8", "latin-1", "cp1252"]:
+        try:
+            with open(tsv_path, "r", encoding=enc, errors="ignore") as f:
+                first_line = f.readline()
+                if "\t" in first_line:
+                    delimiter = "\t"
+                elif "," in first_line:
+                    delimiter = ","
+                elif ";" in first_line:
+                    delimiter = ";"
+                f.seek(0)
+                reader = csv.reader(f, delimiter=delimiter)
+                for r in reader:
+                    if r and any(field.strip() for field in r):
+                        rows.append([field.strip() for field in r])
+            break
+        except Exception:
+            continue
+
+    if not rows or len(rows) < 2:
+        return {"ok": False, "error": "File kosong atau tidak memiliki baris data yang valid."}
+
+    header = [c.lower() for c in rows[0]]
+    raw_header = rows[0]
+
+    idx_pengirim = -1
+    idx_kode = -1
+    idx_nama = -1
+    idx_tipe = -1
+
+    for i, col in enumerate(header):
+        if "pengirim" in col or "telepon" in col or "phone" in col or "msisdn" in col:
+            idx_pengirim = i
+        elif "nama" in col:
+            idx_nama = i
+        elif "kode" in col:
+            idx_kode = i
+        elif "reseller" in col and idx_kode == -1:
+            idx_kode = i
+        elif "tipe" in col or "type" in col:
+            idx_tipe = i
+
+    if idx_pengirim == -1 or idx_kode == -1:
+        return {
+            "ok": False,
+            "error": f"Kolom 'Pengirim' atau 'Kode Reseller' tidak ditemukan. Kolom terdeteksi: {raw_header[:6]}"
+        }
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT kode_reseller, nama_reseller FROM resellers WHERE brand = ?", (brand,))
+        active_resellers = {r[0].strip().upper(): r[1] for r in cur.fetchall()}
+
+    if not active_resellers:
+        return {"ok": False, "error": f"Tidak ditemukan master reseller aktif untuk brand {brand}. Harap unggah master reseller terlebih dahulu."}
+
+    contacts_map = defaultdict(lambda: {
+        "name": "",
+        "wa_candidates": [],
+        "sms_candidates": [],
+        "all_unique": []
+    })
+
+    valid_contacts_count = 0
+
+    for r in rows[1:]:
+        if len(r) <= max(idx_pengirim, idx_kode):
+            continue
+        raw_code = r[idx_kode].strip().upper()
+        raw_phone = r[idx_pengirim].strip()
+        tipe = r[idx_tipe].strip().upper() if (idx_tipe != -1 and len(r) > idx_tipe) else ""
+        rs_name = r[idx_nama].strip() if (idx_nama != -1 and len(r) > idx_nama) else ""
+
+        if raw_code not in active_resellers:
+            continue
+
+        p = clean_phone_number(raw_phone)
+        if not p:
+            continue
+
+        valid_contacts_count += 1
+        entry = contacts_map[raw_code]
+        if not entry["name"] and rs_name:
+            entry["name"] = rs_name
+
+        if p not in entry["all_unique"]:
+            entry["all_unique"].append(p)
+
+        if tipe in ("G", "W", "J", "IP") and p not in entry["wa_candidates"]:
+            entry["wa_candidates"].append(p)
+        elif tipe == "S" and p not in entry["sms_candidates"]:
+            entry["sms_candidates"].append(p)
+
+    now_str = datetime.now().isoformat()
+    rows_to_insert = []
+
+    for rs_code, info in contacts_map.items():
+        name = info["name"] or active_resellers.get(rs_code, rs_code)
+        all_unique = info["all_unique"]
+        wa_cands = info["wa_candidates"]
+        sms_cands = info["sms_candidates"]
+
+        intersection = [p for p in wa_cands if p in sms_cands]
+        if intersection:
+            primary_wa = intersection[0]
+        elif wa_cands:
+            primary_wa = wa_cands[0]
+        elif all_unique:
+            primary_wa = all_unique[0]
+        else:
+            primary_wa = None
+
+        primary_sms = sms_cands[0] if sms_cands else (all_unique[0] if all_unique else None)
+        channel = "WHATSAPP" if wa_cands else "SMS"
+        candidates_json = json.dumps(all_unique)
+
+        rows_to_insert.append((
+            rs_code,
+            name,
+            primary_wa,
+            primary_sms,
+            channel,
+            "TSV_UPLOAD",
+            candidates_json,
+            now_str
+        ))
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            DELETE FROM reseller_contacts 
+            WHERE kode_reseller IN (SELECT kode_reseller FROM resellers WHERE brand = ?)
+        """, (brand,))
+
+        cur.executemany("""
+            INSERT OR REPLACE INTO reseller_contacts (
+                kode_reseller, nama_reseller, no_wa, no_sms,
+                primary_channel, source, candidate_phones, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, rows_to_insert)
+        conn.commit()
+
+    dms_master = r"C:\DMS RAW DATA\MASTER"
+    if os.path.exists(dms_master):
+        try:
+            target_bak = os.path.join(dms_master, f"KONTAK_{brand}.tsv")
+            shutil.copy2(tsv_path, target_bak)
+        except Exception:
+            pass
+
+    elapsed = round(time.time() - t0, 2)
+    print(f"[PENGIRIM] Selesai sinkronisasi kontak {brand}: {len(rows_to_insert):,} reseller aktif, {valid_contacts_count:,} kontak valid dalam {elapsed}s.")
+
+    return {
+        "ok": True,
+        "brand": brand,
+        "total_rows_raw": len(rows) - 1,
+        "total_contacts_valid": valid_contacts_count,
+        "total_resellers_updated": len(rows_to_insert),
+        "total_phones_registered": sum(len(c["all_unique"]) for c in contacts_map.values()),
+        "elapsed_sec": elapsed
     }
 
 

@@ -3276,6 +3276,94 @@ async function handleResellerTsvFileSelect(event) {
 
 window.handleResellerTsvFileSelect = handleResellerTsvFileSelect;
 
+// =========================================================================
+// DIRECT PENGIRIM (MSISDN KONTAK) TSV UPLOADER
+// =========================================================================
+
+async function handlePengirimTsvFileSelect(event) {
+  const file = event && event.target && event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const brandRadio = document.querySelector('input[name="pengirim-upload-brand"]:checked');
+  let brand = brandRadio ? brandRadio.value : "ASTAGA";
+
+  // Auto-detect brand dari nama file
+  const upper = file.name.toUpperCase();
+  if (upper.includes("OKIPAY") || upper.includes("OKI")) {
+    brand = "OKIPAY";
+    const r = document.querySelector('input[name="pengirim-upload-brand"][value="OKIPAY"]');
+    if (r) r.checked = true;
+  } else if (upper.includes("ASTAGA")) {
+    brand = "ASTAGA";
+    const r = document.querySelector('input[name="pengirim-upload-brand"][value="ASTAGA"]');
+    if (r) r.checked = true;
+  }
+
+  const resultBox = document.getElementById("pengirim-upload-result-box");
+  if (resultBox) {
+    resultBox.style.display = "block";
+    resultBox.style.background = "var(--primary-light)";
+    resultBox.style.border = "1px solid var(--primary-border)";
+    resultBox.style.color = "var(--text-main)";
+    resultBox.innerHTML = `<strong>Memproses:</strong> Mengunggah <strong>${file.name}</strong> (${(file.size/1024/1024).toFixed(2)} MB) &amp; memetakan nomor pengirim (SMS, WA, Jabber)...`;
+  }
+
+  const formData = new FormData();
+  formData.append("brand", brand);
+  formData.append("file", file);
+
+  try {
+    const startTime = performance.now();
+    const res = await fetch("/api/admin/upload-pengirim-tsv", {
+      method: "POST",
+      body: formData
+    });
+    const json = await res.json();
+    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+
+    if (!json.ok) {
+      if (resultBox) {
+        resultBox.style.background = "var(--negative-bg)";
+        resultBox.style.border = "1px solid var(--negative)";
+        resultBox.style.color = "var(--negative)";
+        resultBox.innerHTML = `<strong>Sinkronisasi Gagal:</strong> ${json.error || "Terjadi kesalahan pada server saat memproses data kontak."}`;
+      }
+      return;
+    }
+
+    if (resultBox) {
+      resultBox.style.background = "var(--positive-bg)";
+      resultBox.style.border = "1px solid var(--positive)";
+      resultBox.style.color = "var(--text-main)";
+      resultBox.innerHTML = `
+        <div style="font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; font-size: 13.5px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--positive)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Sinkronisasi Nomor Pengirim Berhasil (${brand})
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px; margin: 8px 0;">
+          <div>Baris mentah TSV: <strong>${(json.total_rows_raw || 0).toLocaleString("id-ID")}</strong></div>
+          <div>Kontak HP valid: <strong>${(json.total_contacts_valid || 0).toLocaleString("id-ID")}</strong></div>
+          <div>Akun Reseller diperbarui: <strong>${(json.total_resellers_updated || 0).toLocaleString("id-ID")}</strong></div>
+          <div>Total Nomor Terdaftar: <strong>${(json.total_phones_registered || 0).toLocaleString("id-ID")}</strong></div>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Durasi engine: ${json.elapsed_sec || duration} detik. Tabel SQLite reseller_contacts &amp; cache telah diperbarui.</div>
+      `;
+    }
+  } catch (err) {
+    if (resultBox) {
+      resultBox.style.background = "var(--negative-bg)";
+      resultBox.style.border = "1px solid var(--negative)";
+      resultBox.style.color = "var(--negative)";
+      resultBox.innerHTML = `<strong>Koneksi Gagal:</strong> ${err.message}`;
+    }
+  }
+}
+
+window.handlePengirimTsvFileSelect = handlePengirimTsvFileSelect;
+
+
 
 // =====================================================================
 // PUSAT TIKET ESKALASI AI (HELP ME PLEASE)
