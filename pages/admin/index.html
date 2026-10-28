@@ -84,6 +84,8 @@
     background: transparent;
     box-shadow: none;
   }
+
+
 </style>
 
 <div class="admin-container">
@@ -831,38 +833,27 @@
   <!-- ========================================================================= -->
   <div id="view-admin-products" style="display: none; flex-direction: column; gap: 20px;">
 
-    <!-- STAT KPI SUMMARY CARDS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;"
-      id="product-kpi-cards">
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
-          Produk</div>
-        <div
-          style="font-size: 24px; font-weight: 800; color: var(--primary); font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-total-products">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Item SKU terdaftar di sistem</div>
+    <!-- STAT KPI SUMMARY CARDS (PADAT GABUNGAN) -->
+    <div class="product-unified-kpi-bar" id="product-kpi-cards">
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Total Produk</div>
+        <div class="master-kpi-val" style="color: var(--primary);" id="kpi-total-products">-</div>
+        <div class="master-kpi-sub">Item SKU terdaftar di sistem</div>
       </div>
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
-          Kategori</div>
-        <div style="font-size: 24px; font-weight: 800; color: #16a34a; font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-total-categories">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">TELCO, EWALLET, PLN, PPOB, dll</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Total Kategori</div>
+        <div class="master-kpi-val" style="color: #16a34a;" id="kpi-total-categories">-</div>
+        <div class="master-kpi-sub">TELCO, EWALLET, PLN, PPOB, dll</div>
       </div>
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total
-          Operator</div>
-        <div style="font-size: 24px; font-weight: 800; color: #0891b2; font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-total-operators">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Provider telekomunikasi &amp;
-          merchant</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Total Operator</div>
+        <div class="master-kpi-val" style="color: #0891b2;" id="kpi-total-operators">-</div>
+        <div class="master-kpi-sub">Provider telekomunikasi &amp; merchant</div>
       </div>
-      <div class="card-box" style="padding: 16px 20px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Unmapped /
-          Belum Kategori</div>
-        <div style="font-size: 24px; font-weight: 800; color: #eab308; font-family: var(--font-mono); margin-top: 4px;"
-          id="kpi-unmapped-categories">-</div>
-        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Produk dengan kategori LAINNYA</div>
+      <div class="master-kpi-segment">
+        <div class="master-kpi-lbl">Unmapped / Belum Kategori</div>
+        <div class="master-kpi-val" style="color: #d97706;" id="kpi-unmapped-categories">-</div>
+        <div class="master-kpi-sub">Produk dengan kategori LAINNYA</div>
       </div>
     </div>
 
@@ -1994,5 +1985,42 @@
       border-bottom: none;
     }
   }
+
+  /* PRODUCT KPI CONTAINER (PADAT GABUNGAN) */
+  .product-unified-kpi-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  @media (max-width: 900px) {
+    .product-unified-kpi-bar {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .product-unified-kpi-bar .master-kpi-segment:nth-child(2) {
+      border-right: none;
+    }
+    .product-unified-kpi-bar .master-kpi-segment:nth-child(1),
+    .product-unified-kpi-bar .master-kpi-segment:nth-child(2) {
+      border-bottom: 1px solid var(--surface-border);
+    }
+  }
+
+  @media (max-width: 540px) {
+    .product-unified-kpi-bar {
+      grid-template-columns: 1fr;
+    }
+    .product-unified-kpi-bar .master-kpi-segment {
+      border-right: none;
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .product-unified-kpi-bar .master-kpi-segment:last-child {
+      border-bottom: none;
+    }
+  }
+
 </style>
 
