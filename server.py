@@ -2758,6 +2758,8 @@ async def api_admin_agents(request):
 
         search = request.query_params.get("search", "")
 
+        leveling = request.query_params.get("leveling", "ALL")
+
         page = int(request.query_params.get("page", 1))
 
         page_size = int(request.query_params.get("page_size", 20))
@@ -2768,7 +2770,7 @@ async def api_admin_agents(request):
 
             brand=brand, cabang=cabang, sco=sco, type_val=type_val,
 
-            search=search, page=page, page_size=page_size
+            search=search, leveling=leveling, page=page, page_size=page_size
 
         )
 
@@ -2786,6 +2788,19 @@ async def api_admin_agents(request):
 
 
 
+
+
+async def api_admin_upline_lookup(request):
+    """Lookup hierarki upline untuk form penambahan reseller/agen."""
+    try:
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+        upline = request.query_params.get("upline", "").strip().upper()
+        res = master_data_engine.lookup_upline_info(brand, upline)
+        return JSONResponse({"ok": True, "data": res})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
 async def api_admin_agent_detail(request):
@@ -2822,7 +2837,7 @@ async def api_admin_agent_detail(request):
 
 async def api_admin_agent_save(request):
 
-    """Menyimpan pembaruan data agen (Cabang, SCO, DSO, Tipe, dll) dan menyinkronkan downlines."""
+    """Menyimpan pembaruan data agen/reseller dan menyelaraskan downlines serta Dim CSV Power Query."""
 
     try:
 
@@ -2830,17 +2845,18 @@ async def api_admin_agent_save(request):
 
         brand = body.get("brand", "ASTAGA").upper()
 
-        agen_id = body.get("agen_id", "").strip().upper()
-
         data = body.get("data", {})
+
+        agen_id = (body.get("agen_id") or data.get("kode_reseller") or data.get("agen_id") or "").strip().upper()
 
         if not agen_id:
 
-            return JSONResponse({"ok": False, "error": "agen_id is required"}, status_code=400)
+            return JSONResponse({"ok": False, "error": "agen_id / kode_reseller is required"}, status_code=400)
 
-            
+        data["agen_id"] = agen_id
+        data["kode_reseller"] = agen_id
 
-        res = master_data_engine.save_agent(brand, agen_id, data)
+        res = master_data_engine.save_reseller_account(brand, data)
 
         reseller_engine.clear_master_meta_cache()
 
@@ -2848,7 +2864,7 @@ async def api_admin_agent_save(request):
 
         agen_engine.clear_agen_dashboard_cache()
 
-        return JSONResponse({"ok": True, "message": f"Agen {agen_id} berhasil disimpan!", "data": res})
+        return JSONResponse({"ok": True, "message": f"Akun {agen_id} ({res.get('leveling')}) berhasil disimpan!", "data": res})
 
     except Exception as e:
 
@@ -3363,6 +3379,7 @@ routes = [
     Route("/api/export/finance-rekap.xlsx", api_export_finance_rekap),
 
     Route("/api/admin/agents",          api_admin_agents),
+    Route("/api/admin/upline-lookup",   api_admin_upline_lookup),
 
     Route("/api/admin/agents/detail",    api_admin_agent_detail),
 

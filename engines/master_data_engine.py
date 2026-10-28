@@ -1210,30 +1210,48 @@ def get_filter_options(brand: str = "ASTAGA") -> dict:
         }
 
 
-def query_agents(brand: str = "ASTAGA", cabang: str = None, sco: str = None, type_val: str = None, search: str = None, page: int = 1, page_size: int = 20) -> dict:
-    """Query daftar Agen dengan filter, pencarian, dan pagination."""
+def query_agents(brand: str = "ASTAGA", cabang: str = None, sco: str = None, type_val: str = None, search: str = None, leveling: str = "ALL", page: int = 1, page_size: int = 20) -> dict:
+    """
+    Query daftar Master Reseller / Agen dengan filter hierarki MLM, cabang, SCO, tipe, pencarian, dan pagination.
+    Mendukung seluruh akun reseller (Agen Induk dan Downline).
+    """
     brand = brand.upper()
     page = max(1, page)
     page_size = max(10, min(100, page_size))
     offset = (page - 1) * page_size
 
-    where_clauses = ["a.brand = ?"]
+    where_clauses = ["r.brand = ?"]
     params = [brand]
 
+    # Filter Leveling: ALL / AGEN / DOWNLINE
+    if leveling and leveling.upper() != "ALL":
+        lev = leveling.upper()
+        if lev in ("AGEN", "ROOT"):
+            where_clauses.append("(r.leveling = 'AGEN' OR r.leveling = 'ROOT' OR r.kode_reseller = r.root_agen_id)")
+        elif lev == "DOWNLINE":
+            where_clauses.append("(r.leveling = 'DOWNLINE' AND r.kode_reseller != r.root_agen_id)")
+
     if cabang and cabang != "ALL":
-        where_clauses.append("a.cabang = ?")
+        where_clauses.append("COALESCE(r.cabang, a.cabang) = ?")
         params.append(cabang)
 
     if sco and sco != "ALL":
         if sco == "UNMAPPED":
             where_clauses.append("""(
-                a.sco IS NULL OR a.sco = '' OR a.sco = '-' OR a.sco = 'BELUM DIPETAKAN' OR a.sco = 'UNMAPPED'
-                OR a.cabang IS NULL OR a.cabang = '' OR a.cabang = '-' OR a.cabang = 'UNMAPPED'
+                COALESCE(a.sco, 'NON SCO') IS NULL 
+                OR a.sco = '' 
+                OR a.sco = '-' 
+                OR a.sco = 'BELUM DIPETAKAN' 
+                OR a.sco = 'UNMAPPED'
+                OR r.cabang IS NULL 
+                OR r.cabang = '' 
+                OR r.cabang = '-' 
+                OR r.cabang = 'UNMAPPED'
             )""")
         elif sco in ("NON_SCO", "NON SCO"):
-            where_clauses.append("a.sco = 'NON SCO'")
+            where_clauses.append("COALESCE(a.sco, 'NON SCO') = 'NON SCO'")
         elif sco == "ONLINE":
-            where_clauses.append("(a.sco = 'ONLINE' OR a.cabang = 'ONLINE')")
+            where_clauses.append("(COALESCE(a.sco, 'NON SCO') = 'ONLINE' OR COALESCE(r.cabang, a.cabang) = 'ONLINE')")
         elif sco == "SALES_ONLY":
             where_clauses.append("""(
                 a.sco IS NOT NULL 
@@ -1245,17 +1263,17 @@ def query_agents(brand: str = "ASTAGA", cabang: str = None, sco: str = None, typ
                 AND a.sco != 'UNMAPPED'
             )""")
         else:
-            where_clauses.append("a.sco = ?")
+            where_clauses.append("COALESCE(a.sco, 'NON SCO') = ?")
             params.append(sco)
 
     if type_val and type_val != "ALL":
-        where_clauses.append("a.type = ?")
+        where_clauses.append("COALESCE(a.type, 'Prima') = ?")
         params.append(type_val)
 
     if search and search.strip():
         s = f"%{search.strip()}%"
-        where_clauses.append("(a.agen_id LIKE ? OR a.nama_agen LIKE ?)")
-        params.extend([s, s])
+        where_clauses.append("(r.kode_reseller LIKE ? OR r.nama_reseller LIKE ? OR r.kode_upline LIKE ? OR r.root_agen_id LIKE ?)")
+        params.extend([s, s, s, s])
 
     where_sql = " AND ".join(where_clauses)
 
@@ -1263,33 +1281,71 @@ def query_agents(brand: str = "ASTAGA", cabang: str = None, sco: str = None, typ
         cursor = conn.cursor()
         
         # Total matching
-        cursor.execute(f"SELECT COUNT(*) FROM agents a WHERE {where_sql}", tuple(params))
+        count_sql = f"""
+            SELECT COUNT(*) 
+            FROM resellers r
+            LEFT JOIN agents a ON r.brand = a.brand AND r.root_agen_id = a.agen_id
+            WHERE {where_sql}
+        """
+        cursor.execute(count_sql, tuple(params))
         total_count = cursor.fetchone()[0]
 
         # Query data rows
         sql = f"""
             SELECT 
-                a.agen_id, a.nama_agen, a.cabang, a.type, a.sco, a.dso,
-                a.jadwal, a.location, a.is_active,
-                a.limit_saldo, a.markup, a.tgl_daftar, a.tgl_aktivitas_terakhir,
-                (SELECT COUNT(*) FROM resellers r WHERE r.brand = a.brand AND r.root_agen_id = a.agen_id) AS downlines_count
-            FROM agents a
+                r.kode_reseller,
+                r.nama_reseller,
+                r.grup,
+                r.kode_upline,
+                r.leveling,
+                r.root_agen_id,
+                COALESCE(a.nama_agen, r.nama_reseller) AS nama_root_agen,
+                COALESCE(r.cabang, a.cabang, 'UNMAPPED') AS cabang,
+                COALESCE(a.type, 'Prima') AS type,
+                COALESCE(a.sco, 'NON SCO') AS sco,
+                COALESCE(a.dso, '-') AS dso,
+                COALESCE(a.jadwal, '-') AS jadwal,
+                COALESCE(a.location, '-') AS location,
+                COALESCE(r.saldo, 0.0) AS saldo,
+                COALESCE(r.limit_saldo, 0.0) AS limit_saldo,
+                COALESCE(r.markup, 0.0) AS markup,
+                COALESCE(r.tgl_daftar, '-') AS tgl_daftar,
+                COALESCE(r.tgl_aktivitas_terakhir, '-') AS tgl_aktivitas_terakhir,
+                COALESCE(a.is_active, 1) AS is_active,
+                CASE 
+                    WHEN (r.leveling = 'AGEN' OR r.leveling = 'ROOT' OR r.kode_reseller = r.root_agen_id) THEN (
+                        SELECT COUNT(*) FROM resellers c 
+                        WHERE c.brand = r.brand AND c.root_agen_id = r.kode_reseller AND c.kode_reseller != r.kode_reseller
+                    )
+                    ELSE 0 
+                END AS downlines_count
+            FROM resellers r
+            LEFT JOIN agents a ON r.brand = a.brand AND r.root_agen_id = a.agen_id
             WHERE {where_sql}
-            ORDER BY a.agen_id ASC
+            ORDER BY r.kode_reseller ASC
             LIMIT ? OFFSET ?
         """
         cursor.execute(sql, tuple(params + [page_size, offset]))
         rows = []
         for r in cursor.fetchall():
+            lev = "AGEN" if (r["leveling"] in ("AGEN", "ROOT") or r["kode_reseller"] == r["root_agen_id"]) else "DOWNLINE"
             rows.append({
-                "agen_id": r["agen_id"],
-                "nama_agen": r["nama_agen"] or r["agen_id"],
+                "agen_id": r["kode_reseller"],
+                "kode_reseller": r["kode_reseller"],
+                "nama_agen": r["nama_reseller"] or r["kode_reseller"],
+                "nama_reseller": r["nama_reseller"] or r["kode_reseller"],
+                "grup": r["grup"] or "-",
+                "kode_upline": r["kode_upline"] or "-",
+                "leveling": lev,
+                "root_agen_id": r["root_agen_id"] or r["kode_reseller"],
+                "nama_root_agen": r["nama_root_agen"] or "-",
                 "cabang": r["cabang"],
-                "type": r["type"] or "Standard",
+                "type": r["type"] or "Prima",
                 "sco": r["sco"] or "NON SCO",
                 "dso": r["dso"] or "-",
                 "jadwal": r["jadwal"] or "-",
                 "location": r["location"] or "-",
+                "saldo": r["saldo"] or 0.0,
                 "limit_saldo": r["limit_saldo"] or 0.0,
                 "markup": r["markup"] or 0.0,
                 "tgl_daftar": r["tgl_daftar"] or "-",
@@ -1311,48 +1367,204 @@ def query_agents(brand: str = "ASTAGA", cabang: str = None, sco: str = None, typ
 
 
 def get_agent_detail(brand: str, agen_id: str) -> dict:
-    """Mengambil profil lengkap agen beserta daftar downline-nya."""
+    """Mengambil profil lengkap agen/reseller beserta daftar downline-nya."""
     brand = brand.upper()
     agen_id = agen_id.strip().upper()
 
     with get_connection() as conn:
         cursor = conn.cursor()
+        
         cursor.execute("SELECT * FROM agents WHERE brand = ? AND agen_id = ?", (brand, agen_id))
         agent = cursor.fetchone()
-        if not agent:
+        
+        cursor.execute("SELECT * FROM resellers WHERE brand = ? AND kode_reseller = ?", (brand, agen_id))
+        reseller = cursor.fetchone()
+        
+        if not agent and not reseller:
             return {"found": False}
+
+        reseller_dict = dict(reseller) if reseller else {}
+        agent_dict = dict(agent) if agent else {}
+        
+        root_agent = None
+        root_id = reseller_dict.get("root_agen_id") or agent_dict.get("agen_id") or agen_id
+        if root_id and root_id != agen_id:
+            cursor.execute("SELECT * FROM agents WHERE brand = ? AND agen_id = ?", (brand, root_id))
+            r_ag = cursor.fetchone()
+            if r_ag:
+                root_agent = dict(r_ag)
 
         cursor.execute("""
             SELECT kode_reseller, nama_reseller, grup, kode_upline, leveling, saldo,
                    limit_saldo, markup, tgl_daftar, tgl_aktivitas_terakhir
             FROM resellers
-            WHERE brand = ? AND root_agen_id = ?
+            WHERE brand = ? AND root_agen_id = ? AND kode_reseller != ?
             ORDER BY kode_reseller ASC
             LIMIT 200
-        """, (brand, agen_id))
+        """, (brand, agen_id, agen_id))
         downlines = [dict(r) for r in cursor.fetchall()]
+
+        merged = {
+            "agen_id": agen_id,
+            "kode_reseller": agen_id,
+            "nama_agen": agent_dict.get("nama_agen") or reseller_dict.get("nama_reseller") or agen_id,
+            "nama_reseller": reseller_dict.get("nama_reseller") or agent_dict.get("nama_agen") or agen_id,
+            "grup": reseller_dict.get("grup") or "P",
+            "kode_upline": reseller_dict.get("kode_upline") or (root_agent.get("agen_id") if root_agent else "-"),
+            "leveling": "AGEN" if (agent or reseller_dict.get("leveling") in ("AGEN", "ROOT") or reseller_dict.get("kode_reseller") == reseller_dict.get("root_agen_id")) else "DOWNLINE",
+            "root_agen_id": root_id,
+            "nama_root_agen": (root_agent.get("nama_agen") if root_agent else (agent_dict.get("nama_agen") or reseller_dict.get("nama_reseller"))),
+            "cabang": agent_dict.get("cabang") or reseller_dict.get("cabang") or (root_agent.get("cabang") if root_agent else "BSD"),
+            "type": agent_dict.get("type") or (root_agent.get("type") if root_agent else "Prima"),
+            "sco": agent_dict.get("sco") or (root_agent.get("sco") if root_agent else "NON SCO"),
+            "dso": agent_dict.get("dso") or (root_agent.get("dso") if root_agent else "-"),
+            "jadwal": agent_dict.get("jadwal") or (root_agent.get("jadwal") if root_agent else "-"),
+            "location": agent_dict.get("location") or (root_agent.get("location") if root_agent else "-"),
+            "limit_saldo": agent_dict.get("limit_saldo") if agent_dict else reseller_dict.get("limit_saldo", 0.0),
+            "saldo": reseller_dict.get("saldo", 0.0),
+            "markup": reseller_dict.get("markup", 0.0),
+            "tgl_daftar": agent_dict.get("tgl_daftar") or reseller_dict.get("tgl_daftar") or "-",
+            "tgl_aktivitas_terakhir": agent_dict.get("tgl_aktivitas_terakhir") or reseller_dict.get("tgl_aktivitas_terakhir") or "-",
+            "is_active": agent_dict.get("is_active", 1)
+        }
 
         return {
             "found": True,
-            "agent": dict(agent),
+            "agent": merged,
             "downlines": downlines
         }
 
 
-def save_agent(brand: str, agen_id: str, data: dict) -> dict:
-    """Menyimpan atau memperbarui data agen di database & menyelaraskan Parquet."""
+def lookup_upline_info(brand: str, upline_code: str) -> dict:
+    """
+    Lookup informasi Upline secara instan untuk form penambahan reseller/agen:
+    1. Cek apakah upline adalah Branch Root (AR00001 - AR00007).
+       - Khusus AR00005 (DEPO SEPATAN) otomatis dialihkan ke ICON (AR00003).
+       - Khusus AR00007 (DEPO JASINGA) otomatis dialihkan ke PP (AR00002).
+       - Khusus AR00006 otomatis Cabang ONLINE & SCO ONLINE.
+       - Leveling otomatis: AGEN (Toko Induk).
+    2. Cek apakah upline adalah Reseller / Toko Induk existing di database.
+       - Leveling otomatis: DOWNLINE.
+       - Mewarisi: Root Agen, Cabang, SCO, Tipe, Lokasi.
+    """
     brand = brand.upper()
-    agen_id = agen_id.strip().upper()
-    nama_agen = data.get("nama_agen", "").strip() or agen_id
+    up = (upline_code or "").strip().upper()
+    if not up:
+        return {"found": False, "error": "Kode Upline belum diisi"}
+
+    # 1. Cek Branch Root ASTAGA
+    if brand == "ASTAGA" and up in ASTAGA_BRANCH_MAP:
+        raw_cab, action = ASTAGA_BRANCH_MAP[up]
+        cabang = normalize_cabang(raw_cab)
+        is_online = (cabang == "ONLINE")
+        return {
+            "found": True,
+            "is_branch": True,
+            "kode_upline": up,
+            "nama_upline": f"Cabang {cabang} ({action})",
+            "leveling": "AGEN",
+            "cabang": cabang,
+            "root_agen_id": None,
+            "type": "Prima" if is_online else "Non Limit",
+            "sco": "ONLINE" if is_online else "NON SCO",
+            "dso": "-",
+            "jadwal": "-",
+            "location": "-" if is_online else "",
+            "note": f"Upline adalah Branch Root {up} ({action}). Akun baru menjadi Agen Induk di Cabang {cabang}."
+        }
+    elif brand == "OKIPAY" and up in OKIPAY_BRANCH_MAP:
+        raw_cab, action = OKIPAY_BRANCH_MAP[up]
+        cabang = normalize_cabang(raw_cab)
+        is_online = (cabang == "ONLINE")
+        return {
+            "found": True,
+            "is_branch": True,
+            "kode_upline": up,
+            "nama_upline": f"Cabang {cabang} ({action})",
+            "leveling": "AGEN",
+            "cabang": cabang,
+            "root_agen_id": None,
+            "type": "Prima",
+            "sco": "ONLINE" if is_online else "NON SCO",
+            "dso": "-",
+            "jadwal": "-",
+            "location": "-",
+            "note": f"Upline adalah Branch Root {up}. Akun baru menjadi Agen Induk di Cabang {cabang}."
+        }
+
+    # 2. Cek Reseller / Agen existing di database
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                r.kode_reseller, r.nama_reseller, r.grup, r.kode_upline, r.leveling,
+                r.root_agen_id, COALESCE(a.nama_agen, r.nama_reseller) AS nama_root_agen,
+                COALESCE(r.cabang, a.cabang, 'BSD') AS cabang,
+                COALESCE(a.type, 'Prima') AS type,
+                COALESCE(a.sco, 'NON SCO') AS sco,
+                COALESCE(a.dso, '-') AS dso,
+                COALESCE(a.jadwal, '-') AS jadwal,
+                COALESCE(a.location, '-') AS location
+            FROM resellers r
+            LEFT JOIN agents a ON r.brand = a.brand AND r.root_agen_id = a.agen_id
+            WHERE r.brand = ? AND r.kode_reseller = ?
+        """, (brand, up))
+        row = cursor.fetchone()
+        if row:
+            root_id = row["root_agen_id"] or row["kode_reseller"]
+            return {
+                "found": True,
+                "is_branch": False,
+                "kode_upline": row["kode_reseller"],
+                "nama_upline": row["nama_reseller"],
+                "leveling": "DOWNLINE",
+                "root_agen_id": root_id,
+                "nama_root_agen": row["nama_root_agen"],
+                "cabang": row["cabang"],
+                "type": row["type"],
+                "sco": row["sco"],
+                "dso": row["dso"],
+                "jadwal": row["jadwal"],
+                "location": row["location"],
+                "note": f"Upline ditemukan ({row['nama_reseller']}). Akun baru menjadi Downline di bawah Toko Induk {root_id} - {row['nama_root_agen']}."
+            }
+
+    return {
+        "found": False,
+        "is_branch": False,
+        "kode_upline": up,
+        "error": f"Upline {up} tidak ditemukan di master cabang maupun master reseller."
+    }
+
+
+def save_reseller_account(brand: str, data: dict) -> dict:
+    """
+    Menyimpan atau memperbarui data reseller/agen ke database SQLite, menyelaraskan Parquet,
+    dan mengekspor CSV Dimensi ke DMS RAW DATA agar Power Query langsung sinkron.
+    """
+    brand = brand.upper()
+    code = (data.get("kode_reseller") or data.get("agen_id") or "").strip().upper()
+    if not code:
+        raise ValueError("Kode akun / reseller wajib diisi")
+
+    nama = (data.get("nama_reseller") or data.get("nama_agen") or "").strip() or code
+    grup = (data.get("grup") or "P").strip().upper()
+    upline = (data.get("kode_upline") or "").strip().upper() or None
+    leveling = (data.get("leveling") or "AGEN").strip().upper()
+    if leveling not in ("AGEN", "DOWNLINE", "ROOT"):
+        leveling = "AGEN"
+    if leveling == "ROOT":
+        leveling = "AGEN"
+
     cabang = normalize_cabang(data.get("cabang", "BSD"))
-    # Limit Saldo & Tipe Reseller (Limit, Non Limit, Prima)
+
+    # Limit Saldo & Tipe Reseller
     raw_limit = data.get("limit_saldo", 0.0)
     try:
         limit_val = float(raw_limit or 0.0)
     except (ValueError, TypeError):
         limit_val = 0.0
 
-    # Di OtomaX, limit saldo tersimpan sebagai plafon kredit negatif (misal -1.000.000)
     if limit_val > 0:
         limit_saldo = -abs(limit_val)
     elif limit_val < 0:
@@ -1366,72 +1578,110 @@ def save_agent(brand: str, agen_id: str, data: dict) -> dict:
         existing_type=data.get("type", "")
     )
     sco = me.normalize_astaga_sco(cabang, data.get("sco", "NON SCO"))
-    dso = data.get("dso", "").strip()
-    jadwal = data.get("jadwal", "").strip()
-    location = data.get("location", "").strip()
+    dso = (data.get("dso") or "").strip() or "-"
+    jadwal = (data.get("jadwal") or "").strip() or "-"
+    location = (data.get("location") or "").strip() or "-"
     markup = float(data.get("markup", 0.0) or 0.0)
+    saldo = float(data.get("saldo", 0.0) or 0.0)
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Tentukan root_agen_id
+    if leveling == "AGEN":
+        root_agen_id = code
+    else:
+        root_agen_id = (data.get("root_agen_id") or "").strip().upper()
+        if not root_agen_id and upline:
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT root_agen_id, cabang FROM resellers WHERE brand = ? AND kode_reseller = ?", (brand, upline))
+                up_row = cur.fetchone()
+                if up_row:
+                    root_agen_id = up_row["root_agen_id"] or upline
+                    if not cabang or cabang == "BSD":
+                        cabang = up_row["cabang"] or cabang
+                else:
+                    root_agen_id = upline
 
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO agents (
-                brand, agen_id, nama_agen, cabang, type, sco, dso,
-                limit_saldo, markup, jadwal, location, is_active, updated_at,
-                tgl_daftar
-            ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
-                COALESCE(
-                    ?,
-                    (SELECT tgl_daftar FROM agents WHERE brand = ? AND agen_id = ?),
-                    (SELECT tgl_daftar FROM resellers WHERE brand = ? AND kode_reseller = ?)
-                )
-            )
-            ON CONFLICT(brand, agen_id) DO UPDATE SET
-                nama_agen = excluded.nama_agen,
-                cabang = excluded.cabang,
-                type = excluded.type,
-                sco = excluded.sco,
-                dso = excluded.dso,
-                limit_saldo = excluded.limit_saldo,
-                markup = excluded.markup,
-                jadwal = excluded.jadwal,
-                location = excluded.location,
-                is_active = excluded.is_active,
-                updated_at = excluded.updated_at,
-                tgl_daftar = COALESCE(agents.tgl_daftar, excluded.tgl_daftar)
-        """, (
-            brand, agen_id, nama_agen, cabang, typ, sco, dso,
-            limit_saldo, markup, jadwal, location, now_str,
-            data.get("tgl_daftar"), brand, agen_id, brand, agen_id
-        ))
 
-        # Pastikan juga agen induk terdaftar di tabel resellers sebagai root agen
+        # 1. Simpan ke tabel resellers
         cursor.execute("""
             INSERT INTO resellers (
                 brand, kode_reseller, nama_reseller, grup, kode_upline, root_agen_id, cabang, leveling,
                 saldo, limit_saldo, markup, tgl_daftar, tgl_aktivitas_terakhir, updated_at
-            ) VALUES (?, ?, ?, 'AGEN', NULL, ?, ?, 'ROOT', 0, ?, ?, strftime('%Y-%m-%d', 'now'), strftime('%Y-%m-%d', 'now'), ?)
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?,
+                COALESCE(?, (SELECT tgl_daftar FROM resellers WHERE brand = ? AND kode_reseller = ?), strftime('%Y-%m-%d %H:%M:%S', 'now')),
+                COALESCE(?, (SELECT tgl_aktivitas_terakhir FROM resellers WHERE brand = ? AND kode_reseller = ?), strftime('%Y-%m-%d %H:%M:%S', 'now')),
+                ?
+            )
             ON CONFLICT(brand, kode_reseller) DO UPDATE SET
                 nama_reseller = excluded.nama_reseller,
+                grup = excluded.grup,
+                kode_upline = excluded.kode_upline,
                 root_agen_id = excluded.root_agen_id,
                 cabang = excluded.cabang,
+                leveling = excluded.leveling,
+                limit_saldo = excluded.limit_saldo,
+                markup = excluded.markup,
                 updated_at = excluded.updated_at
-        """, (brand, agen_id, nama_agen, agen_id, cabang, limit_saldo, markup, now_str))
+        """, (
+            brand, code, nama, grup, upline, root_agen_id, cabang, leveling,
+            saldo, limit_saldo, markup,
+            data.get("tgl_daftar"), brand, code,
+            data.get("tgl_aktivitas_terakhir"), brand, code,
+            now_str
+        ))
 
-        # Update juga cabang semua reseller yang bernaung di bawah root_agen_id ini
-        cursor.execute("""
-            UPDATE resellers
-            SET cabang = ?, updated_at = ?
-            WHERE brand = ? AND root_agen_id = ?
-        """, (cabang, now_str, brand, agen_id))
+        # 2. Jika level AGEN (Toko Induk), simpan ke tabel agents & propagasikan ke downlines
+        if leveling == "AGEN":
+            cursor.execute("""
+                INSERT INTO agents (
+                    brand, agen_id, nama_agen, cabang, type, sco, dso,
+                    limit_saldo, markup, jadwal, location, is_active, updated_at,
+                    tgl_daftar
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?,
+                    COALESCE(
+                        ?,
+                        (SELECT tgl_daftar FROM agents WHERE brand = ? AND agen_id = ?),
+                        (SELECT tgl_daftar FROM resellers WHERE brand = ? AND kode_reseller = ?),
+                        strftime('%Y-%m-%d %H:%M:%S', 'now')
+                    )
+                )
+                ON CONFLICT(brand, agen_id) DO UPDATE SET
+                    nama_agen = excluded.nama_agen,
+                    cabang = excluded.cabang,
+                    type = excluded.type,
+                    sco = excluded.sco,
+                    dso = excluded.dso,
+                    limit_saldo = excluded.limit_saldo,
+                    markup = excluded.markup,
+                    jadwal = excluded.jadwal,
+                    location = excluded.location,
+                    is_active = excluded.is_active,
+                    updated_at = excluded.updated_at
+            """, (
+                brand, code, nama, cabang, typ, sco, dso,
+                limit_saldo, markup, jadwal, location, now_str,
+                data.get("tgl_daftar"), brand, code, brand, code
+            ))
+
+            # Update juga cabang semua reseller yang bernaung di bawah root_agen_id ini
+            cursor.execute("""
+                UPDATE resellers
+                SET cabang = ?, updated_at = ?
+                WHERE brand = ? AND root_agen_id = ?
+            """, (cabang, now_str, brand, code))
 
         conn.commit()
 
-    # Refresh Parquet cache
+    # Sync Parquet & Export Dim CSVs
     sync_to_parquet(brand)
-    
-    # Invalidate memory cache
+    export_dim_csvs_to_dms(brand)
+
     try:
         import engines.customer_engine as ce
         ce.clear_cache()
@@ -1444,7 +1694,24 @@ def save_agent(brand: str, agen_id: str, data: dict) -> dict:
     except Exception:
         pass
 
-    return {"ok": True, "agen_id": agen_id, "cabang": cabang, "sco": sco}
+    return {
+        "ok": True,
+        "agen_id": code,
+        "kode_reseller": code,
+        "nama_reseller": nama,
+        "leveling": leveling,
+        "cabang": cabang,
+        "sco": sco,
+        "root_agen_id": root_agen_id
+    }
+
+
+def save_agent(brand: str, agen_id: str, data: dict) -> dict:
+    """Wrapper kompatibilitas untuk menyimpan data agen/reseller."""
+    data["agen_id"] = agen_id
+    data["kode_reseller"] = agen_id
+    return save_reseller_account(brand, data)
+
 
 
 def export_master_excel(brand: str) -> str:

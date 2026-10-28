@@ -703,8 +703,21 @@
       <!-- TOP ROW: BRAND SELECTOR & SEARCH & ACTIONS -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
 
-        <!-- SEARCH INPUT (LEBIH LEGA KARENA BRAND SUDAH DIPUSATKAN DI ATAS) -->
-        <div style="flex: 1; max-width: 480px; min-width: 260px; position: relative;">
+        <!-- SUB-TOGGLE LEVELING (SEMUA AKUN / AGEN INDUK / DOWNLINE) -->
+        <div class="chart-subtoggle" style="margin-right: 4px;">
+          <button type="button" class="chart-subtoggle-btn active" id="btn-master-lev-all" onclick="switchMasterLeveling('ALL')">
+            Semua Akun (Reseller)
+          </button>
+          <button type="button" class="chart-subtoggle-btn" id="btn-master-lev-agen" onclick="switchMasterLeveling('AGEN')">
+            Hanya Agen Induk (Toko)
+          </button>
+          <button type="button" class="chart-subtoggle-btn" id="btn-master-lev-downline" onclick="switchMasterLeveling('DOWNLINE')">
+            Hanya Downline (MLM)
+          </button>
+        </div>
+
+        <!-- SEARCH INPUT -->
+        <div style="flex: 1; max-width: 380px; min-width: 240px; position: relative;">
           <input type="text" id="master-search-input" placeholder="Cari Kode Agen atau Nama Toko..."
             onkeydown="if(event.key==='Enter') executeMasterFilter()"
             style="width: 100%; padding: 8px 12px 8px 36px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px;">
@@ -741,7 +754,7 @@
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span>+ Tambah Agen</span>
+            <span>+ Tambah Akun Baru</span>
           </button>
 
           <button type="button" onclick="exportMasterExcel()" class="btn-secondary"
@@ -811,14 +824,14 @@
         <table class="data-table" id="master-agents-table"
           style="width: 100%; border-collapse: collapse; font-size: 13px;">
           <thead>
-            <tr
-              style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
-              <th style="padding: 12px 16px; width: 260px;">AGEN (ID &amp; NAMA)</th>
-              <th style="padding: 12px 14px; width: 150px;">CABANG &amp; TIPE</th>
-              <th style="padding: 12px 14px; width: 170px;">SALES TEAM (SCO &amp; DSO)</th>
-              <th style="padding: 12px 14px; width: 190px;">JADWAL &amp; LOKASI</th>
-              <th style="padding: 12px 14px; width: 140px; text-align: center;">DOWNLINE (MLM)</th>
-              <th style="padding: 12px 16px; width: 110px; text-align: center;">AKSI</th>
+            <tr style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
+              <th style="padding: 12px 16px; width: 230px;">RESELLER (ID &amp; NAMA)</th>
+              <th style="padding: 12px 12px; width: 130px;">LEVEL &amp; GRUP</th>
+              <th style="padding: 12px 14px; width: 180px;">UPLINE &amp; INDUK</th>
+              <th style="padding: 12px 12px; width: 140px;">CABANG &amp; TIPE</th>
+              <th style="padding: 12px 14px; width: 160px;">TIM SALES (SCO &amp; DSO)</th>
+              <th style="padding: 12px 14px; width: 140px; text-align: right;">SALDO &amp; LIMIT</th>
+              <th style="padding: 12px 14px; width: 110px; text-align: center;">AKSI</th>
             </tr>
           </thead>
           <tbody id="master-agents-tbody">
@@ -1184,34 +1197,68 @@
       style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
       <input type="hidden" id="edit-agent-brand">
 
-      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+      <!-- ROW 1: KODE AKUN, NAMA, GRUP -->
+      <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px;">
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kode
-            Agen (ID)</label>
-          <input type="text" id="edit-agent-id" readonly
-            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-family: var(--font-mono); font-weight: 700; color: var(--primary); cursor: not-allowed;">
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kode Akun (ID)</label>
+          <input type="text" id="edit-agent-id" required placeholder="misal: AR40247"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-family: var(--font-mono); font-weight: 700; color: var(--primary);">
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nama
-            Agen / Toko</label>
-          <input type="text" id="edit-agent-nama" required
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nama Akun / Toko</label>
+          <input type="text" id="edit-agent-nama" required placeholder="misal: ANUGRAH CELL"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Grup</label>
+          <input type="text" id="edit-agent-grup" value="P" placeholder="P"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 700; font-family: var(--font-mono); text-transform: uppercase;">
         </div>
       </div>
 
+      <!-- ROW 2: KODE UPLINE & LIVE STATUS & LEVELING -->
+      <div style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; align-items: start;">
+          <div>
+            <label style="font-size: 11.5px; font-weight: 700; color: var(--primary); text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+              <span>Kode Upline (Wajib)</span>
+              <span style="color: #dc2626;">*</span>
+            </label>
+            <input type="text" id="edit-agent-upline" placeholder="misal: AR00006 atau AR34632" oninput="handleUplineInput(this)" required
+              style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--primary); background: var(--surface-card); color: var(--text-main); font-family: var(--font-mono); font-weight: 700; text-transform: uppercase;">
+          </div>
+          <div>
+            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Leveling</label>
+            <select id="edit-agent-leveling" onchange="handleLevelingChange(this)"
+              style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 700;">
+              <option value="AGEN">AGEN (Toko Induk)</option>
+              <option value="DOWNLINE">DOWNLINE (Member MLM)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Toko Induk (Root)</label>
+            <input type="text" id="edit-agent-root" readonly placeholder="Otomatis"
+              style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-muted); font-family: var(--font-mono); font-weight: 700; cursor: not-allowed;">
+          </div>
+        </div>
+
+        <!-- UPLINE LIVE STATUS BADGE -->
+        <div id="upline-status-badge" style="font-size: 12px; line-height: 1.4; padding: 6px 10px; border-radius: 6px; background: rgba(37, 99, 235, 0.08); border: 1px solid #bfdbfe; color: #1e40af; display: none;">
+          Ketik Kode Upline untuk auto-mapping cabang dan leveling.
+        </div>
+      </div>
+
+      <!-- ROW 3: CABANG & TIPE -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div>
-          <label
-            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang
-            Induk</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang Induk</label>
           <select id="edit-agent-cabang" onchange="handleCabangSelectChange(this)" required
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
             <!-- Populated dinamis -->
           </select>
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tipe
-            Reseller</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tipe Reseller</label>
           <select id="edit-agent-type" onchange="handleTypeSelectChange(this)"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
             <option value="Limit">Limit (Plafon Saldo)</option>
@@ -1221,7 +1268,7 @@
         </div>
       </div>
 
-      <!-- ROW LIMIT SALDO & LOKASI -->
+      <!-- ROW 4: LIMIT SALDO & LOKASI -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div>
           <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
@@ -1237,18 +1284,16 @@
           </div>
         </div>
         <div>
-          <label
-            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Lokasi /
-            Wilayah</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Lokasi / Wilayah</label>
           <input type="text" id="edit-agent-location" placeholder="misal: TANGERANG SELATAN"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
         </div>
       </div>
 
+      <!-- ROW 5: SCO & DSO -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">SCO
-            (Sales Collection Officer)</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">SCO (Sales Collection Officer)</label>
           <select id="edit-agent-sco" onchange="handleScoSelectChange(this)"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
             <option value="NON SCO">NON SCO (Belum Dipetakan)</option>
@@ -1258,8 +1303,7 @@
             style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">DSO
-            (Direct Sales Officer)</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">DSO (Direct Sales Officer)</label>
           <select id="edit-agent-dso" onchange="handleDsoSelectChange(this)"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
             <option value="-">- (Non-DSO / Tanpa DSO)</option>
@@ -1270,34 +1314,38 @@
         </div>
       </div>
 
-      <div>
-        <label
-          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Jadwal
-          Kunjungan</label>
-        <select id="edit-agent-jadwal" onchange="handleJadwalSelectChange(this)"
-          style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
-          <option value="-">- (Tanpa Jadwal / Non-Kunjungan)</option>
-          <option value="Senin,Kamis">Senin, Kamis</option>
-          <option value="Selasa,Jum'at">Selasa, Jum'at</option>
-          <option value="Rabu,Sabtu">Rabu, Sabtu</option>
-          <option value="__NEW__">+ Input Jadwal Lain...</option>
-        </select>
-        <input type="text" id="edit-agent-jadwal-custom" placeholder="Ketik jadwal kustom..."
-          style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
+      <!-- ROW 6: JADWAL & MARKUP KOMISI -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Jadwal Kunjungan</label>
+          <select id="edit-agent-jadwal" onchange="handleJadwalSelectChange(this)"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
+            <option value="-">- (Tanpa Jadwal / Non-Kunjungan)</option>
+            <option value="Senin,Kamis">Senin, Kamis</option>
+            <option value="Selasa,Jum'at">Selasa, Jum'at</option>
+            <option value="Rabu,Sabtu">Rabu, Sabtu</option>
+            <option value="__NEW__">+ Input Jadwal Lain...</option>
+          </select>
+          <input type="text" id="edit-agent-jadwal-custom" placeholder="Ketik jadwal kustom..."
+            style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Markup Komisi Upline (Rp)</label>
+          <input type="number" id="edit-agent-markup" placeholder="0" min="0" value="0"
+            style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
+        </div>
       </div>
 
       <!-- PROPAGATION NOTICE -->
-      <div
-        style="background: rgba(37, 99, 235, 0.05); border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 12px; color: #1e40af; line-height: 1.5;">
+      <div style="background: rgba(37, 99, 235, 0.05); border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 12px; color: #1e40af; line-height: 1.5;">
         <strong style="display:flex; align-items:center; gap:5px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
-          Propagasi Hierarki Otomatis:
+          Sinkronisasi Multi-Level &amp; Power Query Otomatis:
         </strong>
         <div style="margin-top: 2px;">
-          Mengubah <strong>Cabang Induk</strong> di form ini akan otomatis memperbarui seluruh toko downline yang
-          bernaung di bawah agen ini dan langsung menyinkronkan Parquet Cache.
+          Menyimpan akun baru atau mengedit data ini akan langsung mengekspor <strong>Dim_Customer &amp; Dim_Agent CSV</strong> ke <code>C:\DMS RAW DATA\MASTER</code> sehingga Power Query Excel dapat langsung di-refresh tanpa download ulang ribuan data.
         </div>
       </div>
 
@@ -1309,7 +1357,7 @@
         </button>
         <button type="submit" id="btn-save-agent" class="btn-primary"
           style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
-          Simpan Perubahan
+          Simpan Akun
         </button>
       </div>
 

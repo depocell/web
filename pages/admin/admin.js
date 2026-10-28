@@ -93,6 +93,7 @@ let masterState = {
   cabang: "ALL",
   sco: "ALL",
   type: "ALL",
+  leveling: "ALL",
   search: "",
   page: 1,
   pageSize: 25,
@@ -841,6 +842,22 @@ function selectMasterBrand(brand) {
   switchAdminGlobalBrand(brand);
 }
 
+function switchMasterLeveling(leveling) {
+  masterState.leveling = leveling;
+  masterState.page = 1;
+  ["all", "agen", "downline"].forEach(l => {
+    const btn = document.getElementById(`btn-master-lev-${l}`);
+    if (btn) {
+      if (l === leveling.toLowerCase()) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    }
+  });
+  loadMasterAgents();
+}
+
 async function loadMasterAgents() {
   const tbody = document.getElementById("master-agents-tbody");
   if (!tbody) return;
@@ -859,6 +876,7 @@ async function loadMasterAgents() {
       cabang: masterState.cabang,
       sco: masterState.sco,
       type: masterState.type,
+      leveling: masterState.leveling,
       search: masterState.search,
       page: masterState.page,
       page_size: masterState.pageSize,
@@ -990,8 +1008,8 @@ function renderAgentsTable(rows) {
   if (!rows || rows.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted);">
-          Tidak ditemukan agen dengan filter yang dipilih.
+        <td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted);">
+          Tidak ditemukan akun reseller / agen dengan filter yang dipilih.
         </td>
       </tr>
     `;
@@ -1007,28 +1025,57 @@ function renderAgentsTable(rows) {
     if (!scoVal || scoUpper === "BELUM DIPETAKAN" || scoUpper === "UNMAPPED" || scoUpper === "-") {
       scoBadgeHtml = `<span class="badge" style="background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; font-weight: 700; font-size: 11px;">BELUM DIPETAKAN</span>`;
     } else if (scoUpper === "NON SCO") {
-      scoBadgeHtml = `<span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700; font-size: 11px;">NON SCO (CABANG)</span>`;
+      scoBadgeHtml = `<span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700; font-size: 11px;">NON SCO</span>`;
     } else if (scoUpper === "ONLINE") {
       scoBadgeHtml = `<span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">ONLINE</span>`;
     } else {
       scoBadgeHtml = `<span class="badge badge-sco">${escapeHtml(scoVal)}</span>`;
     }
 
+    const isAgen = (r.leveling === "AGEN");
+    const levelingBadge = isAgen
+      ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">AGEN (INDUK)</span>`
+      : `<span class="badge" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; font-weight: 600; font-size: 11px;">DOWNLINE</span>`;
+
+    const grupBadge = `<span class="badge" style="background: var(--surface-bg); color: var(--text-muted); border: 1px solid var(--surface-border); font-size: 10.5px; font-weight: 700;">Grup ${escapeHtml(r.grup || '-')}</span>`;
+
+    const saldoNum = Number(r.saldo || 0);
+    const saldoFormatted = (saldoNum < 0 ? "-" : "") + "Rp " + Math.abs(saldoNum).toLocaleString("id-ID");
+    const saldoColor = saldoNum < 0 ? "#dc2626" : "var(--text-main)";
+
     html += `
       <tr style="border-bottom: 1px solid var(--surface-border); transition: background 0.15s ease;">
         
-        <!-- KOLOM 1: AGEN (ID & NAMA) -->
+        <!-- KOLOM 1: RESELLER (ID & NAMA) -->
         <td style="padding: 12px 16px;">
           <div style="font-family: var(--font-mono); font-weight: 700; color: var(--primary); font-size: 13px;">
-            ${r.agen_id}
+            ${r.kode_reseller || r.agen_id}
           </div>
-          <div style="font-size: 12.5px; font-weight: 500; color: var(--text-main); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;" title="${escapeHtml(r.nama_agen)}">
-            ${escapeHtml(r.nama_agen)}
+          <div style="font-size: 12.5px; font-weight: 600; color: var(--text-main); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px;" title="${escapeHtml(r.nama_reseller || r.nama_agen)}">
+            ${escapeHtml(r.nama_reseller || r.nama_agen)}
           </div>
         </td>
 
-        <!-- KOLOM 2: CABANG & TIPE -->
+        <!-- KOLOM 2: LEVEL & GRUP -->
+        <td style="padding: 12px 12px;">
+          <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+            ${levelingBadge}
+            ${grupBadge}
+          </div>
+        </td>
+
+        <!-- KOLOM 3: UPLINE & INDUK -->
         <td style="padding: 12px 14px;">
+          <div style="font-size: 11.5px; color: var(--text-muted);">
+            Upline: <strong style="font-family: var(--font-mono); color: var(--text-main);">${escapeHtml(r.kode_upline || '-')}</strong>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px;" title="${isAgen ? 'Akun Mandiri' : 'Toko Induk: ' + escapeHtml(r.nama_root_agen || r.root_agen_id)}">
+            Induk: <strong style="color: ${isAgen ? '#059669' : '#0284c7'};">${isAgen ? 'Mandiri (Root)' : escapeHtml(r.nama_root_agen || r.root_agen_id)}</strong>
+          </div>
+        </td>
+
+        <!-- KOLOM 4: CABANG & TIPE -->
+        <td style="padding: 12px 12px;">
           <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
             <span class="badge badge-cabang">
               ${r.cabang}
@@ -1044,7 +1091,7 @@ function renderAgentsTable(rows) {
           ` : ''}
         </td>
 
-        <!-- KOLOM 3: SALES TEAM (SCO & DSO) -->
+        <!-- KOLOM 5: SALES TEAM (SCO & DSO) -->
         <td style="padding: 12px 14px;">
           ${scoBadgeHtml}
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">
@@ -1052,30 +1099,30 @@ function renderAgentsTable(rows) {
           </div>
         </td>
 
-        <!-- KOLOM 4: JADWAL & LOKASI -->
-        <td style="padding: 12px 14px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--text-main);">
-            ${r.jadwal || '-'}
+        <!-- KOLOM 6: SALDO & LIMIT -->
+        <td style="padding: 12px 14px; text-align: right;">
+          <div style="font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; color: ${saldoColor};">
+            ${saldoFormatted}
           </div>
-          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;" title="${escapeHtml(r.location)}">
-            ${escapeHtml(r.location) || '-'}
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+            Markup: Rp ${(r.markup || 0).toLocaleString('id-ID')}
           </div>
         </td>
 
-        <!-- KOLOM 5: DOWNLINE COUNT (POHON MLM) -->
+        <!-- KOLOM 7: AKSI -->
         <td style="padding: 12px 14px; text-align: center;">
-          <button type="button" onclick="showDownlineModal('${r.agen_id}', '${escapeHtml(r.nama_agen)}')" class="btn-badge-downlines" title="Lihat daftar pohon reseller downline di bawah agen ini" style="display:inline-flex; align-items:center; gap:5px; justify-content:center;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            ${r.downlines_count.toLocaleString()} Toko
-          </button>
-        </td>
-
-        <!-- KOLOM 6: AKSI -->
-        <td style="padding: 12px 16px; text-align: center;">
-          <button type="button" onclick="openEditAgentModal('${r.agen_id}')" class="btn-sm-edit" style="display:inline-flex; align-items:center; gap:5px; justify-content:center;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            Edit
-          </button>
+          <div style="display: inline-flex; align-items: center; gap: 4px;">
+            <button type="button" onclick="openEditAgentModal('${r.kode_reseller || r.agen_id}')" class="btn-sm-edit" title="Edit profil & pemetaan akun" style="display:inline-flex; align-items:center; gap:4px; justify-content:center; padding: 4px 8px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              Edit
+            </button>
+            ${isAgen && r.downlines_count > 0 ? `
+              <button type="button" onclick="showDownlineModal('${r.kode_reseller || r.agen_id}', '${escapeHtml(r.nama_reseller || r.nama_agen)}')" class="btn-badge-downlines" title="Lihat ${r.downlines_count} downline MLM" style="display:inline-flex; align-items:center; gap:3px; padding: 4px 6px; font-size: 11px;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                ${r.downlines_count}
+              </button>
+            ` : ''}
+          </div>
         </td>
 
       </tr>
@@ -1527,6 +1574,103 @@ function handleTypeSelectChange(sel) {
   }
 }
 
+let uplineLookupTimeout = null;
+function handleUplineInput(input) {
+  const badge = document.getElementById("upline-status-badge");
+  const val = (input.value || "").trim().toUpperCase();
+  input.value = val;
+  if (!badge) return;
+
+  if (!val) {
+    badge.style.display = "none";
+    badge.innerHTML = "";
+    return;
+  }
+
+  badge.style.display = "block";
+  badge.style.background = "var(--surface-bg)";
+  badge.style.borderColor = "var(--surface-border)";
+  badge.style.color = "var(--text-muted)";
+  badge.textContent = `Memeriksa hierarki upline ${val}...`;
+
+  if (uplineLookupTimeout) clearTimeout(uplineLookupTimeout);
+
+  uplineLookupTimeout = setTimeout(async () => {
+    try {
+      const brand = document.getElementById("edit-agent-brand") ? document.getElementById("edit-agent-brand").value : masterState.brand;
+      const res = await fetch(`/api/admin/upline-lookup?brand=${brand}&upline=${encodeURIComponent(val)}&t=${Date.now()}`);
+      const json = await res.json();
+      if (!json.ok || !json.data) {
+        badge.style.background = "#fef2f2";
+        badge.style.borderColor = "#fecaca";
+        badge.style.color = "#dc2626";
+        badge.textContent = `Gagal memeriksa upline: ${json.error || "Terjadi kesalahan"}`;
+        return;
+      }
+
+      const d = json.data;
+      if (d.found) {
+        if (d.is_branch) {
+          badge.style.background = "#f0fdf4";
+          badge.style.borderColor = "#bbf7d0";
+          badge.style.color = "#15803d";
+          badge.innerHTML = `<strong>Branch Root Terdeteksi:</strong> ${escapeHtml(d.nama_upline)}.<br>Otomatis diset sebagai <strong>AGEN (Toko Induk)</strong> di Cabang <strong>${d.cabang}</strong> (SCO: ${d.sco}).`;
+
+          const levEl = document.getElementById("edit-agent-leveling");
+          if (levEl) levEl.value = "AGEN";
+          const rootEl = document.getElementById("edit-agent-root");
+          if (rootEl) rootEl.value = "(Diri Sendiri)";
+          const cabEl = document.getElementById("edit-agent-cabang");
+          if (cabEl) cabEl.value = d.cabang;
+          const typEl = document.getElementById("edit-agent-type");
+          if (typEl) typEl.value = d.type;
+          populateAgentModalSalesOptions(d.sco, d.dso);
+        } else {
+          badge.style.background = "#eff6ff";
+          badge.style.borderColor = "#bfdbfe";
+          badge.style.color = "#1e40af";
+          badge.innerHTML = `<strong>Upline Ditemukan:</strong> ${escapeHtml(d.nama_upline)}.<br>Otomatis diset sebagai <strong>DOWNLINE</strong> di bawah Toko Induk <strong>${d.root_agen_id} (${escapeHtml(d.nama_root_agen)})</strong> di Cabang <strong>${d.cabang}</strong>.`;
+
+          const levEl = document.getElementById("edit-agent-leveling");
+          if (levEl) levEl.value = "DOWNLINE";
+          const rootEl = document.getElementById("edit-agent-root");
+          if (rootEl) rootEl.value = d.root_agen_id;
+          const cabEl = document.getElementById("edit-agent-cabang");
+          if (cabEl) cabEl.value = d.cabang;
+          const typEl = document.getElementById("edit-agent-type");
+          if (typEl) typEl.value = d.type;
+          populateAgentModalSalesOptions(d.sco, d.dso);
+          if (d.location) {
+            const locEl = document.getElementById("edit-agent-location");
+            if (locEl && !locEl.value) locEl.value = d.location;
+          }
+        }
+      } else {
+        badge.style.background = "#fffbeb";
+        badge.style.borderColor = "#fde68a";
+        badge.style.color = "#b45309";
+        badge.innerHTML = `<strong>Perhatian:</strong> ${escapeHtml(d.error || "Upline belum tercatat di database")}. Anda dapat menentukan Cabang & Leveling secara manual.`;
+      }
+    } catch (err) {
+      badge.style.background = "#fef2f2";
+      badge.style.borderColor = "#fecaca";
+      badge.style.color = "#dc2626";
+      badge.textContent = `Kesalahan koneksi: ${err.message}`;
+    }
+  }, 250);
+}
+
+function handleLevelingChange(select) {
+  const rootEl = document.getElementById("edit-agent-root");
+  const idEl = document.getElementById("edit-agent-id");
+  if (!rootEl) return;
+  if (select.value === "AGEN") {
+    rootEl.value = idEl ? (idEl.value || "(Diri Sendiri)") : "(Diri Sendiri)";
+  } else {
+    if (rootEl.value === "(Diri Sendiri)") rootEl.value = "";
+  }
+}
+
 function openAddAgentModal(prefillId = "") {
   const modal = document.getElementById("modal-edit-agent");
   if (!modal) return;
@@ -1535,7 +1679,7 @@ function openAddAgentModal(prefillId = "") {
 
   const titleEl = document.getElementById("modal-agent-title");
   if (titleEl) {
-    titleEl.textContent = `+ Tambah Agen Baru (${curBrand})`;
+    titleEl.textContent = `+ Tambah Akun Reseller Baru (${curBrand})`;
   }
 
   const idInput = document.getElementById("edit-agent-id");
@@ -1549,6 +1693,24 @@ function openAddAgentModal(prefillId = "") {
   document.getElementById("edit-agent-brand").value = curBrand;
   document.getElementById("edit-agent-nama").value = "";
   
+  const grupEl = document.getElementById("edit-agent-grup");
+  if (grupEl) grupEl.value = curBrand === "OKIPAY" ? "O" : "P";
+
+  const uplineEl = document.getElementById("edit-agent-upline");
+  if (uplineEl) uplineEl.value = "";
+
+  const badge = document.getElementById("upline-status-badge");
+  if (badge) {
+    badge.style.display = "none";
+    badge.innerHTML = "";
+  }
+
+  const levEl = document.getElementById("edit-agent-leveling");
+  if (levEl) levEl.value = "AGEN";
+
+  const rootEl = document.getElementById("edit-agent-root");
+  if (rootEl) rootEl.value = "(Diri Sendiri)";
+
   // Populate Cabang options
   let initialCabang = curBrand === "OKIPAY" ? "ONLINE" : "BSD";
   const cabSel = document.getElementById("edit-agent-cabang");
@@ -1573,6 +1735,9 @@ function openAddAgentModal(prefillId = "") {
   if (limitInput) limitInput.value = "0";
   updateLimitHint(initialType, 0);
 
+  const markupEl = document.getElementById("edit-agent-markup");
+  if (markupEl) markupEl.value = "0";
+
   // Inisialisasi Dropdown SCO & DSO & Jadwal (Cabang ONLINE -> SCO otomatis ONLINE)
   const initialSco = initialCabang.toUpperCase() === "ONLINE" ? "ONLINE" : "NON SCO";
   populateAgentModalSalesOptions(initialSco, curBrand === "OKIPAY" ? "-" : "-");
@@ -1581,7 +1746,7 @@ function openAddAgentModal(prefillId = "") {
   document.getElementById("edit-agent-location").value = curBrand === "OKIPAY" ? "-" : "";
 
   const btnSave = document.getElementById("btn-save-agent");
-  if (btnSave) btnSave.textContent = "Simpan Agen Baru";
+  if (btnSave) btnSave.textContent = "Simpan Akun Baru";
 
   modal.style.display = "flex";
 
@@ -1610,7 +1775,8 @@ async function openEditAgentModal(agenId) {
 
     const ag = json.data.agent;
 
-    document.getElementById("modal-agent-title").textContent = `Edit Agen: ${ag.agen_id}`;
+    const isDownline = (ag.leveling === "DOWNLINE");
+    document.getElementById("modal-agent-title").textContent = `Edit ${isDownline ? 'Downline' : 'Agen'}: ${ag.kode_reseller || ag.agen_id}`;
     document.getElementById("edit-agent-brand").value = masterState.brand;
 
     const idInput = document.getElementById("edit-agent-id");
@@ -1618,10 +1784,41 @@ async function openEditAgentModal(agenId) {
       idInput.readOnly = true;
       idInput.style.cursor = "not-allowed";
       idInput.style.background = "var(--surface-bg)";
-      idInput.value = ag.agen_id;
+      idInput.value = ag.kode_reseller || ag.agen_id;
     }
 
-    document.getElementById("edit-agent-nama").value = ag.nama_agen || "";
+    document.getElementById("edit-agent-nama").value = ag.nama_reseller || ag.nama_agen || "";
+
+    const grupEl = document.getElementById("edit-agent-grup");
+    if (grupEl) grupEl.value = ag.grup || "P";
+
+    const uplineEl = document.getElementById("edit-agent-upline");
+    if (uplineEl) uplineEl.value = ag.kode_upline || "";
+
+    const levEl = document.getElementById("edit-agent-leveling");
+    if (levEl) levEl.value = ag.leveling || (isDownline ? "DOWNLINE" : "AGEN");
+
+    const rootEl = document.getElementById("edit-agent-root");
+    if (rootEl) rootEl.value = isDownline ? (ag.root_agen_id || "") : "(Diri Sendiri)";
+
+    const badge = document.getElementById("upline-status-badge");
+    if (badge) {
+      badge.style.display = "block";
+      if (isDownline) {
+        badge.style.background = "#eff6ff";
+        badge.style.borderColor = "#bfdbfe";
+        badge.style.color = "#1e40af";
+        badge.innerHTML = `<strong>Toko Downline:</strong> Bernaung di bawah Toko Induk <strong>${ag.root_agen_id} (${escapeHtml(ag.nama_root_agen || '')})</strong>.`;
+      } else {
+        badge.style.background = "#f0fdf4";
+        badge.style.borderColor = "#bbf7d0";
+        badge.style.color = "#15803d";
+        badge.innerHTML = `<strong>Toko Induk (Agen):</strong> Upline: <strong>${escapeHtml(ag.kode_upline || '-')}</strong>. Seluruh downline mewarisi cabang &amp; pemetaan ini.`;
+      }
+    }
+
+    const markupEl = document.getElementById("edit-agent-markup");
+    if (markupEl) markupEl.value = ag.markup || 0;
 
     // Tipe Reseller & Limit Saldo
     let curType = ag.type || "Prima";
@@ -1730,10 +1927,16 @@ async function submitEditAgent(event) {
     brand: brand,
     agen_id: agenId,
     data: {
-      nama_agen: document.getElementById("edit-agent-nama").value.trim(),
+      kode_reseller: agenId,
+      nama_reseller: document.getElementById("edit-agent-nama").value.trim(),
+      grup: (document.getElementById("edit-agent-grup") ? document.getElementById("edit-agent-grup").value.trim() : "P"),
+      kode_upline: (document.getElementById("edit-agent-upline") ? document.getElementById("edit-agent-upline").value.trim().toUpperCase() : ""),
+      leveling: (document.getElementById("edit-agent-leveling") ? document.getElementById("edit-agent-leveling").value : "AGEN"),
+      root_agen_id: (document.getElementById("edit-agent-root") ? document.getElementById("edit-agent-root").value.trim().toUpperCase() : ""),
       cabang: document.getElementById("edit-agent-cabang").value.trim(),
       type: document.getElementById("edit-agent-type").value.trim(),
       limit_saldo: limitNum,
+      markup: parseFloat(document.getElementById("edit-agent-markup") ? document.getElementById("edit-agent-markup").value : 0) || 0,
       sco: scoVal,
       dso: dsoVal,
       jadwal: jadwalVal,
@@ -2569,6 +2772,9 @@ window.selectProductBrand = selectProductBrand;
 window.executeProductFilter = executeProductFilter;
 window.resetProductFilter = resetProductFilter;
 window.exportProductExcel = exportProductExcel;
+window.switchMasterLeveling = switchMasterLeveling;
+window.handleUplineInput = handleUplineInput;
+window.handleLevelingChange = handleLevelingChange;
 window.loadMasterProducts = loadMasterProducts;
 window.goToProductPage = goToProductPage;
 window.changeProductPageSize = changeProductPageSize;
