@@ -2990,9 +2990,9 @@ async function executeDirectTsvUpsert() {
   if (btnText) btnText.textContent = `Sedang mengunggah & upsert ${file.name}...`;
   if (resultBox) {
     resultBox.style.display = "block";
-    resultBox.style.background = "#eff6ff";
-    resultBox.style.border = "1px solid #bfdbfe";
-    resultBox.style.color = "#1e40af";
+    resultBox.style.background = "var(--primary-light)";
+    resultBox.style.border = "1px solid var(--primary-border)";
+    resultBox.style.color = "var(--text-main)";
     resultBox.innerHTML = `<strong>Memproses:</strong> Mengunggah <strong>${file.name}</strong> (${(file.size/1024/1024).toFixed(2)} MB) ke VPS &amp; melakukan upsert ke Parquet...`;
   }
 
@@ -3011,9 +3011,9 @@ async function executeDirectTsvUpsert() {
 
     if (!json.ok) {
       if (resultBox) {
-        resultBox.style.background = "#fef2f2";
-        resultBox.style.border = "1px solid #fecaca";
-        resultBox.style.color = "#991b1b";
+        resultBox.style.background = "var(--negative-bg)";
+        resultBox.style.border = "1px solid var(--negative)";
+        resultBox.style.color = "var(--negative)";
         resultBox.innerHTML = `<strong>Upsert Gagal:</strong> ${json.error || "Terjadi kesalahan pada server saat memproses data."}`;
       }
       return;
@@ -3046,9 +3046,9 @@ async function executeDirectTsvUpsert() {
     }
   } catch (err) {
     if (resultBox) {
-      resultBox.style.background = "#fef2f2";
-      resultBox.style.border = "1px solid #fecaca";
-      resultBox.style.color = "#991b1b";
+      resultBox.style.background = "var(--negative-bg)";
+      resultBox.style.border = "1px solid var(--negative)";
+      resultBox.style.color = "var(--negative)";
       resultBox.innerHTML = `<strong>Koneksi Gagal:</strong> ${err.message}`;
     }
   } finally {
@@ -3213,9 +3213,9 @@ async function handleResellerTsvFileSelect(event) {
   const resultBox = document.getElementById("reseller-upload-result-box");
   if (resultBox) {
     resultBox.style.display = "block";
-    resultBox.style.background = "#eff6ff";
-    resultBox.style.border = "1px solid #bfdbfe";
-    resultBox.style.color = "#1e40af";
+    resultBox.style.background = "var(--primary-light)";
+    resultBox.style.border = "1px solid var(--primary-border)";
+    resultBox.style.color = "var(--text-main)";
     resultBox.innerHTML = `<strong>Memproses:</strong> Mengunggah <strong>${file.name}</strong> (${(file.size/1024/1024).toFixed(2)} MB) ke VPS &amp; memetakan pohon cabang...`;
   }
 
@@ -3234,9 +3234,9 @@ async function handleResellerTsvFileSelect(event) {
 
     if (!json.ok) {
       if (resultBox) {
-        resultBox.style.background = "#fef2f2";
-        resultBox.style.border = "1px solid #fecaca";
-        resultBox.style.color = "#991b1b";
+        resultBox.style.background = "var(--negative-bg)";
+        resultBox.style.border = "1px solid var(--negative)";
+        resultBox.style.color = "var(--negative)";
         resultBox.innerHTML = `<strong>Sinkronisasi Gagal:</strong> ${json.error || "Terjadi kesalahan pada server saat memproses data."}`;
       }
       return;
@@ -3266,9 +3266,9 @@ async function handleResellerTsvFileSelect(event) {
     }
   } catch (err) {
     if (resultBox) {
-      resultBox.style.background = "#fef2f2";
-      resultBox.style.border = "1px solid #fecaca";
-      resultBox.style.color = "#991b1b";
+      resultBox.style.background = "var(--negative-bg)";
+      resultBox.style.border = "1px solid var(--negative)";
+      resultBox.style.color = "var(--negative)";
       resultBox.innerHTML = `<strong>Koneksi Gagal:</strong> ${err.message}`;
     }
   }

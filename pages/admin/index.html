@@ -221,7 +221,7 @@
               
             </div>
           </div>
-          <span class="badge" style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 11px; font-weight: 600;">Fast Parquet</span>
+          <span class="badge" style="background: var(--positive-bg); color: var(--positive); border: 1px solid var(--positive); font-size: 11px; font-weight: 600;">Fast Parquet</span>
         </div>
 
         <!-- PILIHAN BRAND -->
@@ -238,25 +238,22 @@
         </div>
 
         <!-- NATIVE FILE PICKER BOX -->
-        <div style="background: #f8fafc; border: 2px dashed #93c5fd; border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="admin-dropzone">
           <div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <div class="admin-dropzone-label">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
               </svg>
-              Pilih / Drag File TSV OtomaX (Otomatis Upsert Langsung):
+              <span>Pilih / Drag File TSV OtomaX (Otomatis Upsert Langsung):</span>
             </div>
-            <input type="file" id="direct-tsv-file-input" accept=".tsv,.txt" onchange="handleDirectTsvFileSelect(event)"
-              style="display: block; width: 100%; padding: 10px 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-main);" />
+            <input type="file" id="direct-tsv-file-input" class="admin-file-input" accept=".tsv,.txt" onchange="handleDirectTsvFileSelect(event)" />
           </div>
 
-          <div id="direct-tsv-info-banner" style="display: none; padding: 10px 14px; border-radius: 8px; background: #eff6ff; border: 1px solid #bfdbfe; font-size: 12.5px; color: #1e40af;">
-            <div id="direct-tsv-filename-display" style="font-weight: 700;"></div>
-            <div id="direct-tsv-filesize-display" style="font-size: 11.5px; margin-top: 2px;"></div>
+          <div id="direct-tsv-info-banner" class="admin-info-banner" style="display: none;">
+            <div id="direct-tsv-filename-display" style="font-weight: 700; color: var(--text-main);"></div>
+            <div id="direct-tsv-filesize-display" style="font-size: 11.5px; margin-top: 2px; color: var(--text-muted);"></div>
           </div>
-
-          
         </div>
 
         <!-- RESULT BANNER -->
@@ -616,8 +613,7 @@
 
       <!-- FILE INPUT -->
       <div style="display: flex; flex-direction: column; gap: 8px;">
-        <input type="file" id="reseller-tsv-file-input" accept=".tsv,.txt" onchange="handleResellerTsvFileSelect(event)"
-          style="display: block; width: 100%; padding: 10px 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-main);" />
+        <input type="file" id="reseller-tsv-file-input" class="admin-file-input" accept=".tsv,.txt" onchange="handleResellerTsvFileSelect(event)" />
       </div>
 
       <!-- PROGRESS & RESULT BOX -->
@@ -2020,6 +2016,80 @@
     .product-unified-kpi-bar .master-kpi-segment:last-child {
       border-bottom: none;
     }
+  }
+
+
+  /* ADMIN FILE PICKER & DROPZONE (THEME-ADAPTIVE) */
+  .admin-dropzone {
+    background: var(--surface-bg);
+    border: 2px dashed var(--primary-border);
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s ease;
+  }
+
+  .admin-dropzone:hover {
+    border-color: var(--primary);
+  }
+
+  .admin-dropzone-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-file-input {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-main);
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+  }
+
+  .admin-file-input:hover {
+    border-color: var(--primary);
+  }
+
+  .admin-file-input::file-selector-button {
+    padding: 6px 14px;
+    background: var(--surface-bg);
+    color: var(--text-main);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 12px;
+    transition: all 0.15s ease;
+  }
+
+  .admin-file-input::file-selector-button:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  .admin-info-banner {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    font-size: 12.5px;
+    color: var(--text-main);
   }
 
 </style>
