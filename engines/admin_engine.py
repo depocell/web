@@ -169,7 +169,12 @@ def get_current_watermark(brand: str, year: str = "2026") -> dict:
 
             df = trx_engine.load(brand, year)
             if df is not None and not df.empty:
-                df_m = df[df["ym"] == target_ym] if "ym" in df.columns else df[df["tgl_entry"].dt.strftime("%Y-%m") == target_ym]
+                if "ym" in df.columns:
+                    df_m = df[df["ym"] == target_ym]
+                else:
+                    t_start = pd.Timestamp(f"{target_ym}-01")
+                    t_end = t_start + pd.DateOffset(months=1)
+                    df_m = df[(df["tgl_entry"] >= t_start) & (df["tgl_entry"] < t_end)]
                 if not df_m.empty:
                     min_date = df_m["tgl_entry"].min()
                     max_date = df_m["tgl_entry"].max()
@@ -811,13 +816,23 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
     # Mirror ke C:\DMS RAW DATA\TRANSAKSI
     mirror_parquet_to_dms(brand, year, parquet_file)
 
+    # Filter bulan berjalan secara vectorized (0.1s vs 60s+ jika pakai dt.strftime pada 2.4 juta baris)
+    now_dt = datetime.now()
+    now_ym = now_dt.strftime("%Y-%m")
+    start_of_month = pd.Timestamp(now_dt.year, now_dt.month, 1)
+    if now_dt.month == 12:
+        start_of_next_month = pd.Timestamp(now_dt.year + 1, 1, 1)
+    else:
+        start_of_next_month = pd.Timestamp(now_dt.year, now_dt.month + 1, 1)
+
+    mask_current_month = (df_final["tgl_entry"] >= start_of_month) & (df_final["tgl_entry"] < start_of_next_month)
+    df_m = df_final[mask_current_month]
+
     # Sinkronkan partisi bulanan di .cache/parts/ untuk bulan berjalan
     try:
-        now_ym = datetime.now().strftime("%Y-%m")
-        m_code = datetime.now().strftime("%m") + str(year)[-2:]
+        m_code = now_dt.strftime("%m") + str(year)[-2:]
         prefix = "OP" if brand.upper() == "OKIPAY" else ""
         part_file = os.path.join(BASE_DIR, ".cache", "parts", f"{brand.lower()}_{year}_{prefix}{m_code}.parquet")
-        df_m = df_final[df_final["tgl_entry"].dt.strftime("%Y-%m") == now_ym]
         if not df_m.empty:
             os.makedirs(os.path.dirname(part_file), exist_ok=True)
             df_m.to_parquet(part_file, index=False, compression="snappy")
@@ -826,12 +841,10 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
 
     # Sinkronkan file CSV bulanan di C:\DMS RAW DATA\TRANSAKSI\...
     try:
-        now_ym = datetime.now().strftime("%Y-%m")
         core_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
         use_cols = [c for c in core_cols if c in df_final.columns]
-        df_csv_m = df_final[df_final["tgl_entry"].dt.strftime("%Y-%m") == now_ym]
-        if not df_csv_m.empty:
-            df_csv_clean = df_csv_m[use_cols].sort_values(by=["tgl_entry", "trx_id"]).reset_index(drop=True)
+        if not df_m.empty:
+            df_csv_clean = df_m[use_cols].sort_values(by=["tgl_entry", "trx_id"]).reset_index(drop=True)
             if brand.upper() == "ASTAGA":
                 csv_dir = r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\TRANSAKSI\CSV\BULANAN\2026"
                 csv_file = os.path.join(csv_dir, f"trx_astaga_{now_ym}.csv")
