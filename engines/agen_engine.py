@@ -395,7 +395,7 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
         aid = rmeta.get("agen_id")
         reseller_to_agen[rid] = aid if aid else rid
 
-    # 12 Bulan Terakhir (Nov 2025 s/d Okt 2026)
+    # 12 Bulan Terakhir (Trailing 12 Months)
     prefix_2026 = "OP" if brand == "OKIPAY" else ""
     months_config = [
         ("1125", "Nov 25", os.path.join(parts_dir, f"{brand.lower()}_2025_1125.parquet")),
@@ -410,6 +410,8 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
         ("0826", "Agu 26", os.path.join(parts_dir, f"{brand.lower()}_2026_{prefix_2026}0826.parquet")),
         ("0926", "Sep 26", os.path.join(parts_dir, f"{brand.lower()}_2026_{prefix_2026}0926.parquet")),
         ("1026", "Okt 26", os.path.join(parts_dir, f"{brand.lower()}_2026_{prefix_2026}1026.parquet")),
+        ("1126", "Nov 26", os.path.join(parts_dir, f"{brand.lower()}_2026_{prefix_2026}1126.parquet")),
+        ("1226", "Des 26", os.path.join(parts_dir, f"{brand.lower()}_2026_{prefix_2026}1226.parquet")),
     ]
 
     month_agen_daily = {}
@@ -429,8 +431,13 @@ def calculate_tren_agen(brand: str = "ASTAGA", force: bool = False) -> Dict[str,
             "code": m_code,
             "label": m_label,
             "days": days,
-            "is_latest": (m_code == "1026")
+            "is_latest": False
         })
+
+    if month_headers:
+        if len(month_headers) > 12:
+            month_headers = month_headers[-12:]
+        month_headers[-1]["is_latest"] = True
 
     # YoY Base: 1025 (Oktober 2025)
     f_1025 = os.path.join(parts_dir, f"{brand.lower()}_2025_1025.parquet")

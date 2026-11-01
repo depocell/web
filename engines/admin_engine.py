@@ -62,9 +62,9 @@ def mirror_parquet_to_dms(brand: str, year: str, source_parquet_path: str):
     try:
         brand = brand.upper()
         if brand == "ASTAGA":
-            dest_dir = r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\TRANSAKSI\PARQUET"
+            dest_dir = r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\PARQUET"
         else:
-            dest_dir = r"C:\DMS RAW DATA\TRANSAKSI\OKIPAY\TRANSAKSI OKI\PARQUET"
+            dest_dir = r"C:\DMS RAW DATA\TRANSAKSI\OKIPAY\PARQUET"
         if os.path.isdir(dest_dir):
             dest_file = os.path.join(dest_dir, os.path.basename(source_parquet_path))
             shutil.copy2(source_parquet_path, dest_file)
@@ -86,8 +86,10 @@ def get_current_watermark(brand: str, year: str = "2026") -> dict:
     subfolder = "ASTAGA" if brand == "ASTAGA" else "OKIPAY"
     folder = os.path.join(RAW_DATA_ROOT, subfolder, year)
 
-    # File bulan berjalan (contoh: 1026.xlsx untuk ASTAGA, OP1026.xlsx untuk OKIPAY)
-    target_pattern = "*1026.xlsx"
+    # File bulan berjalan (contoh: 1126.xlsx untuk ASTAGA, OP1126.xlsx untuk OKIPAY)
+    cur_m = datetime.now().strftime("%m") + str(year)[-2:]
+    prefix = "OP" if brand == "OKIPAY" else ""
+    target_pattern = f"*{prefix}{cur_m}.xlsx"
     files = glob.glob(os.path.join(folder, target_pattern))
     files = [f for f in files if not os.path.basename(f).startswith("~$") and not f.endswith(".bak") and not f.endswith("_test.xlsx")]
 
@@ -123,7 +125,7 @@ def get_current_watermark(brand: str, year: str = "2026") -> dict:
                 except Exception:
                     last_id = str(raw_id) if raw_id is not None else None
 
-                def_name = "1026.xlsx" if brand == "ASTAGA" else "OP1026.xlsx"
+                def_name = f"{cur_m}.xlsx" if brand == "ASTAGA" else f"OP{cur_m}.xlsx"
                 res = {
                     "file": f"{def_name} (Parquet Sinkron)",
                     "path": p_cache,
@@ -440,7 +442,8 @@ def execute_upsert_job(job_id: str, brand: str, delete_tsv: bool = True, year: s
         # 3. Cari file Excel target
         job["progress"] = 25
         job["message"] = "Mempersiapkan file Excel target..."
-        target_name = "1026.xlsx" if brand == "ASTAGA" else "OP1026.xlsx"
+        cur_m = datetime.now().strftime("%m") + str(year)[-2:]
+        target_name = f"{cur_m}.xlsx" if brand == "ASTAGA" else f"OP{cur_m}.xlsx"
         target_excel = os.path.join(folder, target_name)
         if not os.path.exists(target_excel):
             log(f"File Excel bulanan ({target_name}) tidak ditemukan.")
@@ -816,48 +819,63 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
     # Mirror ke C:\DMS RAW DATA\TRANSAKSI
     mirror_parquet_to_dms(brand, year, parquet_file)
 
-    # Filter bulan berjalan secara vectorized (0.1s vs 60s+ jika pakai dt.strftime pada 2.4 juta baris)
+    # Deteksi bulan yang terpengaruh dari data TSV baru & bulan berjalan
+    affected_yms = set()
+    if "tgl_entry" in clean_df.columns and not clean_df["tgl_entry"].empty:
+        for dt_val in [clean_df["tgl_entry"].min(), clean_df["tgl_entry"].max()]:
+            if pd.notna(dt_val):
+                affected_yms.add(pd.to_datetime(dt_val).strftime("%Y-%m"))
+
     now_dt = datetime.now()
     now_ym = now_dt.strftime("%Y-%m")
-    start_of_month = pd.Timestamp(now_dt.year, now_dt.month, 1)
-    if now_dt.month == 12:
-        start_of_next_month = pd.Timestamp(now_dt.year + 1, 1, 1)
-    else:
-        start_of_next_month = pd.Timestamp(now_dt.year, now_dt.month + 1, 1)
+    if str(year) == str(now_dt.year):
+        affected_yms.add(now_ym)
 
-    mask_current_month = (df_final["tgl_entry"] >= start_of_month) & (df_final["tgl_entry"] < start_of_next_month)
-    df_m = df_final[mask_current_month]
+    core_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
+    use_cols = [c for c in core_cols if c in df_final.columns]
 
-    # Sinkronkan partisi bulanan di .cache/parts/ untuk bulan berjalan
-    try:
-        m_code = now_dt.strftime("%m") + str(year)[-2:]
-        prefix = "OP" if brand.upper() == "OKIPAY" else ""
-        part_file = os.path.join(BASE_DIR, ".cache", "parts", f"{brand.lower()}_{year}_{prefix}{m_code}.parquet")
-        if not df_m.empty:
-            os.makedirs(os.path.dirname(part_file), exist_ok=True)
-            df_m.to_parquet(part_file, index=False, compression="snappy")
-    except Exception as e:
-        print(f"[WARN] Gagal sync partisi bulanan: {e}")
-
-    # Sinkronkan file CSV bulanan di C:\DMS RAW DATA\TRANSAKSI\...
-    try:
-        core_cols = ["trx_id", "tgl_entry", "product_id", "qty", "ar_id", "modul_id", "status", "tgl_stat", "beli", "jual"]
-        use_cols = [c for c in core_cols if c in df_final.columns]
-        if not df_m.empty:
-            df_csv_clean = df_m[use_cols].sort_values(by=["tgl_entry", "trx_id"]).reset_index(drop=True)
-            if brand.upper() == "ASTAGA":
-                csv_dir = r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\TRANSAKSI\CSV\BULANAN\2026"
-                csv_file = os.path.join(csv_dir, f"trx_astaga_{now_ym}.csv")
+    for ym in sorted(affected_yms):
+        try:
+            y_str, m_str = ym.split("-")
+            t_start = pd.Timestamp(int(y_str), int(m_str), 1)
+            if int(m_str) == 12:
+                t_end = pd.Timestamp(int(y_str) + 1, 1, 1)
             else:
-                csv_dir = r"C:\DMS RAW DATA\TRANSAKSI\OKIPAY\TRANSAKSI OKI\CSV\BULANAN\2026"
-                csv_file = os.path.join(csv_dir, f"trx_okipay_{now_ym}.csv")
-            if os.path.isdir(csv_dir):
-                temp_csv = csv_file + f".tmp_{int(time.time())}"
-                df_csv_clean.to_csv(temp_csv, index=False)
-                shutil.move(temp_csv, csv_file)
-                print(f"[CSV-SYNC] File CSV bulanan {brand} berhasil di-update: {csv_file} ({len(df_csv_clean):,} baris)")
-    except Exception as e:
-        print(f"[WARN] Gagal sync file CSV bulanan ke DMS RAW DATA: {e}")
+                t_end = pd.Timestamp(int(y_str), int(m_str) + 1, 1)
+
+            df_m = df_final[(df_final["tgl_entry"] >= t_start) & (df_final["tgl_entry"] < t_end)]
+            if df_m.empty:
+                continue
+
+            # 1. Sinkronkan partisi bulanan di .cache/parts/
+            m_code = f"{m_str}{y_str[-2:]}"
+            prefix = "OP" if brand.upper() == "OKIPAY" else ""
+            part_file = os.path.join(BASE_DIR, ".cache", "parts", f"{brand.lower()}_{year}_{prefix}{m_code}.parquet")
+            try:
+                os.makedirs(os.path.dirname(part_file), exist_ok=True)
+                df_m.to_parquet(part_file, index=False, compression="snappy")
+            except Exception as e:
+                print(f"[WARN] Gagal sync partisi bulanan {part_file}: {e}")
+
+            # 2. Sinkronkan file CSV bulanan di C:\DMS RAW DATA\TRANSAKSI\...
+            try:
+                df_csv_clean = df_m[use_cols].sort_values(by=["tgl_entry", "trx_id"]).reset_index(drop=True)
+                if brand.upper() == "ASTAGA":
+                    csv_dir = os.path.join(r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\CSV\BULANAN", y_str)
+                    csv_file = os.path.join(csv_dir, f"trx_astaga_{ym}.csv")
+                else:
+                    csv_dir = os.path.join(r"C:\DMS RAW DATA\TRANSAKSI\OKIPAY\CSV\BULANAN", y_str)
+                    csv_file = os.path.join(csv_dir, f"trx_okipay_{ym}.csv")
+
+                if os.path.isdir(csv_dir):
+                    temp_csv = csv_file + f".tmp_{int(time.time())}"
+                    df_csv_clean.to_csv(temp_csv, index=False)
+                    shutil.move(temp_csv, csv_file)
+                    print(f"[CSV-SYNC] File CSV bulanan {brand} berhasil di-update: {csv_file} ({len(df_csv_clean):,} baris)")
+            except Exception as e:
+                print(f"[WARN] Gagal sync file CSV bulanan ke DMS RAW DATA: {e}")
+        except Exception as e_ym:
+            print(f"[WARN] Gagal memproses sinkronisasi bulanan untuk {ym}: {e_ym}")
 
     # Invalidate cache memory
     trx_engine.clear_memory_cache(brand, year)
