@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-01 10:00:19",
+  "generated_at": "2026-11-02 14:49:05",
   "latest_period": "1026",
   "cutoff_date": "31-10-2026",
   "periods_list": [
@@ -1377,11 +1377,11 @@
           "SCO": "Abdul Harris",
           "CABANG": "ICON",
           "prev": 997.6,
-          "curr": 975.7,
+          "curr": 975.8,
           "Sep": 997.6,
-          "Oct": 975.7,
-          "Growth": -21.899999999999977,
-          "%": -0.021952686447473915
+          "Oct": 975.8,
+          "Growth": -21.800000000000068,
+          "%": -0.02185244587008828
         },
         {
           "SCO": "Febri Kurniawan",
@@ -1427,11 +1427,11 @@
           "SCO": "TOTAL SCO",
           "CABANG": null,
           "prev": 3691.5,
-          "curr": 3546.4,
+          "curr": 3546.5,
           "Sep": 3691.5,
-          "Oct": 3546.4,
-          "Growth": -145.0999999999999,
-          "%": -0.039306514966815635
+          "Oct": 3546.5,
+          "Growth": -145.0,
+          "%": -0.03927942570770689
         },
         {
           "SCO": "NON SCO",
@@ -1487,21 +1487,21 @@
           "SCO": "ONLINE",
           "CABANG": "ONLINE",
           "prev": 582.5,
-          "curr": 599.1,
+          "curr": 598.9,
           "Sep": 582.5,
-          "Oct": 599.1,
-          "Growth": 16.600000000000023,
-          "%": 0.02849785407725326
+          "Oct": 598.9,
+          "Growth": 16.399999999999977,
+          "%": 0.028154506437768203
         },
         {
           "SCO": "Grand Total",
           "CABANG": null,
           "prev": 6968.8,
-          "curr": 6798.3,
+          "curr": 6798.199999999999,
           "Sep": 6968.8,
-          "Oct": 6798.3,
-          "Growth": -170.5,
-          "%": -0.024466192170818506
+          "Oct": 6798.199999999999,
+          "Growth": -170.60000000000127,
+          "%": -0.024480541843646147
         }
       ]
     }
@@ -1517,11 +1517,11 @@
       "SCO": "Abdul Harris",
       "CABANG": "ICON",
       "prev": 997.6,
-      "curr": 975.7,
+      "curr": 975.8,
       "Sep": 997.6,
-      "Oct": 975.7,
-      "Growth": -21.899999999999977,
-      "%": -0.021952686447473915
+      "Oct": 975.8,
+      "Growth": -21.800000000000068,
+      "%": -0.02185244587008828
     },
     {
       "SCO": "Febri Kurniawan",
@@ -1567,11 +1567,11 @@
       "SCO": "TOTAL SCO",
       "CABANG": null,
       "prev": 3691.5,
-      "curr": 3546.4,
+      "curr": 3546.5,
       "Sep": 3691.5,
-      "Oct": 3546.4,
-      "Growth": -145.0999999999999,
-      "%": -0.039306514966815635
+      "Oct": 3546.5,
+      "Growth": -145.0,
+      "%": -0.03927942570770689
     },
     {
       "SCO": "NON SCO",
@@ -1627,21 +1627,21 @@
       "SCO": "ONLINE",
       "CABANG": "ONLINE",
       "prev": 582.5,
-      "curr": 599.1,
+      "curr": 598.9,
       "Sep": 582.5,
-      "Oct": 599.1,
-      "Growth": 16.600000000000023,
-      "%": 0.02849785407725326
+      "Oct": 598.9,
+      "Growth": 16.399999999999977,
+      "%": 0.028154506437768203
     },
     {
       "SCO": "Grand Total",
       "CABANG": null,
       "prev": 6968.8,
-      "curr": 6798.3,
+      "curr": 6798.199999999999,
       "Sep": 6968.8,
-      "Oct": 6798.3,
-      "Growth": -170.5,
-      "%": -0.024466192170818506
+      "Oct": 6798.199999999999,
+      "Growth": -170.60000000000127,
+      "%": -0.024480541843646147
     }
   ],
   "tren_agen": [
@@ -4391,12 +4391,12 @@
     },
     {
       "aid": "AR40078",
-      "name": "AR40078-434 CELL(RL)",
+      "name": "AR40078 - 434 CELL",
       "cabang": "ICON",
       "type": "Limit",
       "sco": "Abdul Harris",
       "location": "6°20'46.1\"S 106°38'17.8\"E",
-      "jadwal": "Selasa,Jumat",
+      "jadwal": "Selasa,Jum'at",
       "limit": 1500000.0,
       "status": "1",
       "avg_prev": 10.0,
@@ -4429,11 +4429,11 @@
         "0926": 10.0,
         "1026": 18.7
       },
-      "NAMA CUSTOMER": "AR40078-434 CELL(RL)",
+      "NAMA CUSTOMER": "AR40078 - 434 CELL",
       "AGEN ID": "AR40078",
       "NAMA SCO": "Abdul Harris",
       "CABANG": "ICON",
-      "JADWAL": "Selasa,Jumat",
+      "JADWAL": "Selasa,Jum'at",
       "LOCATION": "6°20'46.1\"S 106°38'17.8\"E",
       "LIMIT": 1500000.0,
       "STATUS": "1"
@@ -25412,12 +25412,12 @@
     },
     {
       "aid": "AR27421",
-      "name": "AR27421-DIKI CELL(RV)",
+      "name": "AR27421 - Diki cell",
       "cabang": "ICON",
       "type": "Limit",
       "sco": "Abdul Harris",
       "location": "6°14'59.0\"S 106°37'44.1\"E",
-      "jadwal": "Rabu,Sabtu",
+      "jadwal": "Selasa,Jum'at",
       "limit": 800000.0,
       "status": "1",
       "avg_prev": 3.3,
@@ -25450,11 +25450,11 @@
         "0926": 3.3,
         "1026": 3.1
       },
-      "NAMA CUSTOMER": "AR27421-DIKI CELL(RV)",
+      "NAMA CUSTOMER": "AR27421 - Diki cell",
       "AGEN ID": "AR27421",
       "NAMA SCO": "Abdul Harris",
       "CABANG": "ICON",
-      "JADWAL": "Rabu,Sabtu",
+      "JADWAL": "Selasa,Jum'at",
       "LOCATION": "6°14'59.0\"S 106°37'44.1\"E",
       "LIMIT": 800000.0,
       "STATUS": "1"
@@ -27229,8 +27229,8 @@
       "cabang": "ONLINE",
       "type": "Prima",
       "sco": "ONLINE",
-      "location": "",
-      "jadwal": "",
+      "location": "-",
+      "jadwal": "-",
       "limit": 0.0,
       "status": "1",
       "avg_prev": 0.0,
@@ -27267,8 +27267,8 @@
       "AGEN ID": "AR40207",
       "NAMA SCO": "ONLINE",
       "CABANG": "ONLINE",
-      "JADWAL": "",
-      "LOCATION": "",
+      "JADWAL": "-",
+      "LOCATION": "-",
       "LIMIT": 0.0,
       "STATUS": "1"
     },
@@ -43595,8 +43595,8 @@
       "cabang": "ICON",
       "type": "Prima",
       "sco": "NON SCO",
-      "location": "",
-      "jadwal": "",
+      "location": "-",
+      "jadwal": "-",
       "limit": 0.0,
       "status": "1",
       "avg_prev": 0.0,
@@ -43633,8 +43633,8 @@
       "AGEN ID": "AR40225",
       "NAMA SCO": "NON SCO",
       "CABANG": "ICON",
-      "JADWAL": "",
-      "LOCATION": "",
+      "JADWAL": "-",
+      "LOCATION": "-",
       "LIMIT": 0.0,
       "STATUS": "1"
     },
@@ -54566,6 +54566,55 @@
       "STATUS": "1"
     },
     {
+      "aid": "AR36265",
+      "name": "AR36265 - Anugrah",
+      "cabang": "ICON",
+      "type": "Limit",
+      "sco": "Abdul Harris",
+      "location": "6°21'41.9\"S 106°36'40.4\"E",
+      "jadwal": "Senin,Kamis",
+      "limit": 500000.0,
+      "status": "1",
+      "avg_prev": 0.0,
+      "avg_curr": 0.1,
+      "diff": 0.1,
+      "growth": 1.0,
+      "Sep": 0.0,
+      "Oct": 0.1,
+      "monthly": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.1
+      },
+      "monthly_avg": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.1
+      },
+      "NAMA CUSTOMER": "AR36265 - Anugrah",
+      "AGEN ID": "AR36265",
+      "NAMA SCO": "Abdul Harris",
+      "CABANG": "ICON",
+      "JADWAL": "Senin,Kamis",
+      "LOCATION": "6°21'41.9\"S 106°36'40.4\"E",
+      "LIMIT": 500000.0,
+      "STATUS": "1"
+    },
+    {
       "aid": "AR35289",
       "name": "AR35289-EMAN CELL(P)",
       "cabang": "PP",
@@ -57209,55 +57258,6 @@
       "JADWAL": "",
       "LOCATION": "",
       "LIMIT": 0.0,
-      "STATUS": "1"
-    },
-    {
-      "aid": "AR36265",
-      "name": "AR36265 - Anugrah",
-      "cabang": "ONLINE",
-      "type": "Limit",
-      "sco": "ONLINE",
-      "location": "6°21'41.9\"S 106°36'40.4\"E",
-      "jadwal": "Senin,Kamis",
-      "limit": 500000.0,
-      "status": "1",
-      "avg_prev": 0.0,
-      "avg_curr": 0.1,
-      "diff": 0.1,
-      "growth": 1.0,
-      "Sep": 0.0,
-      "Oct": 0.1,
-      "monthly": {
-        "0126": 0.0,
-        "0226": 0.0,
-        "0326": 0.0,
-        "0426": 0.0,
-        "0526": 0.0,
-        "0626": 0.0,
-        "0726": 0.0,
-        "0826": 0.0,
-        "0926": 0.0,
-        "1026": 0.1
-      },
-      "monthly_avg": {
-        "0126": 0.0,
-        "0226": 0.0,
-        "0326": 0.0,
-        "0426": 0.0,
-        "0526": 0.0,
-        "0626": 0.0,
-        "0726": 0.0,
-        "0826": 0.0,
-        "0926": 0.0,
-        "1026": 0.1
-      },
-      "NAMA CUSTOMER": "AR36265 - Anugrah",
-      "AGEN ID": "AR36265",
-      "NAMA SCO": "ONLINE",
-      "CABANG": "ONLINE",
-      "JADWAL": "Senin,Kamis",
-      "LOCATION": "6°21'41.9\"S 106°36'40.4\"E",
-      "LIMIT": 500000.0,
       "STATUS": "1"
     },
     {
@@ -134540,7 +134540,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-26",
       "nama_sco": "Abdul Harris",
-      "trx": 1089
+      "trx": 1090
     },
     {
       "month_code": "1026",
@@ -134582,7 +134582,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-26",
       "nama_sco": "ONLINE",
-      "trx": 711
+      "trx": 710
     },
     {
       "month_code": "1026",
@@ -134687,7 +134687,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-29",
       "nama_sco": "Abdul Harris",
-      "trx": 969
+      "trx": 971
     },
     {
       "month_code": "1026",
@@ -134729,7 +134729,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-29",
       "nama_sco": "ONLINE",
-      "trx": 514
+      "trx": 512
     },
     {
       "month_code": "1026",
@@ -134785,7 +134785,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-31",
       "nama_sco": "Abdul Harris",
-      "trx": 984
+      "trx": 985
     },
     {
       "month_code": "1026",
@@ -134827,7 +134827,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-31",
       "nama_sco": "ONLINE",
-      "trx": 660
+      "trx": 659
     }
   ],
   "kpi_sco": [
@@ -135799,6 +135799,101 @@
       "growth": -7.3,
       "score": 64.4,
       "insentif": 722504.0
+    },
+    {
+      "bulan": "2026-10-01",
+      "nama": "Hupron",
+      "pjp": 119,
+      "tgt_visit": 953.0,
+      "ach_visit": 837.0,
+      "pct_visit": 87.8,
+      "tgt_coll": 816.0,
+      "ach_coll": 771.0,
+      "pct_coll": 94.5,
+      "tgt_trx": 1007.8,
+      "ach_trx": 947.4,
+      "pct_trx": 94.0,
+      "trx_lalu": 957.8,
+      "trx_ini": 959.4,
+      "growth": 0.2,
+      "score": 69.7,
+      "insentif": 1023988.0
+    },
+    {
+      "bulan": "2026-10-01",
+      "nama": "Abdul Harris",
+      "pjp": 108,
+      "tgt_visit": 865.0,
+      "ach_visit": 837.0,
+      "pct_visit": 96.8,
+      "tgt_coll": 714.0,
+      "ach_coll": 669.0,
+      "pct_coll": 93.7,
+      "tgt_trx": 1047.6,
+      "ach_trx": 975.7,
+      "pct_trx": 93.1,
+      "trx_lalu": 997.6,
+      "trx_ini": 975.7,
+      "growth": -2.2,
+      "score": 70.0,
+      "insentif": 1058418.0
+    },
+    {
+      "bulan": "2026-10-01",
+      "nama": "Khoirul Anan",
+      "pjp": 65,
+      "tgt_visit": 491.0,
+      "ach_visit": 469.0,
+      "pct_visit": 95.5,
+      "tgt_coll": 456.0,
+      "ach_coll": 437.0,
+      "pct_coll": 95.8,
+      "tgt_trx": 495.7,
+      "ach_trx": 428.4,
+      "pct_trx": 86.4,
+      "trx_lalu": 445.7,
+      "trx_ini": 429.5,
+      "growth": -3.6,
+      "score": 67.6,
+      "insentif": 448972.0
+    },
+    {
+      "bulan": "2026-10-01",
+      "nama": "Febri Kurniawan",
+      "pjp": 64,
+      "tgt_visit": 450.0,
+      "ach_visit": 421.0,
+      "pct_visit": 93.6,
+      "tgt_coll": 287.0,
+      "ach_coll": 276.0,
+      "pct_coll": 96.2,
+      "tgt_trx": 594.4,
+      "ach_trx": 514.5,
+      "pct_trx": 86.6,
+      "trx_lalu": 544.4,
+      "trx_ini": 515.3,
+      "growth": -5.3,
+      "score": 67.0,
+      "insentif": 534587.0
+    },
+    {
+      "bulan": "2026-10-01",
+      "nama": "Mas Komarjaya",
+      "pjp": 107,
+      "tgt_visit": 738.0,
+      "ach_visit": 645.0,
+      "pct_visit": 87.4,
+      "tgt_coll": 632.0,
+      "ach_coll": 600.0,
+      "pct_coll": 94.9,
+      "tgt_trx": 796.0,
+      "ach_trx": 653.0,
+      "pct_trx": 82.0,
+      "trx_lalu": 746.0,
+      "trx_ini": 666.5,
+      "growth": -10.7,
+      "score": 62.9,
+      "insentif": 636602.0
     }
   ],
   "kpi_dso": [
@@ -136008,6 +136103,25 @@
       "ach_perdana": 344.0,
       "pct_perdana": 172.0,
       "score": 41.8,
+      "multiplier": 0.0,
+      "insentif": 0.0
+    },
+    {
+      "bulan": "2026-10-01",
+      "nama": "Ahmad Bukhori",
+      "tgt_new_member": 60.0,
+      "ach_new_member": 2.0,
+      "pct_new_member": 3.3,
+      "tgt_daily_trx": 150.0,
+      "ach_daily_trx": 3.5,
+      "pct_daily_trx": 2.3,
+      "tgt_voucher": 20000.0,
+      "ach_voucher": 2748.0,
+      "pct_voucher": 13.7,
+      "tgt_perdana": 200.0,
+      "ach_perdana": 250.0,
+      "pct_perdana": 125.0,
+      "score": 30.6,
       "multiplier": 0.0,
       "insentif": 0.0
     }
