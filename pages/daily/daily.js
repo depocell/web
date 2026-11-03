@@ -148,7 +148,7 @@ async function loadDailyData() {
     document.getElementById("kpi-prev-dur").textContent = `BL: ${kpi.avg_dur_prev_str}`;
 
     // 2. TREN HARIAN CHART
-    renderTrendChart(d.daily_chart, brandColor);
+    renderTrendChart(d.daily_chart, brandColor, d.period_curr);
 
     // 3. PERFORMANSI CABANG
     renderBranches(d.branches, d.total_branch, brandColor);
@@ -161,7 +161,7 @@ async function loadDailyData() {
   }
 }
 
-function renderTrendChart(chartData, brandColor) {
+function renderTrendChart(chartData, brandColor, periodCurr) {
   const canvas = document.getElementById("chart-daily-trend");
   if (!canvas) return;
 
@@ -169,9 +169,42 @@ function renderTrendChart(chartData, brandColor) {
     dailyChartInstance.destroy();
   }
 
-  const labels = chartData.map(c => c.label || `Tgl ${c.day}`);
-  const trxData = chartData.map(c => c.trx);
-  const memData = chartData.map(c => c.member);
+  // Siapkan data dengan minimal 7 hari ke depan agar di awal bulan bar tidak terlalu lebar ("gendut")
+  const paddedData = [...(chartData || [])];
+
+  let yStr = "";
+  let mStr = "";
+  if (periodCurr && periodCurr.includes("-")) {
+    const parts = periodCurr.split("-");
+    yStr = parts[0];
+    mStr = parts[1];
+  } else if (paddedData.length > 0 && paddedData[0].date) {
+    const parts = paddedData[0].date.split("-");
+    yStr = parts[0];
+    mStr = parts[1];
+  }
+
+  const lastDay = paddedData.length > 0 ? (paddedData[paddedData.length - 1].day || paddedData.length) : 0;
+  const minTargetDays = 7;
+
+  if (lastDay < minTargetDays) {
+    for (let d = lastDay + 1; d <= minTargetDays; d++) {
+      const dayPad = String(d).padStart(2, "0");
+      const label = mStr ? `${dayPad}/${mStr}` : `Tgl ${d}`;
+      const dateStr = (yStr && mStr) ? `${yStr}-${mStr}-${dayPad}` : null;
+      paddedData.push({
+        date: dateStr,
+        day: d,
+        label: label,
+        trx: null,
+        member: null
+      });
+    }
+  }
+
+  const labels = paddedData.map(c => c.label || `Tgl ${c.day}`);
+  const trxData = paddedData.map(c => c.trx);
+  const memData = paddedData.map(c => c.member);
 
   dailyChartInstance = new Chart(canvas, {
     type: "bar",
@@ -183,6 +216,7 @@ function renderTrendChart(chartData, brandColor) {
           data: trxData,
           backgroundColor: brandColor,
           borderRadius: 4,
+          maxBarThickness: 45,
           yAxisID: "y"
         },
         {
@@ -194,6 +228,7 @@ function renderTrendChart(chartData, brandColor) {
           borderWidth: 2,
           pointRadius: 4,
           fill: false,
+          spanGaps: false,
           yAxisID: "y1"
         }
       ]
@@ -233,6 +268,11 @@ function renderTrendChart(chartData, brandColor) {
         legend: {
           position: "bottom",
           labels: { font: { size: 12, family: "inherit" }, usePointStyle: true }
+        },
+        tooltip: {
+          filter: function (tooltipItem) {
+            return tooltipItem.raw !== null && tooltipItem.raw !== undefined;
+          }
         }
       },
       scales: {
