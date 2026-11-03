@@ -1207,6 +1207,14 @@ img.brand-icon {
   font-size: 12px;
 }
 
+.val-dead {
+  color: var(--danger-text, #dc2626);
+  font-weight: 800;
+  font-size: 12px;
+  display: inline-block;
+  letter-spacing: -0.2px;
+}
+
 .quick-filter-bar {
   display: flex;
   gap: 8px;

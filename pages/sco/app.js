@@ -14,9 +14,9 @@
     detailSort: 'growth_asc',
     searchQuery: '',
     detailPageLimit: 100,
-    kpiScoMonth: 'ALL',
+    kpiScoMonth: null,
     kpiScoPerson: 'ALL',
-    kpiDsoMonth: 'ALL',
+    kpiDsoMonth: null,
     kpiDsoPerson: 'ALL',
     profilSales: 'ALL',
     profilSearch: '',
@@ -672,6 +672,7 @@
     { code: '0826', label: 'Agu' },
     { code: '0926', label: 'Sep' },
     { code: '1026', label: 'Okt' },
+    { code: '1126', label: 'Nov' },
   ];
 
   function generateSparklineSvg(values, width = 74, height = 22) {
@@ -687,7 +688,7 @@
 
     const lastVal = validVals[validVals.length - 1];
     const prevVal = validVals.length > 1 ? validVals[validVals.length - 2] : lastVal;
-    const isUp = lastVal >= prevVal;
+    const isUp = (lastVal > prevVal) || (lastVal > 0 && lastVal >= prevVal);
     const color = isUp ? '#10b981' : '#ef4444';
 
     const n = validVals.length;
@@ -731,41 +732,44 @@
       );
     }
 
-    // Trend Filter
+    // Trend Filter & Sorting based on latest months
+    const curCode = PROFIL_MONTHS[PROFIL_MONTHS.length - 1].code;
+    const prvCode = PROFIL_MONTHS[PROFIL_MONTHS.length - 2].code;
+
     if (state.profilTrendFilter === 'UP') {
       list = list.filter(a => {
-        const vOkt = a.monthly_avg ? (parseFloat(a.monthly_avg['1026']) || 0) : 0;
-        const vSep = a.monthly_avg ? (parseFloat(a.monthly_avg['0926']) || 0) : 0;
-        return vOkt >= vSep;
+        const vCur = a.monthly_avg ? (parseFloat(a.monthly_avg[curCode]) || 0) : 0;
+        const vPrv = a.monthly_avg ? (parseFloat(a.monthly_avg[prvCode]) || 0) : 0;
+        return vCur >= vPrv;
       });
     } else if (state.profilTrendFilter === 'DOWN') {
       list = list.filter(a => {
-        const vOkt = a.monthly_avg ? (parseFloat(a.monthly_avg['1026']) || 0) : 0;
-        const vSep = a.monthly_avg ? (parseFloat(a.monthly_avg['0926']) || 0) : 0;
-        return vOkt < vSep;
+        const vCur = a.monthly_avg ? (parseFloat(a.monthly_avg[curCode]) || 0) : 0;
+        const vPrv = a.monthly_avg ? (parseFloat(a.monthly_avg[prvCode]) || 0) : 0;
+        return vCur < vPrv;
       });
     } else if (state.profilTrendFilter === 'ACTIVE_TOP') {
       list = list.filter(a => {
-        const vOkt = a.monthly_avg ? (parseFloat(a.monthly_avg['1026']) || 0) : 0;
-        return vOkt >= 50;
+        const vCur = a.monthly_avg ? (parseFloat(a.monthly_avg[curCode]) || 0) : 0;
+        return vCur >= 50;
       });
     }
 
     // Sorting
     list = [...list].sort((a, b) => {
-      const aOkt = a.monthly_avg ? (parseFloat(a.monthly_avg['1026']) || 0) : 0;
-      const bOkt = b.monthly_avg ? (parseFloat(b.monthly_avg['1026']) || 0) : 0;
-      const aSep = a.monthly_avg ? (parseFloat(a.monthly_avg['0926']) || 0) : 0;
-      const bSep = b.monthly_avg ? (parseFloat(b.monthly_avg['0926']) || 0) : 0;
-      const aDiff = aOkt - aSep;
-      const bDiff = bOkt - bSep;
+      const aCur = a.monthly_avg ? (parseFloat(a.monthly_avg[curCode]) || 0) : 0;
+      const bCur = b.monthly_avg ? (parseFloat(b.monthly_avg[curCode]) || 0) : 0;
+      const aPrv = a.monthly_avg ? (parseFloat(a.monthly_avg[prvCode]) || 0) : 0;
+      const bPrv = b.monthly_avg ? (parseFloat(b.monthly_avg[prvCode]) || 0) : 0;
+      const aDiff = aCur - aPrv;
+      const bDiff = bCur - bPrv;
       const aJan = a.monthly_avg ? (parseFloat(a.monthly_avg['0126']) || 0) : 0;
       const bJan = b.monthly_avg ? (parseFloat(b.monthly_avg['0126']) || 0) : 0;
 
       if (state.profilSort === 'diff_asc') return aDiff - bDiff;
       if (state.profilSort === 'diff_desc') return bDiff - aDiff;
-      if (state.profilSort === 'curr_desc') return bOkt - aOkt;
-      if (state.profilSort === 'curr_asc') return aOkt - bOkt;
+      if (state.profilSort === 'curr_desc') return bCur - aCur;
+      if (state.profilSort === 'curr_asc') return aCur - bCur;
       if (state.profilSort === 'jan_desc') return bJan - aJan;
       if (state.profilSort === 'name_asc') return String(a.name || '').localeCompare(String(b.name || ''));
       return aDiff - bDiff;
@@ -789,10 +793,11 @@
       const mapsUrl = parseDmsToMaps(a.location);
       const vals = PROFIL_MONTHS.map(m => (a.monthly_avg && a.monthly_avg[m.code] !== undefined) ? Number(a.monthly_avg[m.code]) : 0);
       const maxVal = Math.max(...vals);
-      const valOkt = vals[9];
-      const valSep = vals[8];
-      const diffMoM = valOkt - valSep;
+      const valCurr = vals[vals.length - 1];
+      const valPrev = vals[vals.length - 2];
+      const diffMoM = valCurr - valPrev;
       const isPos = diffMoM >= 0;
+      const isBothZero = valCurr <= 0 && valPrev <= 0;
       const sparkSvg = generateSparklineSvg(vals, 74, 22);
 
       return `
@@ -808,23 +813,34 @@
                   <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(a.sco || '-')}</span>
                 </div>
               </div>
-              <div style="flex-shrink: 0; text-align: right;" title="Tren Daily Jan - Okt 2026">
+              <div style="flex-shrink: 0; text-align: right;" title="Tren Daily ${PROFIL_MONTHS[0].label} - ${PROFIL_MONTHS[PROFIL_MONTHS.length - 1].label} 2026">
                 ${sparkSvg}
               </div>
             </div>
           </td>
           ${vals.map((v, i) => {
-            const isLatest = i === 9;
+            const isLatest = i === vals.length - 1;
             const isPeak = v === maxVal && maxVal > 0;
-            if (isLatest) {
-              return `<td class="num" style="font-weight: 800; color: var(--primary); font-size: 13px;">${fmtNumber(v, 1)}</td>`;
+            const isZero = !v || Number(v) <= 0;
+            if (isZero) {
+              return `<td class="num"><span class="val-dead" title="0 Trx (Mati / Churn)">(-)</span></td>`;
             }
-            return `<td class="num"><span class="${isPeak ? 'val-peak' : ''}" title="${isPeak ? 'Puncak Tertinggi' : ''}">${fmtNumber(v, 1)}</span></td>`;
+            const formatted = (v > 0 && v < 0.1) ? fmtNumber(v, 2) : fmtNumber(v, 1);
+            if (isLatest) {
+              return `<td class="num" style="font-weight: 800; color: var(--primary); font-size: 13px;">${formatted}</td>`;
+            }
+            return `<td class="num"><span class="${isPeak ? 'val-peak' : ''}" title="${isPeak ? 'Puncak Tertinggi' : ''}">${formatted}</span></td>`;
           }).join('')}
           <td class="num">
-            <span class="badge ${isPos ? 'badge-success' : 'badge-danger'}">
-              ${isPos ? '+' : ''}${fmtNumber(diffMoM, 1)}
-            </span>
+            ${isBothZero ? `
+              <span class="val-dead" title="0 Trx MoM (Mati / Churn)">(-)</span>
+            ` : (diffMoM > 0.001 ? `
+              <span class="badge badge-success">+${fmtNumber(diffMoM, 1)}</span>
+            ` : (diffMoM < -0.001 ? `
+              <span class="badge badge-danger">${fmtNumber(diffMoM, 1)}</span>
+            ` : `
+              <span class="badge badge-secondary" style="background:var(--bg-hover); color:var(--text-muted); font-weight:600;">0,0</span>
+            `))}
           </td>
           <td class="center">
             <div style="display:inline-flex; align-items:center; gap:4px;">
@@ -859,10 +875,12 @@
     let countUp = 0;
     let countDown = 0;
 
+    const cCode = PROFIL_MONTHS[PROFIL_MONTHS.length - 1].code;
+    const pCode = PROFIL_MONTHS[PROFIL_MONTHS.length - 2].code;
     filtered.forEach(a => {
-      const vOkt = a.monthly_avg ? (parseFloat(a.monthly_avg['1026']) || 0) : 0;
-      const vSep = a.monthly_avg ? (parseFloat(a.monthly_avg['0926']) || 0) : 0;
-      if (vOkt >= vSep) countUp++;
+      const vCur = a.monthly_avg ? (parseFloat(a.monthly_avg[cCode]) || 0) : 0;
+      const vPrv = a.monthly_avg ? (parseFloat(a.monthly_avg[pCode]) || 0) : 0;
+      if (vCur >= vPrv) countUp++;
       else countDown++;
     });
 
@@ -932,10 +950,12 @@
     let countUp = 0;
     let countDown = 0;
 
+    const cCode = PROFIL_MONTHS[PROFIL_MONTHS.length - 1].code;
+    const pCode = PROFIL_MONTHS[PROFIL_MONTHS.length - 2].code;
     filtered.forEach(a => {
-      const vOkt = a.monthly_avg ? (parseFloat(a.monthly_avg['1026']) || 0) : 0;
-      const vSep = a.monthly_avg ? (parseFloat(a.monthly_avg['0926']) || 0) : 0;
-      if (vOkt >= vSep) countUp++;
+      const vCur = a.monthly_avg ? (parseFloat(a.monthly_avg[cCode]) || 0) : 0;
+      const vPrv = a.monthly_avg ? (parseFloat(a.monthly_avg[pCode]) || 0) : 0;
+      if (vCur >= vPrv) countUp++;
       else countDown++;
     });
 
@@ -968,8 +988,8 @@
               <select class="form-select" id="profil-sort-select" onchange="window.setProfilSort(this.value)">
                 <option value="diff_asc" ${state.profilSort === 'diff_asc' ? 'selected' : ''}>Growth Terendah / Penurunan (Default)</option>
                 <option value="diff_desc" ${state.profilSort === 'diff_desc' ? 'selected' : ''}>Growth Tertinggi / Kenaikan</option>
-                <option value="curr_desc" ${state.profilSort === 'curr_desc' ? 'selected' : ''}>Okt 2026 Tertinggi</option>
-                <option value="curr_asc" ${state.profilSort === 'curr_asc' ? 'selected' : ''}>Okt 2026 Terendah</option>
+                <option value="curr_desc" ${state.profilSort === 'curr_desc' ? 'selected' : ''}>${PROFIL_MONTHS[PROFIL_MONTHS.length - 1].label} 2026 Tertinggi</option>
+                <option value="curr_asc" ${state.profilSort === 'curr_asc' ? 'selected' : ''}>${PROFIL_MONTHS[PROFIL_MONTHS.length - 1].label} 2026 Terendah</option>
                 <option value="jan_desc" ${state.profilSort === 'jan_desc' ? 'selected' : ''}>Jan 2026 Tertinggi</option>
                 <option value="name_asc" ${state.profilSort === 'name_asc' ? 'selected' : ''}>Nama Agen (A - Z)</option>
               </select>
@@ -1026,7 +1046,7 @@
         <div class="card-header">
           <div class="card-title">
             <i class="fa-solid fa-chart-line" style="color:var(--primary);"></i>
-            Histori &amp; Tren Daily Transaksi Agen Real SCO (Januari – Oktober 2026)
+            Histori &amp; Tren Daily Transaksi Agen Real SCO (Januari – November 2026)
           </div>
           <span class="badge badge-info" id="profil-badge-counter">
             Menampilkan ${paged.length.toLocaleString('id-ID')} dari ${filtered.length.toLocaleString('id-ID')} Agen
@@ -1047,7 +1067,8 @@
                 <th class="num">Jul</th>
                 <th class="num">Agu</th>
                 <th class="num">Sep</th>
-                <th class="num" style="color:var(--primary); font-weight:800;">Okt</th>
+                <th class="num">Okt</th>
+                <th class="num" style="color:var(--primary); font-weight:800;">Nov</th>
                 <th class="num" style="min-width:70px;">MoM Δ</th>
                 <th class="center" style="width:70px;">Aksi</th>
               </tr>
@@ -1293,12 +1314,16 @@
               </button>
             </div>
           </td>
-          <td class="num">${fmtNumber(a.avg_prev, 1)}</td>
-          <td class="num" style="font-weight: 700; color: var(--primary);">${fmtNumber(a.avg_curr, 1)}</td>
+          <td class="num">${Number(a.avg_prev || 0) <= 0 ? '<span class="val-dead" title="0 Trx (Mati / Churn)">(-)</span>' : (Number(a.avg_prev) < 0.1 ? fmtNumber(a.avg_prev, 2) : fmtNumber(a.avg_prev, 1))}</td>
+          <td class="num" style="font-weight: 700; color: var(--primary);">${Number(a.avg_curr || 0) <= 0 ? '<span class="val-dead" title="0 Trx (Mati / Churn)">(-)</span>' : (Number(a.avg_curr) < 0.1 ? fmtNumber(a.avg_curr, 2) : fmtNumber(a.avg_curr, 1))}</td>
           <td class="num">
-            <span style="font-weight: 700; color: ${growthColor};">
-              ${diffSign}${fmtNumber(diff, 1)}
-            </span>
+            ${(Number(a.avg_curr || 0) <= 0 && Number(a.avg_prev || 0) <= 0) ? `
+              <span class="val-dead" title="0 Trx MoM (Mati / Churn)">(-)</span>
+            ` : `
+              <span style="font-weight: 700; color: ${growthColor};">
+                ${diffSign}${fmtNumber(diff, 1)}
+              </span>
+            `}
           </td>
           <td class="center">
             ${mapsUrl ? `
@@ -1527,6 +1552,11 @@
     const months = Array.from(new Set(allKpi.map(k => k.bulan))).sort().reverse();
     const persons = Array.from(new Set(allKpi.map(k => k.nama))).sort();
 
+    // Default to the latest month (M-1 closed month)
+    if (state.kpiScoMonth === null && months.length > 0) {
+      state.kpiScoMonth = months[0];
+    }
+
     let filtered = [...allKpi];
     if (state.kpiScoMonth !== 'ALL') {
       filtered = filtered.filter(k => k.bulan === state.kpiScoMonth);
@@ -1564,7 +1594,7 @@
           </div>
           <div class="metric-value" style="color:var(--success-text);">${fmtRupiah(totInsentif)}</div>
           <div class="metric-subtext">
-            <span>Periode: <strong>${state.kpiScoMonth === 'ALL' ? 'Semua Bulan (Januari - September 2026)' : formatBulan(state.kpiScoMonth)}</strong></span>
+            <span>Periode: <strong>${state.kpiScoMonth === 'ALL' ? `Semua Bulan (${formatBulan(months[months.length - 1])} - ${formatBulan(months[0])})` : formatBulan(state.kpiScoMonth)}</strong></span>
           </div>
         </div>
       </div>
@@ -1662,6 +1692,11 @@
     const months = Array.from(new Set(allDso.map(k => k.bulan))).sort().reverse();
     const persons = Array.from(new Set(allDso.map(k => k.nama))).sort();
 
+    // Default to the latest month (M-1 closed month)
+    if (state.kpiDsoMonth === null && months.length > 0) {
+      state.kpiDsoMonth = months[0];
+    }
+
     let filtered = [...allDso];
     if (state.kpiDsoMonth !== 'ALL') {
       filtered = filtered.filter(k => k.bulan === state.kpiDsoMonth);
@@ -1699,7 +1734,7 @@
           </div>
           <div class="metric-value" style="color:var(--success-text);">${fmtRupiah(totInsentif)}</div>
           <div class="metric-subtext">
-            <span>Periode: <strong>${state.kpiDsoMonth === 'ALL' ? 'Semua Bulan (November 2025 - September 2026)' : formatBulan(state.kpiDsoMonth)}</strong></span>
+            <span>Periode: <strong>${state.kpiDsoMonth === 'ALL' ? `Semua Bulan (${formatBulan(months[months.length - 1])} - ${formatBulan(months[0])})` : formatBulan(state.kpiDsoMonth)}</strong></span>
           </div>
         </div>
       </div>
@@ -2036,8 +2071,8 @@
       const cabang = String(a.cabang || '').trim();
       const tipe = String(a.type || a.tipe || 'Outlet').trim();
 
-      const dailyVal = Number(a.avg_curr !== undefined ? a.avg_curr : (a.Oct !== undefined ? a.Oct : (a.daily_curr || 0)));
-      const dailyPrev = Number(a.avg_prev !== undefined ? a.avg_prev : (a.Sep !== undefined ? a.Sep : (a.daily_prev || 0)));
+      const dailyVal = Number(a.avg_curr !== undefined ? a.avg_curr : (a.Nov !== undefined ? a.Nov : (a.Oct !== undefined ? a.Oct : (a.daily_curr || 0))));
+      const dailyPrev = Number(a.avg_prev !== undefined ? a.avg_prev : (a.Oct !== undefined ? a.Oct : (a.Sep !== undefined ? a.Sep : (a.daily_prev || 0))));
       const growthDiff = a.diff !== undefined ? Number(a.diff) : (dailyVal - dailyPrev);
       let growthPct = 0;
       if (a.growth !== undefined && a.growth !== null && a.growth !== '') {
@@ -2089,8 +2124,8 @@
               <span class="map-popup-val" style="color:var(--primary);">${escapeHtml(a.jadwal || '-')}</span>
             </div>
             <div class="map-popup-row">
-              <span class="map-popup-label"><i class="fa-solid fa-chart-line"></i> Daily Okt 2026</span>
-              <span class="map-popup-val">${fmtNumber(dailyVal, 1)} trx/hari</span>
+              <span class="map-popup-label"><i class="fa-solid fa-chart-line"></i> Daily ${(state.data && state.data.months && state.data.months.curr) || 'Nov'} 2026</span>
+              <span class="map-popup-val">${dailyVal <= 0 ? '<span class="val-dead">(-)</span>' : `${fmtNumber(dailyVal, 1)} trx/hari`}</span>
             </div>
             <div class="map-popup-row">
               <span class="map-popup-label"><i class="fa-solid fa-arrow-trend-up"></i> Growth Daily</span>
