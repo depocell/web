@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04 12:31:21",
+  "generated_at": "2026-11-04 14:50:51",
   "latest_period": "1126",
   "cutoff_date": "03-11-2026",
   "periods_list": [
@@ -1243,11 +1243,11 @@
           "SCO": "Abdul Harris",
           "CABANG": "ICON",
           "prev": 971.0,
-          "curr": 997.6,
+          "curr": 997.9,
           "Aug": 971.0,
-          "Sep": 997.6,
-          "Growth": 26.600000000000023,
-          "%": 0.027394438722966038
+          "Sep": 997.9,
+          "Growth": 26.899999999999977,
+          "%": 0.027703398558187414
         },
         {
           "SCO": "Febri Kurniawan",
@@ -1293,11 +1293,11 @@
           "SCO": "TOTAL SCO",
           "CABANG": null,
           "prev": 3787.2,
-          "curr": 3698.3999999999996,
+          "curr": 3698.7,
           "Aug": 3787.2,
-          "Sep": 3698.3999999999996,
-          "Growth": -88.80000000000018,
-          "%": -0.02344740177439802
+          "Sep": 3698.7,
+          "Growth": -88.5,
+          "%": -0.023368187579214196
         },
         {
           "SCO": "NON SCO",
@@ -1313,11 +1313,11 @@
           "SCO": "NON SCO",
           "CABANG": "ICON",
           "prev": 606.0,
-          "curr": 614.5,
+          "curr": 614.3,
           "Aug": 606.0,
-          "Sep": 614.5,
-          "Growth": 8.5,
-          "%": 0.014026402640264026
+          "Sep": 614.3,
+          "Growth": 8.299999999999955,
+          "%": 0.01369636963696362
         },
         {
           "SCO": "NON SCO",
@@ -1343,11 +1343,11 @@
           "SCO": "TOTAL NON SCO",
           "CABANG": null,
           "prev": 2775.6,
-          "curr": 2688.0,
+          "curr": 2687.8,
           "Aug": 2775.6,
-          "Sep": 2688.0,
-          "Growth": -87.59999999999991,
-          "%": -0.031560743623000403
+          "Sep": 2687.8,
+          "Growth": -87.79999999999973,
+          "%": -0.031632800115290294
         },
         {
           "SCO": "ONLINE",
@@ -1363,11 +1363,11 @@
           "SCO": "Grand Total",
           "CABANG": null,
           "prev": 7187.9,
-          "curr": 6968.9,
+          "curr": 6969.0,
           "Aug": 7187.9,
-          "Sep": 6968.9,
-          "Growth": -219.0,
-          "%": -0.030467869614212776
+          "Sep": 6969.0,
+          "Growth": -218.89999999999964,
+          "%": -0.03045395734498249
         }
       ]
     },
@@ -1384,12 +1384,12 @@
         {
           "SCO": "Abdul Harris",
           "CABANG": "ICON",
-          "prev": 997.6,
-          "curr": 975.8,
-          "Sep": 997.6,
-          "Oct": 975.8,
-          "Growth": -21.800000000000068,
-          "%": -0.02185244587008828
+          "prev": 997.9,
+          "curr": 976.5,
+          "Sep": 997.9,
+          "Oct": 976.5,
+          "Growth": -21.399999999999977,
+          "%": -0.021445034572602443
         },
         {
           "SCO": "Febri Kurniawan",
@@ -1434,12 +1434,12 @@
         {
           "SCO": "TOTAL SCO",
           "CABANG": null,
-          "prev": 3698.3999999999996,
-          "curr": 3552.4,
-          "Sep": 3698.3999999999996,
-          "Oct": 3552.4,
-          "Growth": -145.99999999999955,
-          "%": -0.03947653039152054
+          "prev": 3698.7,
+          "curr": 3553.1000000000004,
+          "Sep": 3698.7,
+          "Oct": 3553.1000000000004,
+          "Growth": -145.59999999999945,
+          "%": -0.039365182361370064
         },
         {
           "SCO": "NON SCO",
@@ -1454,12 +1454,12 @@
         {
           "SCO": "NON SCO",
           "CABANG": "ICON",
-          "prev": 614.5,
-          "curr": 632.4,
-          "Sep": 614.5,
-          "Oct": 632.4,
-          "Growth": 17.899999999999977,
-          "%": 0.02912937347436937
+          "prev": 614.3,
+          "curr": 631.7,
+          "Sep": 614.3,
+          "Oct": 631.7,
+          "Growth": 17.40000000000009,
+          "%": 0.02832492267621698
         },
         {
           "SCO": "NON SCO",
@@ -1484,12 +1484,12 @@
         {
           "SCO": "TOTAL NON SCO",
           "CABANG": null,
-          "prev": 2688.0,
-          "curr": 2647.0,
-          "Sep": 2688.0,
-          "Oct": 2647.0,
-          "Growth": -41.0,
-          "%": -0.01525297619047619
+          "prev": 2687.8,
+          "curr": 2646.3,
+          "Sep": 2687.8,
+          "Oct": 2646.3,
+          "Growth": -41.5,
+          "%": -0.015440136914949028
         },
         {
           "SCO": "ONLINE",
@@ -1504,12 +1504,12 @@
         {
           "SCO": "Grand Total",
           "CABANG": null,
-          "prev": 6968.9,
-          "curr": 6798.299999999999,
-          "Sep": 6968.9,
-          "Oct": 6798.299999999999,
-          "Growth": -170.60000000000036,
-          "%": -0.024480190560920715
+          "prev": 6969.0,
+          "curr": 6798.3,
+          "Sep": 6969.0,
+          "Oct": 6798.3,
+          "Growth": -170.69999999999982,
+          "%": -0.024494188549289687
         }
       ]
     },
@@ -1526,12 +1526,12 @@
         {
           "SCO": "Abdul Harris",
           "CABANG": "ICON",
-          "prev": 975.8,
-          "curr": 915.7,
-          "Oct": 975.8,
-          "Nov": 915.7,
-          "Growth": -60.09999999999991,
-          "%": -0.061590489854478285
+          "prev": 976.5,
+          "curr": 916.7,
+          "Oct": 976.5,
+          "Nov": 916.7,
+          "Growth": -59.799999999999955,
+          "%": -0.06123911930363539
         },
         {
           "SCO": "Febri Kurniawan",
@@ -1576,12 +1576,12 @@
         {
           "SCO": "TOTAL SCO",
           "CABANG": null,
-          "prev": 3552.4,
-          "curr": 3427.7000000000003,
-          "Oct": 3552.4,
-          "Nov": 3427.7000000000003,
-          "Growth": -124.69999999999982,
-          "%": -0.03510302893818258
+          "prev": 3553.1000000000004,
+          "curr": 3428.7000000000003,
+          "Oct": 3553.1000000000004,
+          "Nov": 3428.7000000000003,
+          "Growth": -124.40000000000009,
+          "%": -0.035011679941459595
         },
         {
           "SCO": "NON SCO",
@@ -1596,12 +1596,12 @@
         {
           "SCO": "NON SCO",
           "CABANG": "ICON",
-          "prev": 632.4,
-          "curr": 576.3,
-          "Oct": 632.4,
-          "Nov": 576.3,
-          "Growth": -56.10000000000002,
-          "%": -0.08870967741935487
+          "prev": 631.7,
+          "curr": 575.3,
+          "Oct": 631.7,
+          "Nov": 575.3,
+          "Growth": -56.40000000000009,
+          "%": -0.08928288744657288
         },
         {
           "SCO": "NON SCO",
@@ -1626,32 +1626,32 @@
         {
           "SCO": "TOTAL NON SCO",
           "CABANG": null,
-          "prev": 2647.0,
-          "curr": 2631.7,
-          "Oct": 2647.0,
-          "Nov": 2631.7,
-          "Growth": -15.300000000000182,
-          "%": -0.005780128447298897
+          "prev": 2646.3,
+          "curr": 2630.7,
+          "Oct": 2646.3,
+          "Nov": 2630.7,
+          "Growth": -15.600000000000364,
+          "%": -0.0058950232399956025
         },
         {
           "SCO": "ONLINE",
           "CABANG": "ONLINE",
           "prev": 598.9,
-          "curr": 647.0,
+          "curr": 648.0,
           "Oct": 598.9,
-          "Nov": 647.0,
-          "Growth": 48.10000000000002,
-          "%": 0.08031390883286028
+          "Nov": 648.0,
+          "Growth": 49.10000000000002,
+          "%": 0.08198363666722329
         },
         {
           "SCO": "Grand Total",
           "CABANG": null,
-          "prev": 6798.299999999999,
-          "curr": 6706.4,
-          "Oct": 6798.299999999999,
-          "Nov": 6706.4,
-          "Growth": -91.89999999999964,
-          "%": -0.013518085403703814
+          "prev": 6798.3,
+          "curr": 6707.4,
+          "Oct": 6798.3,
+          "Nov": 6707.4,
+          "Growth": -90.90000000000055,
+          "%": -0.013370989806275178
         }
       ]
     }
@@ -1666,12 +1666,12 @@
     {
       "SCO": "Abdul Harris",
       "CABANG": "ICON",
-      "prev": 975.8,
-      "curr": 915.7,
-      "Oct": 975.8,
-      "Nov": 915.7,
-      "Growth": -60.09999999999991,
-      "%": -0.061590489854478285
+      "prev": 976.5,
+      "curr": 916.7,
+      "Oct": 976.5,
+      "Nov": 916.7,
+      "Growth": -59.799999999999955,
+      "%": -0.06123911930363539
     },
     {
       "SCO": "Febri Kurniawan",
@@ -1716,12 +1716,12 @@
     {
       "SCO": "TOTAL SCO",
       "CABANG": null,
-      "prev": 3552.4,
-      "curr": 3427.7000000000003,
-      "Oct": 3552.4,
-      "Nov": 3427.7000000000003,
-      "Growth": -124.69999999999982,
-      "%": -0.03510302893818258
+      "prev": 3553.1000000000004,
+      "curr": 3428.7000000000003,
+      "Oct": 3553.1000000000004,
+      "Nov": 3428.7000000000003,
+      "Growth": -124.40000000000009,
+      "%": -0.035011679941459595
     },
     {
       "SCO": "NON SCO",
@@ -1736,12 +1736,12 @@
     {
       "SCO": "NON SCO",
       "CABANG": "ICON",
-      "prev": 632.4,
-      "curr": 576.3,
-      "Oct": 632.4,
-      "Nov": 576.3,
-      "Growth": -56.10000000000002,
-      "%": -0.08870967741935487
+      "prev": 631.7,
+      "curr": 575.3,
+      "Oct": 631.7,
+      "Nov": 575.3,
+      "Growth": -56.40000000000009,
+      "%": -0.08928288744657288
     },
     {
       "SCO": "NON SCO",
@@ -1766,32 +1766,32 @@
     {
       "SCO": "TOTAL NON SCO",
       "CABANG": null,
-      "prev": 2647.0,
-      "curr": 2631.7,
-      "Oct": 2647.0,
-      "Nov": 2631.7,
-      "Growth": -15.300000000000182,
-      "%": -0.005780128447298897
+      "prev": 2646.3,
+      "curr": 2630.7,
+      "Oct": 2646.3,
+      "Nov": 2630.7,
+      "Growth": -15.600000000000364,
+      "%": -0.0058950232399956025
     },
     {
       "SCO": "ONLINE",
       "CABANG": "ONLINE",
       "prev": 598.9,
-      "curr": 647.0,
+      "curr": 648.0,
       "Oct": 598.9,
-      "Nov": 647.0,
-      "Growth": 48.10000000000002,
-      "%": 0.08031390883286028
+      "Nov": 648.0,
+      "Growth": 49.10000000000002,
+      "%": 0.08198363666722329
     },
     {
       "SCO": "Grand Total",
       "CABANG": null,
-      "prev": 6798.299999999999,
-      "curr": 6706.4,
-      "Oct": 6798.299999999999,
-      "Nov": 6706.4,
-      "Growth": -91.89999999999964,
-      "%": -0.013518085403703814
+      "prev": 6798.3,
+      "curr": 6707.4,
+      "Oct": 6798.3,
+      "Nov": 6707.4,
+      "Growth": -90.90000000000055,
+      "%": -0.013370989806275178
     }
   ],
   "tren_agen": [
@@ -18474,7 +18474,7 @@
     },
     {
       "aid": "AR40078",
-      "name": "AR40078 - 434 CELL",
+      "name": "AR40078-434 CELL(RL)",
       "cabang": "ICON",
       "type": "Limit",
       "sco": "Abdul Harris",
@@ -18514,7 +18514,7 @@
         "1026": 18.7,
         "1126": 5.3
       },
-      "NAMA CUSTOMER": "AR40078 - 434 CELL",
+      "NAMA CUSTOMER": "AR40078-434 CELL(RL)",
       "AGEN ID": "AR40078",
       "NAMA SCO": "Abdul Harris",
       "CABANG": "ICON",
@@ -33417,7 +33417,7 @@
     },
     {
       "aid": "AR27421",
-      "name": "AR27421 - Diki cell",
+      "name": "AR27421-Diki cell(RV)",
       "cabang": "ICON",
       "type": "Limit",
       "sco": "Abdul Harris",
@@ -33457,7 +33457,7 @@
         "1026": 3.1,
         "1126": 1.7
       },
-      "NAMA CUSTOMER": "AR27421 - Diki cell",
+      "NAMA CUSTOMER": "AR27421-Diki cell(RV)",
       "AGEN ID": "AR27421",
       "NAMA SCO": "Abdul Harris",
       "CABANG": "ICON",
@@ -33570,7 +33570,7 @@
     },
     {
       "aid": "AR36265",
-      "name": "AR36265 - Anugrah (RL)",
+      "name": "AR36265-Anugrah (RL)",
       "cabang": "ICON",
       "type": "Limit",
       "sco": "Abdul Harris",
@@ -33610,7 +33610,7 @@
         "1026": 0.1,
         "1126": 1.7
       },
-      "NAMA CUSTOMER": "AR36265 - Anugrah (RL)",
+      "NAMA CUSTOMER": "AR36265-Anugrah (RL)",
       "AGEN ID": "AR36265",
       "NAMA SCO": "Abdul Harris",
       "CABANG": "ICON",
@@ -39332,6 +39332,57 @@
       "STATUS": "1"
     },
     {
+      "aid": "AR40225",
+      "name": "AR40225-ARBAI CELL(P)",
+      "cabang": "ICON",
+      "type": "Prima",
+      "sco": "Abdul Harris",
+      "location": "-",
+      "jadwal": "Selasa,Jum'at",
+      "limit": 0.0,
+      "status": "1",
+      "avg_prev": 0.7,
+      "avg_curr": 1.0,
+      "diff": 0.30000000000000004,
+      "growth": 0.42857142857142866,
+      "Oct": 0.7,
+      "Nov": 1.0,
+      "monthly": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.7,
+        "1126": 1.0
+      },
+      "monthly_avg": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.7,
+        "1126": 1.0
+      },
+      "NAMA CUSTOMER": "AR40225-ARBAI CELL(P)",
+      "AGEN ID": "AR40225",
+      "NAMA SCO": "Abdul Harris",
+      "CABANG": "ICON",
+      "JADWAL": "Selasa,Jum'at",
+      "LOCATION": "-",
+      "LIMIT": 0.0,
+      "STATUS": "1"
+    },
+    {
       "aid": "AR25557",
       "name": "AR25557-VIRA(R)",
       "cabang": "PP",
@@ -39894,7 +39945,7 @@
     },
     {
       "aid": "AR38493",
-      "name": "AR38493 - Mutiara Ramadhan",
+      "name": "AR38493-Mutiara Ramadhan(RL)",
       "cabang": "PRG",
       "type": "Non Limit",
       "sco": "Khoirul Anan",
@@ -39934,7 +39985,7 @@
         "1026": 0.2,
         "1126": 1.0
       },
-      "NAMA CUSTOMER": "AR38493 - Mutiara Ramadhan",
+      "NAMA CUSTOMER": "AR38493-Mutiara Ramadhan(RL)",
       "AGEN ID": "AR38493",
       "NAMA SCO": "Khoirul Anan",
       "CABANG": "PRG",
@@ -41984,57 +42035,6 @@
       "STATUS": "1"
     },
     {
-      "aid": "AR40225",
-      "name": "AR40225 - ARBAI CELL",
-      "cabang": "ICON",
-      "type": "Prima",
-      "sco": "NON SCO",
-      "location": "-",
-      "jadwal": "-",
-      "limit": 0.0,
-      "status": "1",
-      "avg_prev": 0.7,
-      "avg_curr": 1.0,
-      "diff": 0.30000000000000004,
-      "growth": 0.42857142857142866,
-      "Oct": 0.7,
-      "Nov": 1.0,
-      "monthly": {
-        "0126": 0.0,
-        "0226": 0.0,
-        "0326": 0.0,
-        "0426": 0.0,
-        "0526": 0.0,
-        "0626": 0.0,
-        "0726": 0.0,
-        "0826": 0.0,
-        "0926": 0.0,
-        "1026": 0.7,
-        "1126": 1.0
-      },
-      "monthly_avg": {
-        "0126": 0.0,
-        "0226": 0.0,
-        "0326": 0.0,
-        "0426": 0.0,
-        "0526": 0.0,
-        "0626": 0.0,
-        "0726": 0.0,
-        "0826": 0.0,
-        "0926": 0.0,
-        "1026": 0.7,
-        "1126": 1.0
-      },
-      "NAMA CUSTOMER": "AR40225 - ARBAI CELL",
-      "AGEN ID": "AR40225",
-      "NAMA SCO": "NON SCO",
-      "CABANG": "ICON",
-      "JADWAL": "-",
-      "LOCATION": "-",
-      "LIMIT": 0.0,
-      "STATUS": "1"
-    },
-    {
       "aid": "AR30499",
       "name": "AR30499-NINA PARLINA(P)",
       "cabang": "ONLINE",
@@ -43209,7 +43209,7 @@
     },
     {
       "aid": "AR25772",
-      "name": "AR25772 - METY CELL",
+      "name": "AR25772-METY CELL(R)",
       "cabang": "PP",
       "type": "Non Limit",
       "sco": "Febri Kurniawan",
@@ -43249,7 +43249,7 @@
         "1026": 3.3,
         "1126": 0.7
       },
-      "NAMA CUSTOMER": "AR25772 - METY CELL",
+      "NAMA CUSTOMER": "AR25772-METY CELL(R)",
       "AGEN ID": "AR25772",
       "NAMA SCO": "Febri Kurniawan",
       "CABANG": "PP",
@@ -46727,6 +46727,57 @@
       "STATUS": "1"
     },
     {
+      "aid": "AR40243",
+      "name": "AR40243 - Dina Stevany",
+      "cabang": "ONLINE",
+      "type": "Prima",
+      "sco": "ONLINE",
+      "location": "-",
+      "jadwal": "-",
+      "limit": 0.0,
+      "status": "1",
+      "avg_prev": 0.0,
+      "avg_curr": 0.7,
+      "diff": 0.7,
+      "growth": 1.0,
+      "Oct": 0.0,
+      "Nov": 0.7,
+      "monthly": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.0,
+        "1126": 0.7
+      },
+      "monthly_avg": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.0,
+        "1126": 0.7
+      },
+      "NAMA CUSTOMER": "AR40243 - Dina Stevany",
+      "AGEN ID": "AR40243",
+      "NAMA SCO": "ONLINE",
+      "CABANG": "ONLINE",
+      "JADWAL": "-",
+      "LOCATION": "-",
+      "LIMIT": 0.0,
+      "STATUS": "1"
+    },
+    {
       "aid": "AR28226",
       "name": "AR28226-WARUNG NANDA(P)",
       "cabang": "ICON",
@@ -46983,7 +47034,7 @@
     },
     {
       "aid": "AR36257",
-      "name": "AR36257 - BATUBARA PRIMA",
+      "name": "AR36257-BATUBARA PRIMA(P)",
       "cabang": "PP",
       "type": "Prima",
       "sco": "Febri Kurniawan",
@@ -47023,7 +47074,7 @@
         "1026": 0.8,
         "1126": 0.3
       },
-      "NAMA CUSTOMER": "AR36257 - BATUBARA PRIMA",
+      "NAMA CUSTOMER": "AR36257-BATUBARA PRIMA(P)",
       "AGEN ID": "AR36257",
       "NAMA SCO": "Febri Kurniawan",
       "CABANG": "PP",
@@ -52439,6 +52490,57 @@
       "STATUS": "1"
     },
     {
+      "aid": "AR40261",
+      "name": "AR40261 - Ramadhan",
+      "cabang": "ONLINE",
+      "type": "Prima",
+      "sco": "ONLINE",
+      "location": "-",
+      "jadwal": "-",
+      "limit": 0.0,
+      "status": "1",
+      "avg_prev": 0.0,
+      "avg_curr": 0.3,
+      "diff": 0.3,
+      "growth": 1.0,
+      "Oct": 0.0,
+      "Nov": 0.3,
+      "monthly": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.0,
+        "1126": 0.3
+      },
+      "monthly_avg": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.0,
+        "1126": 0.3
+      },
+      "NAMA CUSTOMER": "AR40261 - Ramadhan",
+      "AGEN ID": "AR40261",
+      "NAMA SCO": "ONLINE",
+      "CABANG": "ONLINE",
+      "JADWAL": "-",
+      "LOCATION": "-",
+      "LIMIT": 0.0,
+      "STATUS": "1"
+    },
+    {
       "aid": "AR20752",
       "name": "AR20752-ICA(RV)",
       "cabang": "ICON",
@@ -52796,6 +52898,57 @@
       "STATUS": "1"
     },
     {
+      "aid": "AR30678",
+      "name": "AR30678-AZA CELL(P)",
+      "cabang": "ICON",
+      "type": "Prima",
+      "sco": "Abdul Harris",
+      "location": "-",
+      "jadwal": "Senin,Kamis",
+      "limit": 0.0,
+      "status": "1",
+      "avg_prev": 0.0,
+      "avg_curr": 0.0,
+      "diff": 0.0,
+      "growth": 0.0,
+      "Oct": 0.0,
+      "Nov": 0.0,
+      "monthly": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.3,
+        "1026": 0.0,
+        "1126": 0.0
+      },
+      "monthly_avg": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.3,
+        "1026": 0.0,
+        "1126": 0.0
+      },
+      "NAMA CUSTOMER": "AR30678-AZA CELL(P)",
+      "AGEN ID": "AR30678",
+      "NAMA SCO": "Abdul Harris",
+      "CABANG": "ICON",
+      "JADWAL": "Senin,Kamis",
+      "LOCATION": "-",
+      "LIMIT": 0.0,
+      "STATUS": "1"
+    },
+    {
       "aid": "AR39477",
       "name": "AR39477-KYA CELL(RL)",
       "cabang": "ICON",
@@ -52844,6 +52997,57 @@
       "JADWAL": "Senin,Kamis",
       "LOCATION": "6°20'36.6\"S 106°36'13.7\"E",
       "LIMIT": 3490257.0,
+      "STATUS": "1"
+    },
+    {
+      "aid": "AR40253",
+      "name": "AR40253 - SALMA CELL 2",
+      "cabang": "ICON",
+      "type": "Prima",
+      "sco": "Abdul Harris",
+      "location": "-",
+      "jadwal": "Senin,Kamis",
+      "limit": 0.0,
+      "status": "1",
+      "avg_prev": 0.0,
+      "avg_curr": 0.0,
+      "diff": 0.0,
+      "growth": 0.0,
+      "Oct": 0.0,
+      "Nov": 0.0,
+      "monthly": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.0,
+        "1126": 0.0
+      },
+      "monthly_avg": {
+        "0126": 0.0,
+        "0226": 0.0,
+        "0326": 0.0,
+        "0426": 0.0,
+        "0526": 0.0,
+        "0626": 0.0,
+        "0726": 0.0,
+        "0826": 0.0,
+        "0926": 0.0,
+        "1026": 0.0,
+        "1126": 0.0
+      },
+      "NAMA CUSTOMER": "AR40253 - SALMA CELL 2",
+      "AGEN ID": "AR40253",
+      "NAMA SCO": "Abdul Harris",
+      "CABANG": "ICON",
+      "JADWAL": "Senin,Kamis",
+      "LOCATION": "-",
+      "LIMIT": 0.0,
       "STATUS": "1"
     },
     {
@@ -66765,57 +66969,6 @@
       "NAMA SCO": "NON SCO",
       "CABANG": "ICON",
       "JADWAL": "",
-      "LOCATION": "",
-      "LIMIT": 0.0,
-      "STATUS": "1"
-    },
-    {
-      "aid": "AR30678",
-      "name": "AR30678-AZA CELL(P)",
-      "cabang": "ICON",
-      "type": "Prima",
-      "sco": "NON SCO",
-      "location": "",
-      "jadwal": "-",
-      "limit": 0.0,
-      "status": "1",
-      "avg_prev": 0.0,
-      "avg_curr": 0.0,
-      "diff": 0.0,
-      "growth": 0.0,
-      "Oct": 0.0,
-      "Nov": 0.0,
-      "monthly": {
-        "0126": 0.0,
-        "0226": 0.0,
-        "0326": 0.0,
-        "0426": 0.0,
-        "0526": 0.0,
-        "0626": 0.0,
-        "0726": 0.0,
-        "0826": 0.0,
-        "0926": 0.3,
-        "1026": 0.0,
-        "1126": 0.0
-      },
-      "monthly_avg": {
-        "0126": 0.0,
-        "0226": 0.0,
-        "0326": 0.0,
-        "0426": 0.0,
-        "0526": 0.0,
-        "0626": 0.0,
-        "0726": 0.0,
-        "0826": 0.0,
-        "0926": 0.3,
-        "1026": 0.0,
-        "1126": 0.0
-      },
-      "NAMA CUSTOMER": "AR30678-AZA CELL(P)",
-      "AGEN ID": "AR30678",
-      "NAMA SCO": "NON SCO",
-      "CABANG": "ICON",
-      "JADWAL": "-",
       "LOCATION": "",
       "LIMIT": 0.0,
       "STATUS": "1"
@@ -137609,7 +137762,7 @@
       "bulan": "Sep",
       "tanggal": "2026-09-16",
       "nama_sco": "Abdul Harris",
-      "trx": 997
+      "trx": 1004
     },
     {
       "month_code": "0926",
@@ -137644,7 +137797,7 @@
       "bulan": "Sep",
       "tanggal": "2026-09-16",
       "nama_sco": "NON SCO",
-      "trx": 2427
+      "trx": 2420
     },
     {
       "month_code": "0926",
@@ -137658,7 +137811,7 @@
       "bulan": "Sep",
       "tanggal": "2026-09-17",
       "nama_sco": "Abdul Harris",
-      "trx": 1019
+      "trx": 1020
     },
     {
       "month_code": "0926",
@@ -137693,7 +137846,7 @@
       "bulan": "Sep",
       "tanggal": "2026-09-17",
       "nama_sco": "NON SCO",
-      "trx": 2606
+      "trx": 2605
     },
     {
       "month_code": "0926",
@@ -139275,7 +139428,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-20",
       "nama_sco": "Abdul Harris",
-      "trx": 860
+      "trx": 862
     },
     {
       "month_code": "1026",
@@ -139310,7 +139463,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-20",
       "nama_sco": "NON SCO",
-      "trx": 2633
+      "trx": 2631
     },
     {
       "month_code": "1026",
@@ -139324,7 +139477,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-21",
       "nama_sco": "Abdul Harris",
-      "trx": 997
+      "trx": 998
     },
     {
       "month_code": "1026",
@@ -139359,7 +139512,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-21",
       "nama_sco": "NON SCO",
-      "trx": 2494
+      "trx": 2493
     },
     {
       "month_code": "1026",
@@ -139373,7 +139526,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-22",
       "nama_sco": "Abdul Harris",
-      "trx": 953
+      "trx": 956
     },
     {
       "month_code": "1026",
@@ -139408,7 +139561,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-22",
       "nama_sco": "NON SCO",
-      "trx": 2429
+      "trx": 2426
     },
     {
       "month_code": "1026",
@@ -139422,7 +139575,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-23",
       "nama_sco": "Abdul Harris",
-      "trx": 959
+      "trx": 962
     },
     {
       "month_code": "1026",
@@ -139457,7 +139610,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-23",
       "nama_sco": "NON SCO",
-      "trx": 2560
+      "trx": 2557
     },
     {
       "month_code": "1026",
@@ -139520,7 +139673,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-25",
       "nama_sco": "Abdul Harris",
-      "trx": 903
+      "trx": 906
     },
     {
       "month_code": "1026",
@@ -139555,7 +139708,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-25",
       "nama_sco": "NON SCO",
-      "trx": 2664
+      "trx": 2661
     },
     {
       "month_code": "1026",
@@ -139569,7 +139722,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-26",
       "nama_sco": "Abdul Harris",
-      "trx": 1090
+      "trx": 1091
     },
     {
       "month_code": "1026",
@@ -139604,7 +139757,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-26",
       "nama_sco": "NON SCO",
-      "trx": 2824
+      "trx": 2823
     },
     {
       "month_code": "1026",
@@ -139618,7 +139771,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-27",
       "nama_sco": "Abdul Harris",
-      "trx": 955
+      "trx": 960
     },
     {
       "month_code": "1026",
@@ -139653,7 +139806,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-27",
       "nama_sco": "NON SCO",
-      "trx": 2545
+      "trx": 2540
     },
     {
       "month_code": "1026",
@@ -139667,7 +139820,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-28",
       "nama_sco": "Abdul Harris",
-      "trx": 844
+      "trx": 845
     },
     {
       "month_code": "1026",
@@ -139702,7 +139855,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-28",
       "nama_sco": "NON SCO",
-      "trx": 2568
+      "trx": 2567
     },
     {
       "month_code": "1026",
@@ -139765,7 +139918,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-30",
       "nama_sco": "Abdul Harris",
-      "trx": 1026
+      "trx": 1027
     },
     {
       "month_code": "1026",
@@ -139800,7 +139953,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-30",
       "nama_sco": "NON SCO",
-      "trx": 2649
+      "trx": 2648
     },
     {
       "month_code": "1026",
@@ -139814,7 +139967,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-31",
       "nama_sco": "Abdul Harris",
-      "trx": 985
+      "trx": 987
     },
     {
       "month_code": "1026",
@@ -139849,7 +140002,7 @@
       "bulan": "Oct",
       "tanggal": "2026-10-31",
       "nama_sco": "NON SCO",
-      "trx": 2881
+      "trx": 2879
     },
     {
       "month_code": "1026",
@@ -139863,7 +140016,7 @@
       "bulan": "Nov",
       "tanggal": "2026-11-01",
       "nama_sco": "Abdul Harris",
-      "trx": 848
+      "trx": 849
     },
     {
       "month_code": "1126",
@@ -139898,21 +140051,21 @@
       "bulan": "Nov",
       "tanggal": "2026-11-01",
       "nama_sco": "NON SCO",
-      "trx": 2619
+      "trx": 2617
     },
     {
       "month_code": "1126",
       "bulan": "Nov",
       "tanggal": "2026-11-01",
       "nama_sco": "ONLINE",
-      "trx": 669
+      "trx": 670
     },
     {
       "month_code": "1126",
       "bulan": "Nov",
       "tanggal": "2026-11-02",
       "nama_sco": "Abdul Harris",
-      "trx": 977
+      "trx": 979
     },
     {
       "month_code": "1126",
@@ -139947,14 +140100,14 @@
       "bulan": "Nov",
       "tanggal": "2026-11-02",
       "nama_sco": "NON SCO",
-      "trx": 2846
+      "trx": 2843
     },
     {
       "month_code": "1126",
       "bulan": "Nov",
       "tanggal": "2026-11-02",
       "nama_sco": "ONLINE",
-      "trx": 642
+      "trx": 643
     },
     {
       "month_code": "1126",
@@ -139996,14 +140149,14 @@
       "bulan": "Nov",
       "tanggal": "2026-11-03",
       "nama_sco": "NON SCO",
-      "trx": 2433
+      "trx": 2432
     },
     {
       "month_code": "1126",
       "bulan": "Nov",
       "tanggal": "2026-11-03",
       "nama_sco": "ONLINE",
-      "trx": 630
+      "trx": 631
     }
   ],
   "kpi_sco": [
