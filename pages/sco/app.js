@@ -763,14 +763,11 @@
       const bPrv = b.monthly_avg ? (parseFloat(b.monthly_avg[prvCode]) || 0) : 0;
       const aDiff = aCur - aPrv;
       const bDiff = bCur - bPrv;
-      const aJan = a.monthly_avg ? (parseFloat(a.monthly_avg['0126']) || 0) : 0;
-      const bJan = b.monthly_avg ? (parseFloat(b.monthly_avg['0126']) || 0) : 0;
 
       if (state.profilSort === 'diff_asc') return aDiff - bDiff;
       if (state.profilSort === 'diff_desc') return bDiff - aDiff;
       if (state.profilSort === 'curr_desc') return bCur - aCur;
       if (state.profilSort === 'curr_asc') return aCur - bCur;
-      if (state.profilSort === 'jan_desc') return bJan - aJan;
       if (state.profilSort === 'name_asc') return String(a.name || '').localeCompare(String(b.name || ''));
       return aDiff - bDiff;
     });
@@ -990,7 +987,6 @@
                 <option value="diff_desc" ${state.profilSort === 'diff_desc' ? 'selected' : ''}>Growth Tertinggi / Kenaikan</option>
                 <option value="curr_desc" ${state.profilSort === 'curr_desc' ? 'selected' : ''}>${PROFIL_MONTHS[PROFIL_MONTHS.length - 1].label} 2026 Tertinggi</option>
                 <option value="curr_asc" ${state.profilSort === 'curr_asc' ? 'selected' : ''}>${PROFIL_MONTHS[PROFIL_MONTHS.length - 1].label} 2026 Terendah</option>
-                <option value="jan_desc" ${state.profilSort === 'jan_desc' ? 'selected' : ''}>Jan 2026 Tertinggi</option>
                 <option value="name_asc" ${state.profilSort === 'name_asc' ? 'selected' : ''}>Nama Agen (A - Z)</option>
               </select>
             </div>
@@ -1157,7 +1153,7 @@
   // ── VIEW 2: DETAIL PERFORMA AGEN (TABEL RINGKAS) ──
   function getActivePeriodAgents() {
     if (!state.data || !state.data.tren_agen) return [];
-    const periodCode = state.selectedPeriod || state.data.latest_period || '1026';
+    const periodCode = state.selectedPeriod || (state.data && state.data.latest_period) || '1126';
     const pData = (state.data.periods && state.data.periods[periodCode]) ? state.data.periods[periodCode] : null;
 
     const currCode = periodCode;
@@ -1183,7 +1179,7 @@
         diff: diff,
         growth: growthPct
       };
-    });
+    }).filter(a => (a.avg_curr > 0 || a.avg_prev > 0));
   }
 
   function getPeriodMonthLabels() {
@@ -1905,12 +1901,18 @@
             <div id="coverage-active-summary" style="font-size:12.5px; color:var(--text-muted);">
               Memuat titik lokasi...
             </div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <button class="action-btn btn-secondary btn-sm" onclick="window.resetCoverageFilters()">
                 <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filter
               </button>
               <button class="action-btn btn-primary btn-sm" onclick="window.fitCoverageBounds()">
                 <i class="fa-solid fa-expand"></i> Fokuskan Peta
+              </button>
+              <button class="action-btn btn-success btn-sm" onclick="window.copyTargetPjpWa()" title="Salin Target PJP per Jadwal untuk WhatsApp" style="background:#16a34a; border-color:#16a34a; color:#ffffff; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+                <span>Kirim Target PJP ke WA</span>
               </button>
             </div>
           </div>
@@ -1926,7 +1928,13 @@
                 <span id="coverage-stats-text">Memetakan Toko...</span>
               </div>
             </div>
-            <div class="coverage-toolbar-right">
+            <div class="coverage-toolbar-right" style="display:flex; gap:6px; align-items:center;">
+              <button class="action-btn btn-success btn-sm" onclick="window.copyTargetPjpWa()" title="Salin Target PJP per Jadwal untuk WhatsApp" style="background:#16a34a; border-color:#16a34a; color:#ffffff; font-weight:600; display:inline-flex; align-items:center; gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+                <span>Kirim PJP ke WA</span>
+              </button>
               <button class="action-btn btn-secondary btn-sm" onclick="window.fitCoverageBounds()" title="Fokuskan Semua Titik">
                 <i class="fa-solid fa-expand"></i> Fokus
               </button>
@@ -2009,6 +2017,10 @@
     const jadwalFilter = state.coverageJadwal;
     const search = (state.coverageSearch || '').trim().toLowerCase();
 
+    const periodCode = state.selectedPeriod || (state.data && state.data.latest_period) || '1126';
+    const pData = (state.data && state.data.periods && state.data.periods[periodCode]) ? state.data.periods[periodCode] : null;
+    const prevCode = pData ? pData.prev_code : null;
+
     const bounds = L.latLngBounds();
     let totalDaily = 0;
     const scoCounts = {};
@@ -2024,6 +2036,21 @@
         return false;
       }
       if (scoFilter !== 'ALL' && aSco !== scoFilter) {
+        return false;
+      }
+
+      // Filter: Hanya agen yang bertransaksi bulan lalu ATAU bulan ini (exclude churn/mati di kedua bulan)
+      let curTrx = 0;
+      let prevTrx = 0;
+      if (a.monthly_avg) {
+        prevTrx = prevCode ? (parseFloat(a.monthly_avg[prevCode]) || 0) : 0;
+        curTrx = periodCode ? (parseFloat(a.monthly_avg[periodCode]) || 0) : 0;
+      } else {
+        curTrx = Number(a.avg_curr !== undefined ? a.avg_curr : (a.Nov !== undefined ? a.Nov : (a.daily_curr || 0)));
+        prevTrx = Number(a.avg_prev !== undefined ? a.avg_prev : (a.Oct !== undefined ? a.Oct : (a.daily_prev || 0)));
+      }
+
+      if (curTrx <= 0 && prevTrx <= 0) {
         return false;
       }
 
@@ -2071,8 +2098,15 @@
       const cabang = String(a.cabang || '').trim();
       const tipe = String(a.type || a.tipe || 'Outlet').trim();
 
-      const dailyVal = Number(a.avg_curr !== undefined ? a.avg_curr : (a.Nov !== undefined ? a.Nov : (a.Oct !== undefined ? a.Oct : (a.daily_curr || 0))));
-      const dailyPrev = Number(a.avg_prev !== undefined ? a.avg_prev : (a.Oct !== undefined ? a.Oct : (a.Sep !== undefined ? a.Sep : (a.daily_prev || 0))));
+      let dailyVal = 0;
+      let dailyPrev = 0;
+      if (a.monthly_avg) {
+        dailyPrev = prevCode ? (parseFloat(a.monthly_avg[prevCode]) || 0) : 0;
+        dailyVal = periodCode ? (parseFloat(a.monthly_avg[periodCode]) || 0) : 0;
+      } else {
+        dailyVal = Number(a.avg_curr !== undefined ? a.avg_curr : (a.Nov !== undefined ? a.Nov : (a.daily_curr || 0)));
+        dailyPrev = Number(a.avg_prev !== undefined ? a.avg_prev : (a.Oct !== undefined ? a.Oct : (a.daily_prev || 0)));
+      }
       const growthDiff = a.diff !== undefined ? Number(a.diff) : (dailyVal - dailyPrev);
       let growthPct = 0;
       if (a.growth !== undefined && a.growth !== null && a.growth !== '') {
@@ -2225,7 +2259,120 @@
     }
   };
 
+  window.copyTargetPjpWa = function () {
+    if (!state.data || !state.data.tren_agen) {
+      showToast('Data agen belum tersedia!', 'danger');
+      return;
+    }
+
+    const all = state.data.tren_agen;
+    const periodCode = state.selectedPeriod || (state.data && state.data.latest_period) || '1126';
+    const pData = (state.data && state.data.periods && state.data.periods[periodCode]) ? state.data.periods[periodCode] : null;
+    const prevCode = pData ? pData.prev_code : null;
+
+    // Filter hanya agen SCO sah yang bertransaksi bulan lalu ATAU bulan ini (exclude churn di kedua bulan)
+    const activeAgents = all.filter(a => {
+      const aSco = String(a.sco || '').trim();
+      const lower = aSco.toLowerCase();
+      if (!aSco || lower === 'non sco' || lower === 'online' || lower.includes('total')) {
+        return false;
+      }
+
+      let curTrx = 0;
+      let prevTrx = 0;
+      if (a.monthly_avg) {
+        prevTrx = prevCode ? (parseFloat(a.monthly_avg[prevCode]) || 0) : 0;
+        curTrx = periodCode ? (parseFloat(a.monthly_avg[periodCode]) || 0) : 0;
+      } else {
+        curTrx = Number(a.avg_curr !== undefined ? a.avg_curr : (a.Nov !== undefined ? a.Nov : (a.daily_curr || 0)));
+        prevTrx = Number(a.avg_prev !== undefined ? a.avg_prev : (a.Oct !== undefined ? a.Oct : (a.daily_prev || 0)));
+      }
+
+      return (curTrx > 0 || prevTrx > 0);
+    });
+
+    const scoFilter = state.coverageSales;
+    const jadwalFilter = state.coverageJadwal;
+
+    function getJadwalKey(raw) {
+      const s = String(raw || '').toLowerCase().replace(/['’]/g, '');
+      if (s.includes('senin') || s.includes('kamis')) return 'SENIN-KAMIS';
+      if (s.includes('selasa') || s.includes('jum')) return 'SELASA-JUMAT';
+      if (s.includes('rabu') || s.includes('sabtu')) return 'RABU-SABTU';
+      return 'LAINNYA';
+    }
+
+    function formatAgentsForPjp(agentList) {
+      const groups = {
+        'SENIN-KAMIS': [],
+        'SELASA-JUMAT': [],
+        'RABU-SABTU': [],
+        'LAINNYA': []
+      };
+
+      agentList.forEach(a => {
+        if (jadwalFilter !== 'ALL') {
+          const rawJadwal = (a.jadwal || '').trim().replace(/['’]/g, '').toLowerCase();
+          if (jadwalFilter === 'Senin,Kamis' && (!rawJadwal.includes('senin') || !rawJadwal.includes('kamis'))) return;
+          if (jadwalFilter === 'Selasa,Jumat' && (!rawJadwal.includes('selasa') || (!rawJadwal.includes('jum') && !rawJadwal.includes('jumat')))) return;
+          if (jadwalFilter === 'Rabu,Sabtu' && (!rawJadwal.includes('rabu') || !rawJadwal.includes('sabtu'))) return;
+          if (jadwalFilter === 'LAINNYA' && (rawJadwal.includes('senin') || rawJadwal.includes('selasa') || rawJadwal.includes('rabu'))) return;
+        }
+
+        const k = getJadwalKey(a.jadwal);
+        const agentId = String(a.aid || a.kode || '').trim();
+        let name = String(a.name || a.nama || agentId).trim();
+        if (agentId && !name.startsWith(agentId)) {
+          name = `${agentId}-${name}`;
+        }
+        if (!groups[k]) groups[k] = [];
+        groups[k].push(name);
+      });
+
+      const sections = [];
+      const order = ['SENIN-KAMIS', 'SELASA-JUMAT', 'RABU-SABTU', 'LAINNYA'];
+      order.forEach(k => {
+        const list = groups[k] || [];
+        if (list.length > 0) {
+          list.sort((a, b) => a.localeCompare(b));
+          sections.push(`Jadwal : ${k}\n` + list.join('\n'));
+        }
+      });
+
+      return sections.join('\n\n');
+    }
+
+    let resultText = '';
+    let totalCopied = 0;
+
+    if (scoFilter !== 'ALL') {
+      const targetList = activeAgents.filter(a => String(a.sco || '').trim() === scoFilter);
+      resultText = formatAgentsForPjp(targetList);
+      totalCopied = targetList.length;
+    } else {
+      const cleanScos = getCleanScoList(activeAgents);
+      const scoSlices = [];
+      cleanScos.forEach(scoName => {
+        const targetList = activeAgents.filter(a => String(a.sco || '').trim() === scoName);
+        const formatted = formatAgentsForPjp(targetList);
+        if (formatted) {
+          scoSlices.push(`*SCO : ${scoName.toUpperCase()}*\n\n${formatted}`);
+          totalCopied += targetList.length;
+        }
+      });
+      resultText = scoSlices.join('\n\n====================\n\n');
+    }
+
+    if (!resultText.trim()) {
+      showToast('Tidak ada data toko aktif untuk disalin!', 'danger');
+      return;
+    }
+
+    copyText(resultText, `Target PJP (${totalCopied} Toko)`);
+  };
+
   window.resetCoverageFilters = function () {
+
     state.coverageSales = 'ALL';
     state.coverageJadwal = 'ALL';
     state.coverageSearch = '';
