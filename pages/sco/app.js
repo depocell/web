@@ -805,7 +805,6 @@
               <div style="min-width: 0;">
                 <div style="font-weight: 700; color: var(--text-main); font-size: 13px; line-height: 1.35;">${escapeHtml(a.name)}</div>
                 <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                  <span style="font-size: 11px; font-family: var(--font-mono); color: var(--primary); font-weight: 600;">${escapeHtml(a.aid)}</span>
                   <span class="badge badge-purple" style="font-size: 10px; padding: 1px 6px;">${escapeHtml(a.cabang || '-')}</span>
                   <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(a.sco || '-')}</span>
                 </div>
@@ -840,16 +839,11 @@
             `))}
           </td>
           <td class="center">
-            <div style="display:inline-flex; align-items:center; gap:4px;">
-              <button class="btn-copy-mini" title="Salin ID Toko" onclick="window.copyText('${escapeAttr(a.aid)}', 'ID Agen')">
-                <i class="fa-regular fa-copy"></i>
-              </button>
-              ${mapsUrl ? `
-                <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-table-maps" title="Buka Google Maps">
-                  <i class="fa-solid fa-location-dot"></i>
-                </a>
-              ` : ''}
-            </div>
+            ${mapsUrl ? `
+              <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-table-maps" title="Buka Google Maps">
+                <i class="fa-solid fa-location-dot"></i>
+              </a>
+            ` : '<span style="color:var(--text-muted); font-size:12px;">-</span>'}
           </td>
         </tr>`;
     }).join('');
@@ -1301,9 +1295,6 @@
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
               <div style="min-width: 0;">
                 <div style="font-weight: 700; color: var(--text-main); font-size: 13px; line-height: 1.35;">${escapeHtml(a.name)}</div>
-                <div style="font-size: 11px; font-family: var(--font-mono); color: var(--primary); font-weight: 600; margin-top: 2px;">
-                  ${escapeHtml(a.aid)}
-                </div>
               </div>
               <button class="btn-copy-mini" title="Salin Nama Toko" onclick="window.copyText('${escapeAttr(a.name)}', 'Nama Toko')">
                 <i class="fa-regular fa-copy"></i>
@@ -1859,61 +1850,63 @@
     container.innerHTML = `
       <div class="coverage-page-wrapper">
         <!-- FILTER BAR -->
-        <div class="filter-card coverage-filter-card">
-          <div class="filter-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-            <div>
-              <label class="filter-label"><i class="fa-solid fa-user-tie"></i> Petugas SCO</label>
-              <select class="form-select" id="coverage-sco-select" onchange="window.setCoverageSales(this.value)" style="width:100%;">
-                <option value="ALL" ${state.coverageSales === 'ALL' ? 'selected' : ''}>Semua Tim SCO</option>
-                ${cleanScos.map(s => `<option value="${escapeHtml(s)}" ${state.coverageSales === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
-              </select>
-            </div>
+        <div class="content-card coverage-filter-card" style="margin-bottom: 16px;">
+          <div class="card-body" style="padding: 16px 20px;">
+            <div class="detail-filter-grid">
+              <div>
+                <label class="filter-label"><i class="fa-solid fa-user-tie"></i> Petugas SCO</label>
+                <select class="form-select" id="coverage-sco-select" onchange="window.setCoverageSales(this.value)" style="width:100%;">
+                  <option value="ALL" ${state.coverageSales === 'ALL' ? 'selected' : ''}>Semua Tim SCO</option>
+                  ${cleanScos.map(s => `<option value="${escapeHtml(s)}" ${state.coverageSales === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
+                </select>
+              </div>
 
-            <div>
-              <label class="filter-label"><i class="fa-regular fa-calendar-check"></i> Jadwal Kunjungan (PJP)</label>
-              <select class="form-select" id="coverage-jadwal-select" onchange="window.setCoverageJadwal(this.value)" style="width:100%;">
-                <option value="ALL" ${state.coverageJadwal === 'ALL' ? 'selected' : ''}>Semua Jadwal Kunjungan</option>
-                <option value="Senin,Kamis" ${state.coverageJadwal === 'Senin,Kamis' ? 'selected' : ''}>Senin, Kamis</option>
-                <option value="Selasa,Jumat" ${state.coverageJadwal === 'Selasa,Jumat' ? 'selected' : ''}>Selasa, Jum'at</option>
-                <option value="Rabu,Sabtu" ${state.coverageJadwal === 'Rabu,Sabtu' ? 'selected' : ''}>Rabu, Sabtu</option>
-                <option value="LAINNYA" ${state.coverageJadwal === 'LAINNYA' ? 'selected' : ''}>Tanpa Jadwal / Lainnya</option>
-              </select>
-            </div>
+              <div>
+                <label class="filter-label"><i class="fa-regular fa-calendar-check"></i> Jadwal Kunjungan (PJP)</label>
+                <select class="form-select" id="coverage-jadwal-select" onchange="window.setCoverageJadwal(this.value)" style="width:100%;">
+                  <option value="ALL" ${state.coverageJadwal === 'ALL' ? 'selected' : ''}>Semua Jadwal Kunjungan</option>
+                  <option value="Senin,Kamis" ${state.coverageJadwal === 'Senin,Kamis' ? 'selected' : ''}>Senin, Kamis</option>
+                  <option value="Selasa,Jumat" ${state.coverageJadwal === 'Selasa,Jumat' ? 'selected' : ''}>Selasa, Jum'at</option>
+                  <option value="Rabu,Sabtu" ${state.coverageJadwal === 'Rabu,Sabtu' ? 'selected' : ''}>Rabu, Sabtu</option>
+                  <option value="LAINNYA" ${state.coverageJadwal === 'LAINNYA' ? 'selected' : ''}>Tanpa Jadwal / Lainnya</option>
+                </select>
+              </div>
 
-            <div>
-              <label class="filter-label"><i class="fa-solid fa-magnifying-glass"></i> Cari Toko / Agen</label>
-              <div style="position:relative;">
-                <input type="text" class="form-input" id="coverage-search-input"
-                  placeholder="Ketik nama atau kode toko..."
-                  value="${escapeAttr(state.coverageSearch)}"
-                  oninput="window.setCoverageSearch(this.value)"
-                  style="width:100%; padding-right:32px;">
-                ${state.coverageSearch ? `
-                  <button type="button" onclick="window.clearCoverageSearch()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px;">
-                    <i class="fa-solid fa-xmark"></i>
-                  </button>
-                ` : ''}
+              <div>
+                <label class="filter-label"><i class="fa-solid fa-magnifying-glass"></i> Cari Toko / Agen</label>
+                <div style="position:relative;">
+                  <input type="text" class="form-input" id="coverage-search-input"
+                    placeholder="Ketik nama atau kode toko..."
+                    value="${escapeAttr(state.coverageSearch)}"
+                    oninput="window.setCoverageSearch(this.value)"
+                    style="width:100%; padding-right:32px;">
+                  ${state.coverageSearch ? `
+                    <button type="button" onclick="window.clearCoverageSearch()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px;">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  ` : ''}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border-color);">
-            <div id="coverage-active-summary" style="font-size:12.5px; color:var(--text-muted);">
-              Memuat titik lokasi...
-            </div>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-              <button class="action-btn btn-secondary btn-sm" onclick="window.resetCoverageFilters()">
-                <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filter
-              </button>
-              <button class="action-btn btn-primary btn-sm" onclick="window.fitCoverageBounds()">
-                <i class="fa-solid fa-expand"></i> Fokuskan Peta
-              </button>
-              <button class="action-btn btn-success btn-sm" onclick="window.copyTargetPjpWa()" title="Salin Target PJP per Jadwal untuk WhatsApp" style="background:#16a34a; border-color:#16a34a; color:#ffffff; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                </svg>
-                <span>Kirim Target PJP ke WA</span>
-              </button>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-color);">
+              <div id="coverage-active-summary" style="font-size:12.5px; color:var(--text-muted);">
+                Memuat titik lokasi...
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button class="action-btn btn-secondary btn-sm" onclick="window.resetCoverageFilters()">
+                  <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filter
+                </button>
+                <button class="action-btn btn-primary btn-sm" onclick="window.fitCoverageBounds()">
+                  <i class="fa-solid fa-expand"></i> Fokuskan Peta
+                </button>
+                <button class="action-btn btn-success btn-sm" onclick="window.copyTargetPjpWa()" title="Salin Target PJP per Jadwal untuk WhatsApp" style="background:#16a34a; border-color:#16a34a; color:#ffffff; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                  </svg>
+                  <span>Kirim Target PJP ke WA</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1928,13 +1921,7 @@
                 <span id="coverage-stats-text">Memetakan Toko...</span>
               </div>
             </div>
-            <div class="coverage-toolbar-right" style="display:flex; gap:6px; align-items:center;">
-              <button class="action-btn btn-success btn-sm" onclick="window.copyTargetPjpWa()" title="Salin Target PJP per Jadwal untuk WhatsApp" style="background:#16a34a; border-color:#16a34a; color:#ffffff; font-weight:600; display:inline-flex; align-items:center; gap:5px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                </svg>
-                <span>Kirim PJP ke WA</span>
-              </button>
+            <div class="coverage-toolbar-right">
               <button class="action-btn btn-secondary btn-sm" onclick="window.fitCoverageBounds()" title="Fokuskan Semua Titik">
                 <i class="fa-solid fa-expand"></i> Fokus
               </button>
