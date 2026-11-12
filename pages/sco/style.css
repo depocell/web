@@ -305,10 +305,10 @@ img.brand-icon {
 
 /* ── TOP HEADER / APP BAR ── */
 .app-header {
-  height: 64px;
+  height: 52px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
-  padding: 0 24px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -322,11 +322,11 @@ img.brand-icon {
 .sub-header-bar {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
-  padding: 10px 24px;
+  padding: 8px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -490,35 +490,44 @@ img.brand-icon {
 
 /* ── VIEW CONTAINER ── */
 .view-container {
-  padding: 24px;
+  padding: 16px 18px;
   flex: 1;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
 }
 
-/* ── METRIC CARDS GRID (2 BERJAJAR) ── */
+/* ── METRIC CARDS GRID (COMPACT & PRISTINE) ── */
 .metrics-grid {
   display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metrics-grid.metrics-grid-2,
+.metrics-grid:has(> :last-child:nth-child(2)) {
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
 }
 
 .metric-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: var(--transition);
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .metric-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary);
+  transform: translateY(-1px);
 }
 
 .metric-card::before {
@@ -530,44 +539,46 @@ img.brand-icon {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .metric-label {
-  font-size: 12.5px;
+  font-size: 11px;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 }
 
 .metric-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: var(--bg-subtle);
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 11px;
 }
 
 .metric-value {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.4px;
   color: var(--text-main);
   font-family: var(--font-mono);
-  margin-bottom: 6px;
+  margin-bottom: 3px;
+  line-height: 1.15;
 }
 
 .metric-subtext {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
+  line-height: 1.2;
 }
 
 /* ── BADGES & PILLS ── */
@@ -588,28 +599,28 @@ img.brand-icon {
 .badge-purple  { background: var(--purple-bg);  color: var(--purple-text);  }
 .badge-info    { background: var(--primary-light); color: var(--primary); }
 
-/* ── CARD SECTIONS ── */
+/* ── CARD SECTIONS (COMPACT) ── */
 .content-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .card-header {
-  padding: 16px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--text-main);
   display: flex;
@@ -618,10 +629,10 @@ img.brand-icon {
 }
 
 .card-body {
-  padding: 20px;
+  padding: 12px 16px;
 }
 
-/* ── DATA TABLES ── */
+/* ── DATA TABLES (COMPACT ROWS) ── */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -631,7 +642,7 @@ img.brand-icon {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12.5px;
   text-align: left;
 }
 
@@ -641,8 +652,8 @@ img.brand-icon {
   font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 12px 14px;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
   user-select: none;
@@ -656,7 +667,7 @@ img.brand-icon {
 }
 
 .data-table tbody td {
-  padding: 12px 14px;
+  padding: 7px 12px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-main);
   vertical-align: middle;
@@ -667,7 +678,7 @@ img.brand-icon {
 }
 
 .data-table tfoot td {
-  padding: 14px;
+  padding: 8px 12px;
   background: var(--table-header);
   font-weight: 800;
   border-top: 2px solid var(--border-color);
@@ -1137,18 +1148,23 @@ img.brand-icon {
   .btn-menu-toggle {
     display: inline-flex;
   }
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
 }
 
 @media (max-width: 640px) {
   .app-header {
-    padding: 0 16px;
-    height: 58px;
+    padding: 0 14px;
+    height: 48px;
   }
   .sub-header-bar {
-    padding: 10px 16px;
+    padding: 8px 12px;
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
+    gap: 8px;
   }
   .sub-header-left {
     min-width: 100%;
@@ -1164,14 +1180,51 @@ img.brand-icon {
     justify-content: flex-start;
   }
   .view-container {
-    padding: 16px 12px;
+    padding: 10px 8px;
   }
   .header-page-title span.title-text {
     display: none;
   }
   .metrics-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .metric-card {
+    padding: 8px 10px;
+  }
+  .metric-header {
+    margin-bottom: 3px;
+  }
+  .metric-label {
+    font-size: 9.5px;
+    letter-spacing: 0.2px;
+  }
+  .metric-icon-box {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+  .metric-value {
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+  .metric-subtext {
+    font-size: 10px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .content-card {
+    margin-bottom: 10px;
+  }
+  .card-header {
+    padding: 8px 12px;
+  }
+  .card-title {
+    font-size: 12.5px;
+  }
+  .card-body {
+    padding: 10px 12px;
   }
   .filter-bar {
     flex-direction: column;

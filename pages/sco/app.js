@@ -1564,7 +1564,7 @@
 
     container.innerHTML = `
       <!-- SUMMARY STATS -->
-      <div class="metrics-grid">
+      <div class="metrics-grid metrics-grid-2">
         <div class="metric-card" style="--card-accent: var(--primary);">
           <div class="metric-header">
             <span class="metric-label">Rata-rata KPI Score</span>
@@ -1704,7 +1704,7 @@
 
     container.innerHTML = `
       <!-- SUMMARY STATS -->
-      <div class="metrics-grid">
+      <div class="metrics-grid metrics-grid-2">
         <div class="metric-card" style="--card-accent: var(--primary);">
           <div class="metric-header">
             <span class="metric-label">Rata-rata KPI DSO</span>
