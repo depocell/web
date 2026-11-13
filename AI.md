@@ -3,10 +3,11 @@
 Dokumen ini adalah panduan resmi dan catatan teknis mengenai arsitektur kecerdasan buatan (**Google Gemini AI**) serta integrasi multi-kanal (**Telegram Bot & Controller**) di dalam ekosistem **Web Report Depo Cell (My Astaga! & OKIPAY)**.
 
 > [!IMPORTANT]
-> **STATUS INFRASTRUKTUR SAAT INI:**  
-> 1. **Server VPS:** **DINONAKTIFKAN TOTAL (OFF TOTAL / DECOMMISSIONED).**  
-> 2. **WhatsApp Gateway (Port 3000):** **DINONAKTIFKAN TOTAL (OFF TOTAL).** Seluruh aktivitas blast survei dan gateway outbound telah dihentikan permanen. Seluruh master data kontak valid dan histori tersimpan aman di database SQLite lokal.  
-> 3. **Pusat Ekosistem:** Seluruh infrastruktur Web Report, engine analitik, database, dan AI Bot kini berjalan **100% di Laptop Localhost**, dengan akses publik internet via **Cloudflare Tunnel (`https://depas.my.id`)**.
+> **STATUS INFRASTRUKTUR SAAT INI (HYBRID TWO-TIER):**  
+> 1. **Server VPS (`185.205.222.170`):** **AKTIF PENUH & LIVE 24 JAM.** Domain resmi `https://depas.my.id` diarahkan langsung via DNS Cloudflare A-Record (Proxied) ke VPS Nginx Reverse Proxy (SSL Let's Encrypt), menjalankan PM2 `webreport` di port 8000 berdampingan dengan Depot Pulsa (port 3000 `serpul`).  
+> 2. **Cloudflare Tunnel Laptop:** **RESMI DIPENSIUNKAN / DI-RELEASE.** Laptop tidak perlu lagi menjalankan `cloudflared` atau `run_tunnel.bat`.  
+> 3. **Laptop Workstation Lokal (`C:\WEB REPORT`):** Berfungsi sebagai **DAPUR UTAMA** untuk mengolah data TSV mentah dari OtomaX, menghasilkan Parquet, dan menyinkronkan data ke Cloud VPS via SFTP & Tab "Sync & Status VPS".  
+> 4. **Ompasha Unified AI Copilot (`C:\LAPTOP_AGENT` / `@ompasha_bot`):** Aktif siaga di laptop dengan fitur kontrol Web Report lokal, tombol/perintah `/sync` langsung ke Cloud VPS, dan pemantauan telemetri VPS.
 
 ---
 
@@ -19,7 +20,7 @@ Untuk menjaga stabilitas operasional, keamanan data, dan pemisahan wewenang, eko
 | **Task 1: WA Gateway Survei Churn** | WhatsApp (`081389779977`) Port 3000 | • Outbound blast survei churn & validasi `onWhatsApp`.<br>• Mengarahkan ke CS resmi `0857-7197-5556`.<br>• Layanan saat ini telah dihentikan total.<br>• Master database kontak valid tetap diarsipkan di lokal. | 🔴 **OFF TOTAL (Dinonaktifkan)** |
 | **Task 2: AI Copilot di Web Report** | Dashboard `depas.my.id` (Menu Chat / Widget) | • Chat widget terintegrasi langsung di dashboard browser.<br>• Otak: Google Gemini Flash via `.env`.<br>• Analisa data transaksi internal, cabang, dan produk secara interaktif.<br>• Menghasilkan ringkasan visual & tabel on-demand. | **Ditahan Sementara** (Dialihkan ke Bot Telegram) |
 | **Task 3: AI Asisten Eksekutif Telegram** | Telegram Bot: **`@depas_ai_bot`** | • Asisten pasif terdahulu.<br>• **STATUS: DIPENSIUNKAN (RETIRED)**.<br>• Seluruh peran dan kecerdasan bisnis telah disatukan ke Task 4 (Ompasha Agent). | 🔴 **OFF TOTAL (Dipensiunkan)** |
-| **Task 4: Ompasha Unified AI Copilot** | Telegram Bot: **`@ompasha_bot`** ([t.me/ompasha_bot](https://t.me/ompasha_bot)) | • Asisten AI tunggal serba bisa (**Bossque**): Data transaksi, koding, kontrol laptop.<br>• **3-Tier AI Multi-Brain**: Groq (Tier 1), Gemini 2.5 Flash (Tier 2), Ollama Qwen2.5 (Tier 3 offline).<br>• **Zero Ticket**: Langsung eksekusi Python ke database mentah C:\WEB REPORT tanpa antrean tiket.<br>• **Remote Control 100% Silent**: Kontrol Web Report port 8000 & Cloudflare Tunnel. | 🟢 **100% Aktif di Laptop** (`agent.py`) |
+| **Task 4: Ompasha Unified AI Copilot** | Telegram Bot: **`@ompasha_bot`** ([t.me/ompasha_bot](https://t.me/ompasha_bot)) | • Asisten AI tunggal serba bisa (**Bossque**): Data transaksi, koding, kontrol laptop.<br>• **3-Tier AI Multi-Brain**: Groq (Tier 1), Gemini 2.5 Flash (Tier 2), Ollama Qwen2.5 (Tier 3 offline).<br>• **Zero Ticket**: Langsung eksekusi Python ke database mentah C:\WEB REPORT tanpa antrean tiket.<br>• **Remote Control 100% Silent**: Kontrol Web Report lokal port 8000, trigger `/sync` ke Cloud VPS depas.my.id, dan monitoring telemetri server. | 🟢 **100% Aktif di Laptop** (`agent.py`) |
 
 ---
 
