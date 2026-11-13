@@ -142,24 +142,30 @@
   }
 
   .col-metric {
-    width: 40%;
+    width: 28%;
     font-weight: 500;
   }
 
   .col-astaga {
-    width: 20%;
+    width: 18%;
     text-align: center;
     font-family: var(--font-mono);
   }
 
-  .col-okipay {
-    width: 20%;
+  .col-okipay-ret {
+    width: 18%;
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+
+  .col-okipay-h2h {
+    width: 18%;
     text-align: center;
     font-family: var(--font-mono);
   }
 
   .col-total {
-    width: 20%;
+    width: 18%;
     text-align: center;
     font-family: var(--font-mono);
     font-weight: 700;
@@ -239,7 +245,7 @@
       width: 45%;
       font-size: 12px;
     }
-    .col-astaga, .col-okipay, .col-total {
+    .col-astaga, .col-okipay-ret, .col-okipay-h2h, .col-total {
       font-size: 12px;
     }
   }
@@ -281,14 +287,14 @@
       <div class="ribbon-sub" id="ribbon-daily-sub">Akumulasi - Total Sukses</div>
     </div>
 
-    <!-- Card 2: Basis Reseller Aktif -->
+    <!-- Card 2: Basis Akun Aktif -->
     <div class="ribbon-card">
       <div class="ribbon-label">
         <span style="width: 6px; height: 6px; border-radius: 50%; background: #059669;"></span>
-        TOTAL BASIS RESELLER AKTIF
+        TOTAL BASIS AKUN AKTIF
       </div>
       <div class="ribbon-val" style="color: #059669;" id="ribbon-active-cust">-</div>
-      <div class="ribbon-sub" id="ribbon-active-sub">Reseller Setia / Retained -</div>
+      <div class="ribbon-sub" id="ribbon-active-sub">Akun Setia / Retained -</div>
     </div>
 
     <!-- Card 3: Global Service SLA -->
@@ -313,9 +319,13 @@
               ASTAGA RELOAD
               <div style="font-size: 10.5px; font-weight: 500; text-transform: none; color: var(--text-muted); margin-top: 1px;">Retail &amp; Cabang Fisik</div>
             </th>
-            <th class="col-okipay" style="color: #dc2626;">
-              OKIPAYMENT
-              <div style="font-size: 10.5px; font-weight: 500; text-transform: none; color: var(--text-muted); margin-top: 1px;">Online &amp; H2H Channel</div>
+            <th class="col-okipay-ret" style="color: #dc2626;">
+              OKIPAY (RETAIL)
+              <div style="font-size: 10.5px; font-weight: 500; text-transform: none; color: var(--text-muted); margin-top: 1px;">Online PlayStore</div>
+            </th>
+            <th class="col-okipay-h2h" style="color: #2563eb;">
+              OKIPAY (H2H)
+              <div style="font-size: 10.5px; font-weight: 500; text-transform: none; color: var(--text-muted); margin-top: 1px;">Mitra B2B Host-to-Host</div>
             </th>
             <th class="col-total" style="color: var(--text-main);">
               KONSOLIDASI
@@ -325,7 +335,7 @@
         </thead>
         <tbody id="ov-matrix-tbody">
           <tr>
-            <td colspan="4" style="text-align: center; padding: 36px; color: var(--text-muted);">
+            <td colspan="5" style="text-align: center; padding: 36px; color: var(--text-muted);">
               Memuat data Executive Overview Matrix...
             </td>
           </tr>

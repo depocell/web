@@ -44,7 +44,7 @@
     background: #0284c7;
   }
 
-  /* TABS NAVIGATION */
+  /* TABS NAVIGATION (SMOOTH HORIZONTAL SCROLL ON MOBILE) */
   .yoy-tabs {
     display: flex;
     align-items: center;
@@ -52,6 +52,25 @@
     border-bottom: 1px solid var(--surface-border);
     padding-bottom: 2px;
     margin-top: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    max-width: 100%;
+  }
+
+  .yoy-tabs::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .yoy-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .yoy-tabs::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 3px;
   }
 
   .yoy-tab-btn {
@@ -67,6 +86,8 @@
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .yoy-tab-btn:hover {
@@ -154,6 +175,42 @@
     padding-top: 6px;
     border-top: 1px dashed var(--surface-border);
   }
+
+  /* REFRESH BUTTON */
+  .btn-yoy-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-yoy-refresh:hover {
+    background: var(--surface-bg);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .btn-yoy-refresh.loading svg {
+    animation: yoySpin 0.8s linear infinite;
+  }
+
+  @keyframes yoySpin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
 </style>
 
 <div class="yoy-container">
@@ -168,15 +225,31 @@
       </div>
     </div>
 
-    <!-- Switch Brand (ASTAGA vs OKIPAY) -->
-    <div class="unified-brand-switcher" id="yoy-brand-switcher">
-      <button type="button" id="btn-yoy-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="switchYoYBrand('ASTAGA')">
-        <span class="brand-dot"></span>
-        ASTAGA
-      </button>
-      <button type="button" id="btn-yoy-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="switchYoYBrand('OKIPAY')">
-        <span class="brand-dot" style="background:#dc2626;"></span>
-        OKIPAY
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <!-- Switch Brand (ASTAGA vs OKIPAY) -->
+      <div class="unified-brand-switcher" id="yoy-brand-switcher">
+        <button type="button" id="btn-yoy-astaga" class="unified-brand-btn active" data-brand="ASTAGA"
+          onclick="switchYoYBrand('ASTAGA')">
+          <span class="brand-dot"></span>
+          ASTAGA
+        </button>
+        <button type="button" id="btn-yoy-okipay" class="unified-brand-btn" data-brand="OKIPAY"
+          onclick="switchYoYBrand('OKIPAY')">
+          <span class="brand-dot" style="background:#dc2626;"></span>
+          OKIPAY
+        </button>
+      </div>
+
+      <!-- Refresh Button -->
+      <button type="button" class="btn-yoy-refresh" id="btn-yoy-refresh" onclick="loadYoY(true)"
+        title="Segarkan Data YoY">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Refresh</span>
       </button>
     </div>
   </div>
@@ -184,26 +257,30 @@
   <!-- TAB NAVIGATION -->
   <div class="yoy-tabs">
     <button type="button" class="yoy-tab-btn active" id="tab-btn-cabang" onclick="switchYoYTab('cabang')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
         <polyline points="9 22 9 12 15 12 15 22"></polyline>
       </svg>
-      <span>Tab 1: Performa Cabang</span>
+      <span>Performa Cabang</span>
     </button>
     <button type="button" class="yoy-tab-btn" id="tab-btn-produk" onclick="switchYoYTab('produk')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
         <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <path
+          d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+        </path>
         <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
         <line x1="12" y1="22.08" x2="12" y2="12"></line>
       </svg>
-      <span>Tab 2: Performa Produk &amp; Operator</span>
+      <span>Performa Produk &amp; Operator</span>
     </button>
   </div>
 
   <!-- TAB 1: PERFORMA CABANG -->
   <div id="yoy-content-cabang" style="display: flex; flex-direction: column; gap: 18px;">
-    
+
     <!-- CHART 1: DAILY TRX PER CABANG -->
     <div class="chart-panel">
       <div class="chart-panel-header">
@@ -248,7 +325,8 @@
 
   <!-- TAB 2: PERFORMA PRODUK & OPERATOR -->
   <div id="yoy-content-produk" style="display: none; flex-direction: column; gap: 18px;">
-    
+
+    <!-- CHART 1: DAILY TRX PER PRODUK / OPERATOR -->
     <div class="chart-panel">
       <div class="chart-panel-header">
         <div class="chart-panel-title">
@@ -257,10 +335,12 @@
         </div>
         <!-- Subtoggle: Kategori vs Operator -->
         <div class="chart-subtoggle">
-          <button type="button" class="chart-subtoggle-btn active" id="btn-sub-kategori" onclick="switchYoYProdView('kategori')">
+          <button type="button" class="chart-subtoggle-btn active" id="btn-sub-kategori"
+            onclick="switchYoYProdView('kategori')">
             Kategori Produk
           </button>
-          <button type="button" class="chart-subtoggle-btn" id="btn-sub-operator" onclick="switchYoYProdView('operator')">
+          <button type="button" class="chart-subtoggle-btn" id="btn-sub-operator"
+            onclick="switchYoYProdView('operator')">
             Operator Populer
           </button>
         </div>
@@ -271,6 +351,46 @@
       <div class="chart-note">
         <span>Klik nama produk/operator pada legenda di atas untuk fokus ke seri tertentu.</span>
         <span>Run-rate harian dihitung dari total hits sukses dibagi hari aktif server bulan tersebut.</span>
+      </div>
+    </div>
+
+    <!-- CHART 2: NET REVENUE PER PRODUK / OPERATOR -->
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#0284c7;"></span>
+          <span id="yoy-prod-rev-chart-title">Tren Net Revenue per Kategori Produk (12 Bulan Terakhir)</span>
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
+          Satuan: Rupiah (Net Revenue Bulanan)
+        </div>
+      </div>
+      <div class="chart-canvas-wrapper" style="height: 380px;">
+        <canvas id="chart-yoy-produk-rev"></canvas>
+      </div>
+      <div class="chart-note">
+        <span>Klik nama produk/operator pada legenda untuk memfilter grafik.</span>
+        <span>Net Revenue Server = Total Harga Jual Dasar (setelah dipotong komisi markup upline).</span>
+      </div>
+    </div>
+
+    <!-- CHART 3: NET ARPU PER PRODUK / OPERATOR -->
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#059669;"></span>
+          <span id="yoy-prod-arpu-chart-title">Tren Net ARPU per Kategori Produk (12 Bulan Terakhir)</span>
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
+          Satuan: Rupiah / Hit Transaksi Sukses
+        </div>
+      </div>
+      <div class="chart-canvas-wrapper" style="height: 380px;">
+        <canvas id="chart-yoy-produk-arpu"></canvas>
+      </div>
+      <div class="chart-note">
+        <span>Klik nama produk/operator pada legenda untuk memfilter grafik.</span>
+        <span>Net ARPU = Total Net Revenue dibagi Frekuensi Hit Transaksi Sukses (COUNTROWS).</span>
       </div>
     </div>
 

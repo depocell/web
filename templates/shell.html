@@ -11,7 +11,7 @@
   <noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </noscript>
-  <link rel="stylesheet" href="/static/css/app.css?v=19">
+  <link rel="stylesheet" href="/static/css/app.css?v=40">
   <script>
     (function() {
       var savedTheme = localStorage.getItem('theme_preference');
@@ -22,8 +22,22 @@
       } else {
         document.documentElement.setAttribute('data-theme', 'light');
       }
-      if (localStorage.getItem('sidebar_collapsed') === 'true') {
+      if (window.innerWidth > 768 && localStorage.getItem('sidebar_collapsed') === 'true') {
         document.documentElement.classList.add('sidebar-collapsed');
+      }
+
+      // Deteksi Admin Station Mode (Dedicated Desktop EXE / Workstation)
+      var urlParams = new URLSearchParams(window.location.search);
+      var isAdmin = urlParams.get('mode') === 'admin' || window.location.hash.indexOf('mode=admin') !== -1;
+      if (isAdmin) {
+        document.documentElement.classList.add('admin-station-mode');
+        window.addEventListener('DOMContentLoaded', function() {
+          var sub = document.querySelector('.brand-subtitle');
+          if (sub) sub.textContent = 'Admin Workstation';
+        });
+        if (!window.location.hash || window.location.hash === '#overview' || window.location.hash === '') {
+          window.location.hash = '#admin';
+        }
       }
     })();
   </script>
@@ -35,6 +49,18 @@
 
   <!-- MOBILE SIDEBAR BACKDROP -->
   <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+  <!-- GLOBAL ENGINE LOADER (SIMPLE FLOATING CIRCLE) -->
+  <div id="engine-loader" class="engine-loader" aria-hidden="true">
+    <div class="engine-loader-pod">
+      <svg class="engine-spinner-svg" viewBox="0 0 50 50">
+        <circle class="engine-spinner-track" cx="25" cy="25" r="20" fill="none" stroke-width="3.5"></circle>
+        <circle class="engine-spinner-head" cx="25" cy="25" r="20" fill="none" stroke-width="3.5"></circle>
+      </svg>
+      <div class="engine-spinner-center"></div>
+    </div>
+  </div>
+
 
   <!-- SIDEBAR NAVIGATION -->
   <aside id="sidebar">
@@ -61,68 +87,161 @@
       <li class="nav-label">Produk Digital</li>
       <li class="nav-item">
         <a href="#overview" class="nav-link" title="Overview Dashboard" data-tooltip="Overview Dashboard">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-ov-1" x1="2.5" y1="2.5" x2="11" y2="11" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/>
+                <stop offset="1" stop-color="#0284C7"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-ov-2" x1="13" y1="2.5" x2="21.5" y2="11" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#A78BFA"/>
+                <stop offset="1" stop-color="#6D28D9"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-ov-3" x1="2.5" y1="13" x2="11" y2="21.5" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#34D399"/>
+                <stop offset="1" stop-color="#059669"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-ov-4" x1="13" y1="13" x2="21.5" y2="21.5" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FBBF24"/>
+                <stop offset="1" stop-color="#EA580C"/>
+              </linearGradient>
+            </defs>
+            <rect x="2.5" y="2.5" width="8.5" height="8.5" rx="2.5" fill="url(#sh-fl-ov-1)"/>
+            <rect x="13" y="2.5" width="8.5" height="8.5" rx="2.5" fill="url(#sh-fl-ov-2)"/>
+            <rect x="2.5" y="13" width="8.5" height="8.5" rx="2.5" fill="url(#sh-fl-ov-3)"/>
+            <rect x="13" y="13" width="8.5" height="8.5" rx="2.5" fill="url(#sh-fl-ov-4)"/>
           </svg>
           <span class="nav-text">Overview</span>
         </a>
       </li>
       <li class="nav-item">
         <a href="#yoy" class="nav-link" id="nav-yoy" title="Year on Year" data-tooltip="Year on Year">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-yoy-line" x1="2" y1="12" x2="22" y2="12" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/>
+                <stop offset="0.5" stop-color="#34D399"/>
+                <stop offset="1" stop-color="#FACC15"/>
+              </linearGradient>
+            </defs>
+            <polyline points="2 13 6 13 9 4 15 20 18 13 22 13" stroke="url(#sh-fl-yoy-line)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="9" cy="4" r="2.2" fill="#38BDF8"/>
+            <circle cx="15" cy="20" r="1.8" fill="#FACC15"/>
           </svg>
           <span class="nav-text">Year on Year</span>
         </a>
       </li>
       <li class="nav-item">
         <a href="#agen?tab=ringkasan" class="nav-link" id="nav-agen-reseller" title="Agen & Reseller" data-tooltip="Agen & Reseller">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-res-front" x1="4" y1="5" x2="14" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00D2FF"/>
+                <stop offset="1" stop-color="#0078D4"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-res-back" x1="12" y1="4" x2="21" y2="18" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#C084FC"/>
+                <stop offset="1" stop-color="#7C3AED"/>
+              </linearGradient>
+            </defs>
+            <circle cx="16.5" cy="7.5" r="3.2" fill="url(#sh-fl-res-back)"/>
+            <path d="M13 18.5C13 15.5 14.5 14 17 14C19.5 14 21 15.5 21 18.5V20H13V18.5Z" fill="url(#sh-fl-res-back)" fill-opacity="0.85"/>
+            <circle cx="8.5" cy="8" r="4" fill="url(#sh-fl-res-front)"/>
+            <path d="M3 19C3 15.2 5.5 13.5 8.5 13.5C11.5 13.5 14 15.2 14 19V20.5H3V19Z" fill="url(#sh-fl-res-front)"/>
           </svg>
           <span class="nav-text">Agen &amp; Reseller</span>
         </a>
       </li>
       <li class="nav-item">
         <a href="#ewallet" class="nav-link" id="nav-ewallet" title="E-Wallet Monitoring" data-tooltip="E-Wallet Monitoring">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-            <line x1="2" y1="10" x2="22" y2="10"></line>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-ewal-card" x1="4" y1="3" x2="20" y2="10" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FBBF24"/>
+                <stop offset="1" stop-color="#F59E0B"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-ewal-body" x1="2" y1="7" x2="22" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0284C7"/>
+                <stop offset="1" stop-color="#1E3A8A"/>
+              </linearGradient>
+            </defs>
+            <rect x="5" y="3.5" width="14" height="7.5" rx="2" fill="url(#sh-fl-ewal-card)"/>
+            <rect x="2" y="7" width="20" height="14" rx="3.5" fill="url(#sh-fl-ewal-body)"/>
+            <path d="M2 11.5H22" stroke="#38BDF8" stroke-width="1.2" stroke-dasharray="2 2"/>
+            <rect x="15" y="12" width="6" height="4.5" rx="1.5" fill="#F59E0B" stroke="#0F172A" stroke-width="0.8"/>
+            <circle cx="17.5" cy="14.25" r="0.8" fill="#FFFFFF"/>
           </svg>
           <span class="nav-text">E-Wallet</span>
         </a>
       </li>
       <li class="nav-item">
         <a href="#survey" class="nav-link" id="nav-survey" title="Survey Churn" data-tooltip="Survey Churn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            <polyline points="9 11 12 14 22 4"></polyline>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-surv-msg" x1="3" y1="3" x2="21" y2="19" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#06B6D4"/>
+                <stop offset="1" stop-color="#0284C7"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-surv-chk" x1="9" y1="7" x2="21" y2="18" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#34D399"/>
+                <stop offset="1" stop-color="#10B981"/>
+              </linearGradient>
+            </defs>
+            <path d="M21 14C21 15.1 20.1 16 19 16H6.5L3 19.5V5C3 3.9 3.9 3 5 3H19C20.1 3 21 3.9 21 5V14Z" fill="url(#sh-fl-surv-msg)"/>
+            <circle cx="16" cy="13" r="4.5" fill="url(#sh-fl-surv-chk)" stroke="#0F172A" stroke-width="1.2"/>
+            <polyline points="14 13 15.5 14.5 18 11.5" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="6" y="6.5" width="8" height="1.6" rx="0.8" fill="#FFFFFF" fill-opacity="0.85"/>
+            <rect x="6" y="9.8" width="6" height="1.6" rx="0.8" fill="#FFFFFF" fill-opacity="0.85"/>
           </svg>
           <span class="nav-text">Survey Churn</span>
         </a>
       </li>
       <li class="nav-item">
         <a href="#analisa" class="nav-link" id="nav-analisa-main" title="Dashboard Analisa" data-tooltip="Dashboard Analisa">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
-            <path d="M2 12h20"></path>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-an-bar1" x1="3" y1="13" x2="7.5" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/>
+                <stop offset="1" stop-color="#0284C7"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-an-bar2" x1="9.5" y1="8" x2="14.5" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#C084FC"/>
+                <stop offset="1" stop-color="#7C3AED"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-an-bar3" x1="16.5" y1="3.5" x2="21.5" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#34D399"/>
+                <stop offset="1" stop-color="#059669"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-an-arrow" x1="2.5" y1="12.5" x2="21.5" y2="3.5" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FCD34D"/>
+                <stop offset="1" stop-color="#F97316"/>
+              </linearGradient>
+            </defs>
+            <rect x="3" y="13" width="4.5" height="8" rx="1.5" fill="url(#sh-fl-an-bar1)"/>
+            <rect x="9.5" y="8" width="5" height="13" rx="1.5" fill="url(#sh-fl-an-bar2)"/>
+            <rect x="16.5" y="3.5" width="5" height="17.5" rx="1.5" fill="url(#sh-fl-an-bar3)"/>
+            <path d="M2.5 12.5L8.5 7.5L13.5 10.5L21.5 3.5M21.5 3.5H16.5M21.5 3.5V8.5" stroke="url(#sh-fl-an-arrow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span class="nav-text">Dashboard Analisa</span>
         </a>
       </li>
       <li class="nav-item">
         <a href="#pivot" class="nav-link" id="nav-pivot-main" title="Pivot Transaksi" data-tooltip="Pivot Transaksi">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-pivt-hdr" x1="2.5" y1="3.5" x2="21.5" y2="9" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#10B981"/>
+                <stop offset="1" stop-color="#059669"/>
+              </linearGradient>
+            </defs>
+            <rect x="2.5" y="3.5" width="19" height="17" rx="3" fill="#1E293B" stroke="#34D399" stroke-width="0.8"/>
+            <path d="M2.5 6.5C2.5 4.84 3.84 3.5 5.5 3.5H18.5C20.16 3.5 21.5 4.84 21.5 6.5V9H2.5V6.5Z" fill="url(#sh-fl-pivt-hdr)"/>
+            <path d="M2.5 9H8.5V20.5H5.5C3.84 20.5 2.5 19.16 2.5 17.5V9Z" fill="#10B981" fill-opacity="0.25"/>
+            <line x1="2.5" y1="14.5" x2="21.5" y2="14.5" stroke="#334155" stroke-width="1"/>
+            <line x1="8.5" y1="3.5" x2="8.5" y2="20.5" stroke="#334155" stroke-width="1"/>
+            <line x1="15" y1="9" x2="15" y2="20.5" stroke="#334155" stroke-width="1"/>
+            <rect x="9.5" y="10" width="4.5" height="3.5" rx="0.8" fill="#34D399" fill-opacity="0.8"/>
+            <rect x="15.8" y="15.5" width="4.8" height="3.8" rx="0.8" fill="#FBBF24"/>
           </svg>
           <span class="nav-text">Pivot Transaksi</span>
         </a>
@@ -131,10 +250,30 @@
       <li class="nav-label" style="margin-top: 22px;">Produk Fisik</li>
       <li class="nav-item">
         <a href="#produk" class="nav-link" title="Rekap Fisik" data-tooltip="Rekap Fisik">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-box-top" x1="12" y1="2.5" x2="20.5" y2="7.2" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FDE68A"/>
+                <stop offset="1" stop-color="#F59E0B"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-box-left" x1="3.5" y1="7.2" x2="12" y2="21.5" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#F59E0B"/>
+                <stop offset="1" stop-color="#D97706"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-box-right" x1="12" y1="7.2" x2="20.5" y2="21.5" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#D97706"/>
+                <stop offset="1" stop-color="#B45309"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-box-tape" x1="10" y1="3.6" x2="14" y2="10.8" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/>
+                <stop offset="1" stop-color="#0284C7"/>
+              </linearGradient>
+            </defs>
+            <path d="M12 2.5L20.5 7.2L12 11.9L3.5 7.2L12 2.5Z" fill="url(#sh-fl-box-top)"/>
+            <path d="M3.5 7.2L12 11.9V21.5L3.5 16.8V7.2Z" fill="url(#sh-fl-box-left)"/>
+            <path d="M12 11.9L20.5 7.2V16.8L12 21.5V11.9Z" fill="url(#sh-fl-box-right)"/>
+            <path d="M10 3.6L14 5.8L14 10.8L10 8.6V3.6Z" fill="url(#sh-fl-box-tape)"/>
+            <path d="M10 8.6L14 10.8L14 20.4L10 18.2V8.6Z" fill="#0369A1" fill-opacity="0.6"/>
           </svg>
           <span class="nav-text">Rekap Fisik</span>
         </a>
@@ -143,61 +282,184 @@
       <li class="nav-label nav-label-admin" style="margin-top: 22px;">Admin &amp; Setting</li>
       <li class="nav-item nav-item-admin">
         <a href="#daily" class="nav-link" id="nav-daily" title="Daily Report" data-tooltip="Daily Report">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-cal-top" x1="2.5" y1="4" x2="21.5" y2="9.5" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#EF4444"/>
+                <stop offset="1" stop-color="#B91C1C"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-cal-body" x1="2.5" y1="9.5" x2="21.5" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FFFFFF"/>
+                <stop offset="1" stop-color="#F1F5F9"/>
+              </linearGradient>
+            </defs>
+            <rect x="2.5" y="4" width="19" height="17" rx="3.5" fill="url(#sh-fl-cal-body)" stroke="#CBD5E1" stroke-width="0.8"/>
+            <path d="M2.5 7.5C2.5 5.57 4.07 4 6 4H18C19.93 4 21.5 5.57 21.5 7.5V9.5H2.5V7.5Z" fill="url(#sh-fl-cal-top)"/>
+            <rect x="6.5" y="2" width="2" height="3.5" rx="1" fill="#64748B"/>
+            <rect x="15.5" y="2" width="2" height="3.5" rx="1" fill="#64748B"/>
+            <rect x="5.5" y="12" width="3" height="2.5" rx="0.8" fill="#94A3B8"/>
+            <rect x="10.5" y="12" width="3" height="2.5" rx="0.8" fill="#94A3B8"/>
+            <rect x="15.5" y="12" width="3" height="2.5" rx="0.8" fill="#38BDF8"/>
+            <rect x="5.5" y="16" width="3" height="2.5" rx="0.8" fill="#94A3B8"/>
+            <rect x="10.5" y="16" width="3" height="2.5" rx="0.8" fill="#0284C7"/>
+            <rect x="15.5" y="16" width="3" height="2.5" rx="0.8" fill="#94A3B8"/>
           </svg>
           <span class="nav-text">Daily Report</span>
         </a>
       </li>
       <li class="nav-item nav-item-admin">
         <a href="#sco" class="nav-link" id="nav-sco" title="SCO Suite" data-tooltip="SCO Suite">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="8.5" cy="7" r="4"></circle>
-            <polyline points="17 11 19 13 23 9"></polyline>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-sco-user" x1="4" y1="4" x2="16" y2="20" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/>
+                <stop offset="1" stop-color="#0284C7"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-sco-badge" x1="13" y1="11" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#34D399"/>
+                <stop offset="1" stop-color="#059669"/>
+              </linearGradient>
+            </defs>
+            <circle cx="9" cy="7" r="4" fill="url(#sh-fl-sco-user)"/>
+            <path d="M3 19C3 15.13 6.13 13 9.5 13C11.3 13 12.9 13.6 14 14.6C12.8 15.8 12.2 17.5 12.5 19.3L12.6 20.5H3V19Z" fill="url(#sh-fl-sco-user)"/>
+            <circle cx="17.5" cy="15.5" r="4.5" fill="url(#sh-fl-sco-badge)"/>
+            <path d="M15.2 15.5L16.8 17.1L19.8 14.1" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span class="nav-text">SCO Suite</span>
         </a>
       </li>
       <li class="nav-item nav-item-admin">
         <a href="#admin" class="nav-link" id="nav-admin-data" title="Admin & Olah Data" data-tooltip="Admin & Olah Data">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-db-top" x1="3" y1="3" x2="21" y2="9" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/>
+                <stop offset="1" stop-color="#0284C7"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-db-mid" x1="3" y1="9" x2="21" y2="15" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0284C7"/>
+                <stop offset="1" stop-color="#0369A1"/>
+              </linearGradient>
+              <linearGradient id="sh-fl-db-bot" x1="3" y1="15" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0369A1"/>
+                <stop offset="1" stop-color="#1E3A8A"/>
+              </linearGradient>
+            </defs>
+            <path d="M21 16.5C21 18.43 16.97 20 12 20C7.03 20 3 18.43 3 16.5V18C3 19.93 7.03 21.5 12 21.5C16.97 21.5 21 19.93 21 18V16.5Z" fill="url(#sh-fl-db-bot)"/>
+            <path d="M21 11C21 12.93 16.97 14.5 12 14.5C7.03 14.5 3 12.93 3 11V13C3 14.93 7.03 16.5 12 16.5C16.97 16.5 21 14.93 21 13V11Z" fill="url(#sh-fl-db-mid)"/>
+            <path d="M21 5.5C21 7.43 16.97 9 12 9C7.03 9 3 7.43 3 5.5V7.5C3 9.43 7.03 11 12 11C16.97 11 21 9.43 21 7.5V5.5Z" fill="url(#sh-fl-db-top)"/>
+            <ellipse cx="12" cy="5.5" rx="9" ry="3.5" fill="#7DD3FC"/>
+            <circle cx="18" cy="18" r="3.5" fill="#F59E0B" stroke="#0F172A" stroke-width="1.2"/>
+            <path d="M18 16.5V19.5M16.5 18H19.5" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
           <span class="nav-text">Admin &amp; Olah Data</span>
         </a>
       </li>
       <li class="nav-item nav-item-admin">
         <a href="#pivot-admin" class="nav-link" id="nav-pivot-admin" title="Pivot Admin" data-tooltip="Pivot Admin">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-            <line x1="3" y1="9" x2="21" y2="9"></line>
-            <line x1="9" y1="21" x2="9" y2="9"></line>
+          <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="sh-fl-piva-hdr" x1="2.5" y1="3.5" x2="21.5" y2="9" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0284C7"/>
+                <stop offset="1" stop-color="#0369A1"/>
+              </linearGradient>
+            </defs>
+            <rect x="2.5" y="3.5" width="19" height="17" rx="3" fill="#1E293B" stroke="#38BDF8" stroke-width="0.8"/>
+            <path d="M2.5 6.5C2.5 4.84 3.84 3.5 5.5 3.5H18.5C20.16 3.5 21.5 4.84 21.5 6.5V9H2.5V6.5Z" fill="url(#sh-fl-piva-hdr)"/>
+            <path d="M2.5 9H8.5V20.5H5.5C3.84 20.5 2.5 19.16 2.5 17.5V9Z" fill="#0EA5E9" fill-opacity="0.3"/>
+            <line x1="2.5" y1="14.5" x2="21.5" y2="14.5" stroke="#334155" stroke-width="1"/>
+            <line x1="8.5" y1="3.5" x2="8.5" y2="20.5" stroke="#334155" stroke-width="1"/>
+            <line x1="15" y1="9" x2="15" y2="20.5" stroke="#334155" stroke-width="1"/>
+            <rect x="15.5" y="9.8" width="5.2" height="4" rx="1" fill="#F97316"/>
           </svg>
           <span class="nav-text">Pivot Admin</span>
         </a>
       </li>
     </ul>
 
-    <!-- THEME TOGGLE SWITCH -->
-    <div class="sidebar-theme-toggle" id="sidebar-theme-toggle" role="button" tabindex="0" title="Ganti Mode Gelap / Terang">
-      <div class="theme-toggle-label">
-        <span class="theme-toggle-icon" id="theme-toggle-icon">
-          <svg class="theme-icon moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </span>
-        <span class="theme-toggle-text" id="theme-toggle-text">Mode Gelap</span>
+    <!-- QUICK SETTINGS WIDGET (PENGATURAN CEPAT) -->
+    <div class="sidebar-quick-settings" id="sidebar-quick-settings">
+      <div class="quick-settings-header">
+        <span class="quick-settings-title">PENGATURAN CEPAT</span>
       </div>
-      <label class="theme-switch" for="theme-toggle-checkbox">
-        <input type="checkbox" id="theme-toggle-checkbox" aria-label="Toggle Mode Gelap/Terang">
-        <span class="theme-slider"></span>
-      </label>
+      <div class="quick-settings-grid">
+        <!-- 1. Mode Dark / Light -->
+        <button type="button" class="quick-setting-btn" id="quick-btn-mode" title="Toggle Mode Gelap / Terang" onclick="toggleQuickMode()">
+          <span class="quick-btn-icon" id="quick-icon-mode">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </span>
+          <div class="quick-btn-text">
+            <span class="quick-btn-sub">MODE</span>
+            <span class="quick-btn-val" id="quick-val-mode">Dark</span>
+          </div>
+        </button>
+
+        <!-- 2. Tema Modern / Classic -->
+        <button type="button" class="quick-setting-btn" id="quick-btn-style" title="Toggle Tema Modern / Classic" onclick="toggleQuickStyle()">
+          <span class="quick-btn-icon" id="quick-icon-style">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </span>
+          <div class="quick-btn-text">
+            <span class="quick-btn-sub">TEMA</span>
+            <span class="quick-btn-val" id="quick-val-style">Modern</span>
+          </div>
+        </button>
+
+        <!-- 3. Tunnel On / Off -->
+        <button type="button" class="quick-setting-btn" id="quick-btn-tunnel" title="Toggle Cloudflare Tunnel (depas.my.id)" onclick="toggleQuickTunnel()">
+          <span class="quick-btn-icon" id="quick-icon-tunnel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+            </svg>
+          </span>
+          <div class="quick-btn-text">
+            <span class="quick-btn-sub">TUNNEL</span>
+            <span class="quick-btn-val" id="quick-val-tunnel">
+              <span class="quick-dot on" id="quick-dot-tunnel"></span>
+              <span id="quick-text-tunnel">On</span>
+            </span>
+          </div>
+        </button>
+
+        <!-- 4. AI Bot On / Off -->
+        <button type="button" class="quick-setting-btn" id="quick-btn-ai" title="Toggle AI Bot Assistant" onclick="toggleQuickAi()">
+          <span class="quick-btn-icon" id="quick-icon-ai">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+              <rect x="9" y="9" width="6" height="6"></rect>
+              <line x1="9" y1="1" x2="9" y2="4"></line>
+              <line x1="15" y1="1" x2="15" y2="4"></line>
+              <line x1="9" y1="20" x2="9" y2="23"></line>
+              <line x1="15" y1="20" x2="15" y2="23"></line>
+              <line x1="20" y1="9" x2="23" y2="9"></line>
+              <line x1="20" y1="14" x2="23" y2="14"></line>
+              <line x1="1" y1="9" x2="4" y2="9"></line>
+              <line x1="1" y1="14" x2="4" y2="14"></line>
+            </svg>
+          </span>
+          <div class="quick-btn-text">
+            <span class="quick-btn-sub">AI BOT</span>
+            <span class="quick-btn-val" id="quick-val-ai">
+              <span class="quick-dot off" id="quick-dot-ai"></span>
+              <span id="quick-text-ai">Off</span>
+            </span>
+          </div>
+        </button>
+      </div>
     </div>
 
     <!-- USER PROFILE & LOGOUT SECTION (ONLINE ONLY) -->
@@ -276,6 +538,6 @@
     <span class="fab-tooltip">Tanya DepAs AI</span>
   </a>
 
-  <script src="/static/js/app.js?v=34"></script>
+  <script src="/static/js/app.js?v=48"></script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+{
+  "ticket_id": "TKT-20261109-102323",
+  "created_at": "2026-11-09 10:23:23",
+  "chat_id": 6166710846,
+  "user_id": 6166710846,
+  "user_name": "OmPas",
+  "username": "@Pasha_Pamungkas",
+  "prompt": "tolong sajikan transaksi okipay harian bulan ini dapam metrix total trx dan total harga bel, breakfown per hari",
+  "requirement": "Tarik detail breakdown harian transaksi dan total harga beli per tanggal untuk brand OKIPAY bulan berjalan",
+  "status": "CANCELLED",
+  "resolution_note": "Dibatalkan: Dibatalkan oleh Boss atas permintaan manual via Telegram.",
+  "cancelled_at": "2026-11-09 10:54:52",
+  "cancelled_by": "Boss (via Ompasha Agent)"
+}

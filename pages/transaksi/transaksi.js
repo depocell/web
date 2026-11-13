@@ -66,16 +66,19 @@ async function loadPivotOptions() {
 
     // 2. Populate Column Dimension
     const colSel = document.getElementById("piv-col-dim");
-    if (colSel && d.column_dimensions) {
+    const colDimensions = (d.column_dimensions && d.column_dimensions.length > 0)
+      ? d.column_dimensions
+      : [{ id: "none", label: "-- Tanpa Kolom (1 Dimensi) --" }, ...(d.dimensions || [])];
+    if (colSel) {
       const prevCol = colSel.value;
       colSel.innerHTML = "";
-      d.column_dimensions.forEach(dim => {
+      colDimensions.forEach(dim => {
         const opt = document.createElement("option");
         opt.value = dim.id;
         opt.textContent = dim.label;
         colSel.appendChild(opt);
       });
-      if (prevCol && d.column_dimensions.some(dim => dim.id === prevCol)) {
+      if (prevCol && colDimensions.some(dim => dim.id === prevCol)) {
         colSel.value = prevCol;
       } else {
         colSel.value = "none";
@@ -173,13 +176,20 @@ async function loadPivotOptions() {
       }
     }
 
-    runPivot();
+    // runPivot() di-hold: hanya berjalan saat user klik "Hitung Pivot"
   } catch (err) {
     console.error("Gagal load opsi pivot:", err);
   }
 }
 
 async function runPivot() {
+  const btn = document.getElementById("btn-run-pivot") || document.querySelector("button[onclick='runPivot()']");
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = "0.7";
+    btn.setAttribute("data-orig-text", btn.innerHTML);
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-anim"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg> Menghitung...`;
+  }
   const yearSel = document.getElementById("piv-filter-year");
   const yearVal = yearSel ? yearSel.value : "2026";
   const rowDim = document.getElementById("piv-row-dim").value;
@@ -248,6 +258,14 @@ async function runPivot() {
   } catch (err) {
     console.error(err);
     tbody.innerHTML = `<tr><td class="loader text-negative" colspan="10">Error: ${err.message}</td></tr>`;
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      if (btn.hasAttribute("data-orig-text")) {
+        btn.innerHTML = btn.getAttribute("data-orig-text");
+      }
+    }
   }
 }
 
@@ -351,12 +369,17 @@ function renderPivotTable(data, metric) {
     }
 
   } else {
-    // 1D Breakdown Table Render (Strictly Operational Metrics)
+    // 1D Breakdown Table Render (Full Operational & Revenue Metrics - Non Profit)
     const headHtml = `
       <tr>
         <th onclick="sortPivotClient('_row_label')" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">${rowLabelText} ${getSortSvg('_row_label')}</th>
         <th onclick="sortPivotClient('trx_count')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Total Trx ${getSortSvg('trx_count')}</th>
         <th onclick="sortPivotClient('daily_trx')" class="text-right" style="color: #2563eb; cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Daily Trx ${getSortSvg('daily_trx')}</th>
+        <th onclick="sortPivotClient('jual_sum')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Omzet Jual Kotor ${getSortSvg('jual_sum')}</th>
+        <th onclick="sortPivotClient('daily_jual')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Daily Omzet ${getSortSvg('daily_jual')}</th>
+        <th onclick="sortPivotClient('base_price_sum')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Revenue Bersih ${getSortSvg('base_price_sum')}</th>
+        <th onclick="sortPivotClient('net_arpu')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Net ARPU ${getSortSvg('net_arpu')}</th>
+        <th onclick="sortPivotClient('qty_sum')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">Total Qty ${getSortSvg('qty_sum')}</th>
         <th onclick="sortPivotClient('sukses_pct')" class="text-right" style="cursor: pointer; user-select: none;" title="Klik untuk mengurutkan">% Sukses ${getSortSvg('sukses_pct')}</th>
       </tr>
     `;
@@ -364,14 +387,19 @@ function renderPivotTable(data, metric) {
 
     let bodyHtml = "";
     if (!data.rows || data.rows.length === 0) {
-      bodyHtml = `<tr><td colspan="4" class="loader">Tidak ada data ditemukan untuk filter ini</td></tr>`;
+      bodyHtml = `<tr><td colspan="9" class="loader">Tidak ada data ditemukan untuk filter ini</td></tr>`;
     } else {
       data.rows.forEach(r => {
         bodyHtml += `
           <tr>
             <td class="font-semibold">${r._row_label}</td>
             <td class="text-right">${formatInt(r.trx_count)}</td>
-            <td class="text-right" style="color: #2563eb; font-weight: 600;">${formatInt(Math.round(r.daily_trx))}</td>
+            <td class="text-right" style="color: #2563eb; font-weight: 600;">${formatInt(Math.round(r.daily_trx || 0))}</td>
+            <td class="text-right">${formatMoney(r.jual_sum || 0)}</td>
+            <td class="text-right" style="color: var(--text-muted);">${formatMoney(r.daily_jual || 0)}</td>
+            <td class="text-right" style="font-weight: 600;">${formatMoney(r.base_price_sum || 0)}</td>
+            <td class="text-right">${formatMoney(r.net_arpu || 0)}</td>
+            <td class="text-right">${formatInt(r.qty_sum || 0)}</td>
             <td class="text-right" style="font-weight: 600;">${(r.sukses_pct || 0).toFixed(1)}%</td>
           </tr>
         `;
@@ -385,7 +413,12 @@ function renderPivotTable(data, metric) {
         <tr>
           <td>TOTAL</td>
           <td class="text-right">${formatInt(tot.trx_count)}</td>
-          <td class="text-right" style="color: #2563eb; font-weight: 800;">${formatInt(Math.round(tot.daily_trx))}</td>
+          <td class="text-right" style="color: #2563eb; font-weight: 800;">${formatInt(Math.round(tot.daily_trx || 0))}</td>
+          <td class="text-right font-semibold">${formatMoney(tot.jual_sum || 0)}</td>
+          <td class="text-right font-semibold" style="color: var(--text-muted);">${formatMoney(tot.daily_jual || 0)}</td>
+          <td class="text-right" style="font-weight: 800;">${formatMoney(tot.base_price_sum || 0)}</td>
+          <td class="text-right font-semibold">${formatMoney(tot.net_arpu || 0)}</td>
+          <td class="text-right font-semibold">${formatInt(tot.qty_sum || 0)}</td>
           <td class="text-right" style="font-weight: 800;">${(tot.sukses_pct || 0).toFixed(1)}%</td>
         </tr>
       `;

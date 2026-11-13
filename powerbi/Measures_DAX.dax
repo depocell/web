@@ -1,0 +1,70 @@
+// ==============================================================================
+// DAX MEASURES RESMI WEB REPORT - TAHUN ON TAHUN (YoY)
+// Sesuai Standar Hukum GEMINI.md (Non-Negotiable)
+// Ganti nama tabel 'dataset_yoy_astaga' jika Anda menamainya dengan nama lain (misal: 'Astaga_YoY')
+// ==============================================================================
+
+// 1. Total Transaksi Sukses (Hits / Frekuensi Baris)
+// WAJIB COUNTROWS, DILARANG SUM(qty)
+Total Trx Sukses = 
+COUNTROWS('dataset_yoy_astaga')
+
+
+// 2. Jumlah Hari Aktif Server Global
+// WAJIB ALLEXCEPT Bulan_Tahun agar tidak terdistorsi filter baris Toko/Cabang/Sales
+Hari Aktif Server = 
+CALCULATE(
+    DISTINCTCOUNT('dataset_yoy_astaga'[Tanggal]),
+    ALLEXCEPT('dataset_yoy_astaga', 'dataset_yoy_astaga'[Bulan_Tahun])
+)
+
+
+// 3. Daily Trx (Run-rate Transaksi Harian)
+Daily Trx = 
+DIVIDE([Total Trx Sukses], [Hari Aktif Server], 0)
+
+
+// 4. Daily Trx 2024
+Daily Trx 2024 = 
+CALCULATE(
+    [Daily Trx],
+    'dataset_yoy_astaga'[Tahun] = 2024
+)
+
+
+// 5. Daily Trx 2026
+Daily Trx 2026 = 
+CALCULATE(
+    [Daily Trx],
+    'dataset_yoy_astaga'[Tahun] = 2026
+)
+
+
+// 6. Growth Daily (Pertumbuhan Selisih Harian 2026 vs 2024)
+Growth Daily = 
+[Daily Trx 2026] - [Daily Trx 2024]
+
+
+// 7. Growth Daily % (Persentase Pertumbuhan Harian)
+Growth Daily % = 
+DIVIDE([Growth Daily], [Daily Trx 2024], 0)
+
+
+// 8. Total Omset (Gross Revenue)
+Total Omset = 
+SUM('dataset_yoy_astaga'[jual])
+
+
+// 9. Total Modal (HPP Server)
+Total Modal = 
+SUM('dataset_yoy_astaga'[beli])
+
+
+// 10. Gross Profit
+Gross Profit = 
+[Total Omset] - [Total Modal]
+
+
+// 11. Gross Margin %
+Gross Margin % = 
+DIVIDE([Gross Profit], [Total Omset], 0)

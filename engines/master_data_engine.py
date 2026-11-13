@@ -429,8 +429,9 @@ def migrate_astaga(tsv_path: str = None) -> dict:
         info_map[k] = {
             "nama": str(r.get('Nama', '')).strip() if pd.notna(r.get('Nama')) else "",
             "grup": str(r.get('Grup', '')).strip() if pd.notna(r.get('Grup')) else "",
-            "saldo": parse_num(r.get('Saldo')),
-            "limit_saldo": parse_num(r.get('Limit Saldo')),
+            "saldo": 0.0,
+            "limit": parse_num(r.get('Limit Saldo') or r.get('Limit')),
+            "limit_saldo": parse_num(r.get('Limit Saldo') or r.get('Limit')),
             "markup": parse_num(r.get('Markup')),
             "tgl_daftar": parse_date(r.get('Tgl. Daftar')),
             "tgl_aktif": parse_date(r.get('Tgl. Aktivitas Terakhir')),
@@ -649,8 +650,9 @@ def migrate_okipay(tsv_path: str = None) -> dict:
         info_map[k] = {
             "nama": str(r.get('Nama', '')).strip() if pd.notna(r.get('Nama')) else "",
             "grup": str(r.get('Grup', '')).strip() if pd.notna(r.get('Grup')) else "",
-            "saldo": parse_num(r.get('Saldo')),
-            "limit_saldo": parse_num(r.get('Limit Saldo')),
+            "saldo": 0.0,
+            "limit": parse_num(r.get('Limit Saldo') or r.get('Limit')),
+            "limit_saldo": parse_num(r.get('Limit Saldo') or r.get('Limit')),
             "markup": parse_num(r.get('Markup')),
             "tgl_daftar": parse_date(r.get('Tgl. Daftar')),
             "tgl_aktif": parse_date(r.get('Tgl. Aktivitas Terakhir')),
@@ -998,6 +1000,194 @@ def migrate_pengirim(tsv_path: str, brand: str = "ASTAGA") -> dict:
         "total_resellers_updated": len(rows_to_insert),
         "total_phones_registered": sum(len(c["all_unique"]) for c in contacts_map.values()),
         "elapsed_sec": elapsed
+    }
+
+
+def update_reseller_limits_and_markup(brand: str = "ASTAGA", tsv_path: str = None, df_input=None) -> dict:
+    """
+    Update Cepat Plafon Limit Kredit & Markup Toko / Reseller:
+    Membaca file TSV/CSV 3-4 kolom (Kode, Limit Saldo, Markup, Tgl. Aktivitas Terakhir).
+    Hanya menimpa limit_saldo, markup, tgl_aktivitas_terakhir dan me-re-evaluasi type agen (Hukum 8 GEMINI.md),
+    tanpa merombak pohon hierarki, cabang, atau SCO yang sudah ada di database SQLite.
+    """
+    brand = brand.upper()
+    t0 = time.time()
+
+    # 1. Load data
+    df = None
+    if df_input is not None and not df_input.empty:
+        df = df_input.copy()
+    else:
+        if not tsv_path:
+            candidates = [
+                os.path.join(r"C:\DMS RAW DATA\MASTER", f"LIMIT_{brand.lower()}.tsv"),
+                os.path.join(r"C:\DMS RAW DATA\MASTER", f"LIMIT_{brand}.tsv"),
+                os.path.join(r"C:\RAW DATA\MASTER", f"LIMIT_{brand.lower()}.tsv"),
+                os.path.join(r"C:\RAW DATA\MASTER", f"LIMIT_{brand}.tsv"),
+                os.path.join(r"C:\RAW DATA", brand, f"LIMIT_{brand.lower()}.tsv")
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    tsv_path = c
+                    break
+
+        if not tsv_path or not os.path.exists(tsv_path):
+            return {"ok": False, "error": f"File LIMIT untuk brand {brand} tidak ditemukan di {tsv_path or 'C:/DMS RAW DATA/MASTER/'}"}
+
+        try:
+            df = pd.read_csv(tsv_path, sep="\t", encoding="utf-8")
+        except UnicodeDecodeError:
+            df = pd.read_csv(tsv_path, sep="\t", encoding="latin-1")
+        except Exception:
+            try:
+                df = pd.read_csv(tsv_path, sep=",", encoding="utf-8")
+            except Exception as e:
+                return {"ok": False, "error": f"Gagal membaca file: {e}"}
+
+    if df is None or df.empty:
+        return {"ok": False, "error": "File kosong atau tidak memiliki data"}
+
+    df.columns = df.columns.astype(str).str.strip()
+
+    # Identifikasi kolom secara fleksibel
+    col_map = {c.lower(): c for c in df.columns}
+    k_col = col_map.get("kode") or col_map.get("kode reseller") or col_map.get("ar_id") or col_map.get("kode agen")
+    l_col = col_map.get("limit saldo") or col_map.get("limit") or col_map.get("limit_saldo") or col_map.get("plafon")
+    m_col = col_map.get("markup") or col_map.get("komisi") or col_map.get("rabat")
+    t_col = col_map.get("tgl. aktivitas terakhir") or col_map.get("tgl aktivitas terakhir") or col_map.get("tgl_aktif") or col_map.get("tgl_aktivitas_terakhir")
+
+    if not k_col or not l_col:
+        return {
+            "ok": False,
+            "error": f"Kolom wajib ('Kode' dan 'Limit Saldo') tidak ditemukan. Kolom yang terdeteksi: {list(df.columns)}"
+        }
+
+    # 2. Ambil data master existing dari SQLite
+    with get_connection() as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT kode_reseller, cabang, grup FROM resellers WHERE brand = ?", (brand,))
+        r_db = {row['kode_reseller']: dict(row) for row in cur.fetchall()}
+
+        cur.execute("SELECT agen_id, cabang, type, limit_saldo FROM agents WHERE brand = ?", (brand,))
+        a_db = {row['agen_id']: dict(row) for row in cur.fetchall()}
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    reseller_updates = []
+    agent_updates = []
+    limit_active_count = 0
+    markup_active_count = 0
+
+    for _, r in df.iterrows():
+        code = str(r[k_col]).strip().upper()
+        if not code or code not in r_db:
+            continue
+
+        raw_limit = parse_num(r[l_col])
+        limit_val = -abs(raw_limit) if raw_limit != 0 else 0.0
+        markup_val = parse_num(r[m_col]) if m_col and m_col in df.columns else 0.0
+        tgl_aktif = parse_date(r[t_col]) if t_col and t_col in df.columns else None
+
+        if limit_val != 0:
+            limit_active_count += 1
+        if markup_val > 0:
+            markup_active_count += 1
+
+        reseller_updates.append((
+            limit_val, markup_val, tgl_aktif, now_str, brand, code
+        ))
+
+        if code in a_db:
+            ag = a_db[code]
+            cab = ag.get("cabang", "BSD")
+            grp = r_db[code].get("grup", "P")
+            cur_type = ag.get("type", "")
+            new_type = me.classify_astaga_agent_type(
+                limit=limit_val,
+                cabang=cab,
+                grup=grp,
+                existing_type=cur_type
+            )
+            agent_updates.append((
+                limit_val, markup_val, new_type, tgl_aktif, now_str, brand, code
+            ))
+
+    # 3. Batch Update SQLite
+    with get_connection() as conn:
+        cur = conn.cursor()
+        # Update resellers
+        cur.executemany("""
+            UPDATE resellers
+            SET limit_saldo = ?,
+                markup = ?,
+                tgl_aktivitas_terakhir = COALESCE(?, tgl_aktivitas_terakhir),
+                updated_at = ?
+            WHERE brand = ? AND kode_reseller = ?
+        """, reseller_updates)
+
+        # Update agents
+        cur.executemany("""
+            UPDATE agents
+            SET limit_saldo = ?,
+                markup = ?,
+                type = ?,
+                tgl_aktivitas_terakhir = COALESCE(?, tgl_aktivitas_terakhir),
+                updated_at = ?
+            WHERE brand = ? AND agen_id = ?
+        """, agent_updates)
+
+        conn.commit()
+
+    # 4. Sinkronisasi Parquet, Dim CSV & Cache
+    sync_to_parquet(brand)
+    export_dim_csvs_to_dms(brand)
+
+    try:
+        import engines.reseller_engine as re_eng
+        re_eng.clear_master_meta_cache()
+        re_eng.clear_reseller_dashboard_cache()
+    except Exception:
+        pass
+
+    try:
+        import engines.agen_engine as ae_eng
+        ae_eng.clear_agen_dashboard_cache()
+    except Exception:
+        pass
+
+    try:
+        import engines.skema_limit_engine as sle
+        sle.clear_skema_limit_cache()
+    except Exception:
+        pass
+
+    try:
+        import engines.customer_engine as ce
+        ce.clear_cache()
+    except Exception:
+        pass
+
+    # 5. Background trigger regenerasi SCO (di thread terpisah agar API instan)
+    if brand == "ASTAGA":
+        try:
+            import threading
+            import engines.sco_engine as sco_engine
+            t = threading.Thread(target=sco_engine.generate_sco_data, daemon=True)
+            t.start()
+        except Exception as e:
+            print(f"[WARN] Gagal auto-update SCO: {e}")
+
+    elapsed = round(time.time() - t0, 2)
+    return {
+        "ok": True,
+        "brand": brand,
+        "total_rows_file": len(df),
+        "updated_resellers": len(reseller_updates),
+        "updated_agents": len(agent_updates),
+        "limit_active_count": limit_active_count,
+        "markup_active_count": markup_active_count,
+        "elapsed_sec": elapsed,
+        "message": f"Berhasil memperbarui {len(reseller_updates):,} akun ({len(agent_updates):,} agen induk). {limit_active_count:,} toko memiliki plafon limit aktif & {markup_active_count:,} toko memiliki markup ({elapsed}s)."
     }
 
 
@@ -1355,7 +1545,7 @@ def query_agents(brand: str = "ASTAGA", cabang: str = None, sco: str = None, typ
                 "dso": r["dso"] or "-",
                 "jadwal": r["jadwal"] or "-",
                 "location": r["location"] or "-",
-                "saldo": r["saldo"] or 0.0,
+                "limit": abs(r["limit_saldo"] or 0.0),
                 "limit_saldo": r["limit_saldo"] or 0.0,
                 "markup": r["markup"] or 0.0,
                 "tgl_daftar": r["tgl_daftar"] or "-",
@@ -1405,7 +1595,7 @@ def get_agent_detail(brand: str, agen_id: str) -> dict:
                 root_agent = dict(r_ag)
 
         cursor.execute("""
-            SELECT kode_reseller, nama_reseller, grup, kode_upline, leveling, saldo,
+            SELECT kode_reseller, nama_reseller, grup, kode_upline, leveling,
                    limit_saldo, markup, tgl_daftar, tgl_aktivitas_terakhir
             FROM resellers
             WHERE brand = ? AND root_agen_id = ? AND kode_reseller != ?
@@ -1413,6 +1603,8 @@ def get_agent_detail(brand: str, agen_id: str) -> dict:
             LIMIT 200
         """, (brand, agen_id, agen_id))
         downlines = [dict(r) for r in cursor.fetchall()]
+        for dl in downlines:
+            dl["limit"] = abs(dl.get("limit_saldo") or 0.0)
 
         merged = {
             "agen_id": agen_id,
@@ -1430,8 +1622,8 @@ def get_agent_detail(brand: str, agen_id: str) -> dict:
             "dso": agent_dict.get("dso") or (root_agent.get("dso") if root_agent else "-"),
             "jadwal": agent_dict.get("jadwal") or (root_agent.get("jadwal") if root_agent else "-"),
             "location": agent_dict.get("location") or (root_agent.get("location") if root_agent else "-"),
+            "limit": abs(agent_dict.get("limit_saldo", 0.0) if agent_dict else reseller_dict.get("limit_saldo", 0.0)),
             "limit_saldo": agent_dict.get("limit_saldo") if agent_dict else reseller_dict.get("limit_saldo", 0.0),
-            "saldo": reseller_dict.get("saldo", 0.0),
             "markup": reseller_dict.get("markup", 0.0),
             "tgl_daftar": agent_dict.get("tgl_daftar") or reseller_dict.get("tgl_daftar") or "-",
             "tgl_aktivitas_terakhir": agent_dict.get("tgl_aktivitas_terakhir") or reseller_dict.get("tgl_aktivitas_terakhir") or "-",
@@ -1569,7 +1761,7 @@ def save_reseller_account(brand: str, data: dict) -> dict:
     cabang = normalize_cabang(data.get("cabang", "BSD"))
 
     # Limit Saldo & Tipe Reseller
-    raw_limit = data.get("limit_saldo", 0.0)
+    raw_limit = data.get("limit") if data.get("limit") is not None else data.get("limit_saldo", 0.0)
     try:
         limit_val = float(raw_limit or 0.0)
     except (ValueError, TypeError):
@@ -1746,7 +1938,7 @@ def export_master_excel(brand: str) -> str:
     with get_connection() as conn:
         df_agents = pd.read_sql_query("""
             SELECT agen_id AS [AGEN ID], nama_agen AS [NAMA AGEN], cabang AS [CABANG],
-                   type AS [TYPE], sco AS [SCO], dso AS [DSO], limit_saldo AS [LIMIT SALDO],
+                   type AS [TYPE], sco AS [SCO], dso AS [DSO], limit_saldo AS [LIMIT],
                    markup AS [MARKUP], tgl_daftar AS [TGL DAFTAR], tgl_aktivitas_terakhir AS [TGL AKTIF],
                    jadwal AS [JADWAL], location AS [LOCATION], kota_kab AS [KOTA/KAB],
                    kecamatan AS [KECAMATAN], kelurahan AS [KELURAHAN]
@@ -1756,8 +1948,8 @@ def export_master_excel(brand: str) -> str:
         df_resellers = pd.read_sql_query("""
             SELECT kode_reseller AS [Kode Reseller], nama_reseller AS [Reseller Name],
                    grup AS [Group], kode_upline AS [Upline], root_agen_id AS [Agen id],
-                   cabang AS [Cabang], leveling AS [Leveling], saldo AS [Saldo],
-                   limit_saldo AS [Limit Saldo], markup AS [Markup],
+                   cabang AS [Cabang], leveling AS [Leveling],
+                   limit_saldo AS [LIMIT], markup AS [Markup],
                    tgl_daftar AS [Tgl Daftar], tgl_aktivitas_terakhir AS [Tgl Aktivitas Terakhir]
             FROM resellers WHERE brand = ? ORDER BY kode_reseller
         """, conn, params=(brand,))

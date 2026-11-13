@@ -622,6 +622,14 @@ def execute_upsert_job(job_id: str, brand: str, delete_tsv: bool = True, year: s
         except Exception as e_ov:
             log(f"Peringatan: Gagal refresh snapshot overview: {e_ov}")
 
+        # Invalidate cache YoY (Year on Year)
+        try:
+            import engines.yoy_engine as ye
+            ye.clear_yoy_cache()
+            log("Cache YoY (Year on Year) berhasil di-refresh.")
+        except Exception:
+            pass
+
         # 9. Hapus file TSV jika diminta
         if delete_tsv:
             try:
@@ -869,7 +877,7 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
 
                 if os.path.isdir(csv_dir):
                     temp_csv = csv_file + f".tmp_{int(time.time())}"
-                    df_csv_clean.to_csv(temp_csv, index=False)
+                    df_csv_clean.to_csv(temp_csv, index=False, date_format="%Y-%m-%d %H:%M:%S")
                     shutil.move(temp_csv, csv_file)
                     print(f"[CSV-SYNC] File CSV bulanan {brand} berhasil di-update: {csv_file} ({len(df_csv_clean):,} baris)")
             except Exception as e:
@@ -881,8 +889,30 @@ def upsert_direct_to_parquet(brand: str, tsv_file_path: str, year: str = "2026")
     trx_engine.clear_memory_cache(brand, year)
     trx_engine.load(brand, year)
 
+    # Invalidate downstream caches
+    try:
+        import engines.analisa_engine as ae
+        ae.clear_cache()
+    except Exception:
+        pass
+    try:
+        import engines.yoy_engine as ye
+        ye.clear_yoy_cache()
+    except Exception:
+        pass
+    try:
+        import engines.overview_engine as oe
+        oe.clear_overview_cache()
+    except Exception:
+        pass
+
     # Hapus watermark cache
     _WATERMARK_CACHE.clear()
+    try:
+        import engines.master_product_engine as mpe
+        mpe.clear_price_cache(brand)
+    except Exception:
+        pass
 
     elapsed = round(time.time() - t0, 2)
     return {

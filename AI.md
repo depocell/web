@@ -18,8 +18,8 @@ Untuk menjaga stabilitas operasional, keamanan data, dan pemisahan wewenang, eko
 | :--- | :--- | :--- | :--- |
 | **Task 1: WA Gateway Survei Churn** | WhatsApp (`081389779977`) Port 3000 | • Outbound blast survei churn & validasi `onWhatsApp`.<br>• Mengarahkan ke CS resmi `0857-7197-5556`.<br>• Layanan saat ini telah dihentikan total.<br>• Master database kontak valid tetap diarsipkan di lokal. | 🔴 **OFF TOTAL (Dinonaktifkan)** |
 | **Task 2: AI Copilot di Web Report** | Dashboard `depas.my.id` (Menu Chat / Widget) | • Chat widget terintegrasi langsung di dashboard browser.<br>• Otak: Google Gemini Flash via `.env`.<br>• Analisa data transaksi internal, cabang, dan produk secara interaktif.<br>• Menghasilkan ringkasan visual & tabel on-demand. | **Ditahan Sementara** (Dialihkan ke Bot Telegram) |
-| **Task 3: AI Asisten Eksekutif Telegram** | Telegram Bot: **`@depas_ai_bot`** ([t.me/depas_ai_bot](https://t.me/depas_ai_bot)) | • Asisten pribadi & reader data 24 jam untuk manajemen (**Bossque**).<br>• **100% Resmi & Anti-Banned** via Telegram Bot API.<br>• Fitur: Daily Report HD (`/summary`), performa cabang (`/cabang`), audit supplier (`/supplier`), pantau tiket eskalasi (`/tiket`), dan tanya jawab data transaksi.<br>• Mode: **Read-Only Data** dengan *Zero Hallucination*. | 🟢 **100% Aktif di Laptop** (`tele_bot.py`) |
-| **Task 4: Ompasha Laptop Dev Agent** | Telegram Bot: **`@ompasha_bot`** ([t.me/ompasha_bot](https://t.me/ompasha_bot)) | • Asisten dev & controller laptop pribadi (**Bro**) di `C:\LAPTOP_AGENT`.<br>• **Gemini Function Calling (Tool Use)**: PowerShell (`run_command`), baca/tulis/edit file, cek direktori.<br>• **Local Data Center**: Menyelesaikan tiket eskalasi (`resolve_ticket`) dari `@depas_ai_bot`.<br>• **Remote Control 100% Silent**: Menyalakan/mematikan Web Report port 8000 & Cloudflare Tunnel. | 🟢 **100% Aktif di Laptop** (`agent.py`) |
+| **Task 3: AI Asisten Eksekutif Telegram** | Telegram Bot: **`@depas_ai_bot`** | • Asisten pasif terdahulu.<br>• **STATUS: DIPENSIUNKAN (RETIRED)**.<br>• Seluruh peran dan kecerdasan bisnis telah disatukan ke Task 4 (Ompasha Agent). | 🔴 **OFF TOTAL (Dipensiunkan)** |
+| **Task 4: Ompasha Unified AI Copilot** | Telegram Bot: **`@ompasha_bot`** ([t.me/ompasha_bot](https://t.me/ompasha_bot)) | • Asisten AI tunggal serba bisa (**Bossque**): Data transaksi, koding, kontrol laptop.<br>• **3-Tier AI Multi-Brain**: Groq (Tier 1), Gemini 2.5 Flash (Tier 2), Ollama Qwen2.5 (Tier 3 offline).<br>• **Zero Ticket**: Langsung eksekusi Python ke database mentah C:\WEB REPORT tanpa antrean tiket.<br>• **Remote Control 100% Silent**: Kontrol Web Report port 8000 & Cloudflare Tunnel. | 🟢 **100% Aktif di Laptop** (`agent.py`) |
 
 ---
 
@@ -124,42 +124,29 @@ Menu resmi Telegram (`setMyCommands`) yang muncul pada tombol `[ Menu ≡ ]`:
 
 ---
 
-## 5. Sistem Tiketing & Eskalasi Data Center (`pages/analisa/tickets/`)
+## 5. Arsitektur Zero-Ticket: Eksekusi Langsung (Direct Real-Time Execution)
 
-Untuk menjawab kebutuhan analisa mendalam yang belum tercakup di snapshot cepat `data.json`:
+Sistem antrean tiket dan birokrasi eskalasi telah **RESMI DIMUSNAHKAN**. Seluruh alur kini berjalan secara langsung (Zero Ticket) melalui Ompasha Copilot (`@ompasha_bot`):
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│ 1. BOSSQUE BERTANYA KE @depas_ai_bot                                   │
-│    (Misal: "Berapa tren omset voucher fisik per bulan tahun ini?")     │
+│ 1. BOSSQUE BERTANYA KE @ompasha_bot                                    │
+│    (Misal: "Berapa transaksi harian & net profit cabang H2H OKIPAY?")  │
 └──────────────────────────────────┬─────────────────────────────────────┘
-                                   │ Data spesifik belum ada di snapshot
+                                   │ Langsung eksekusi tanpa tiket
                                    ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ 2. @depas_ai_bot MENERBITKAN TIKET OTOMATIS:                           │
-│    • Bot menghasilkan tag: [[ESKALASI_TIKET: <kebutuhan data>]]        │
-│    • Tersimpan di: pages/analisa/tickets/TKT-YYYYMMDD-HHMMSS.json      │
-│    • Tercatat di: pages/analisa/tickets/tickets_index.json (PENDING)   │
+│ 2. OMPASHA AGENT LANGSUNG MENGEKSEKUSI PYTHON:                         │
+│    • Menjalankan engine resmi (profit_engine, transaction_engine)      │
+│    • Mengolah 1.7M+ transaksi mentah secara real-time                  │
+│    • Menerapkan hukum metrik GEMINI.md (COUNTROWS, Cut-off MTD)        │
 └──────────────────────────────────┬─────────────────────────────────────┘
-                                   │ Notifikasi ke Data Center
+                                   │ Hasil numerik faktual dalam 1-3 detik
                                    ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ 3. OMPASHA AGENT (@ompasha_bot) BERTINDAK SEBAGAI DATA CENTER:         │
-│    • Bro memeriksa tiket via /tiket atau Ompasha membaca tiket         │
-│    • Ompasha mengekstrak data dari sumber mentah (XLS/Parquet/DB)      │
-│    • Ompasha menyajikan hasil data ke Bro                              │
-│    • Tool `resolve_ticket` dijalankan ➔ Status berubah: RESOLVED       │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │ Update snapshot / API Admin
-                                   ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 4. DASHBOARD ADMIN & @depas_ai_bot DAPAT MEMBACA DATA TERSEBUT         │
+│ 3. JAWABAN LENGKAP & PRESISI LANGSUNG DIKIRIM KE CHAT BOSSQUE          │
 └────────────────────────────────────────────────────────────────────────┘
 ```
-
-* **Endpoint Web Report Admin**:
-  - `GET /api/admin/tickets/list` : Mengambil daftar antrean tiket.
-  - `POST /api/admin/tickets/resolve` : Menandai tiket selesai beserta catatan resolusi data.
 
 ---
 

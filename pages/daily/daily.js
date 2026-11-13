@@ -243,9 +243,9 @@ function renderTrendChart(chartData, brandColor, periodCurr) {
 
           ctx.save();
           ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-          // Determine theme: dark -> white labels, light -> dark labels
-          const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-          ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+          // Deteksi akurat mode gelap menggunakan isDarkMode()
+          const dark = typeof window.isDarkMode === "function" ? window.isDarkMode() : (document.documentElement.getAttribute("data-theme-mode") === "dark" || (document.documentElement.getAttribute("data-theme") || "").includes("dark"));
+          ctx.fillStyle = dark ? "#f8fafc" : "#0f172a";
           ctx.textAlign = "center";
           ctx.textBaseline = "bottom";
 
@@ -497,11 +497,81 @@ async function downloadDailyPNG() {
   }
 }
 
+async function sendDailyWhatsApp(target = 'self') {
+  const btn = document.getElementById("btn-send-wa");
+  const origHtml = btn ? btn.innerHTML : "";
+  const currentBrand = dailyBrand || "ASTAGA";
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span style="display:inline-flex; align-items:center; animation:spin 1s linear infinite;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg></span> Mengirim ${currentBrand}...`;
+  }
+
+  const targetEl = document.getElementById("daily-report-capture");
+  if (!targetEl || typeof html2canvas !== "function") {
+    alert("Komponen capture laporan belum siap di halaman.");
+    if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+    return;
+  }
+
+  try {
+    // Potret murni 1:1 apa yang sedang tampil di layar saat ini
+    const canvas = await html2canvas(targetEl, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false
+    });
+    const imageBase64 = canvas.toDataURL("image/png");
+
+    const payload = {
+      target: target,
+      brand: currentBrand,
+      period: dailyCurrPeriod || "2026-11",
+      image_base64: imageBase64
+    };
+
+    const res = await fetch("/api/daily/send-whatsapp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+
+    if (!json.ok) {
+      if (res.status === 503) {
+        if (confirm("WhatsApp belum terhubung.\n\nBuka halaman scan QR sekarang?")) {
+          window.open("http://localhost:5006/qr", "_blank");
+        }
+        return;
+      }
+      throw new Error(json.error || "Gagal mengirim laporan ke WhatsApp.");
+    }
+
+    alert(`Berhasil Terkirim!\n\nLaporan ${currentBrand} telah dikirim ke WhatsApp!\n\nCaption Terkirim:\n"${json.caption || ''}"`);
+  } catch (err) {
+    console.error("Gagal kirim WA:", err);
+    alert("Gagal kirim WhatsApp: " + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+}
+
 // Global exports
 window.loadDaily = function() {
+  const sendWaBtn = document.getElementById("btn-send-wa");
+  if (sendWaBtn) {
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const isAdmin = isLocal || (window.currentAuthUser && window.currentAuthUser.role === "admin");
+    sendWaBtn.style.display = isAdmin ? "inline-flex" : "none";
+  }
   loadDailyPeriods();
 };
 window.switchDailyBrand = switchDailyBrand;
 window.onDailyPeriodChange = onDailyPeriodChange;
 window.downloadDailyPNG = downloadDailyPNG;
+window.sendDailyWhatsApp = sendDailyWhatsApp;
 

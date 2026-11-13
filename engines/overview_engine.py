@@ -10,6 +10,9 @@ import engines.analisa_engine as ae
 import engines.reseller_engine as re_eng
 import engines.daily_engine as de
 import engines.metrics_engine as me
+import importlib
+importlib.reload(re_eng)
+importlib.reload(de)
 
 _OVERVIEW_MATRIX_CACHE: Dict[str, Any] = {}
 
@@ -24,7 +27,11 @@ def clear_overview_cache():
 def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[str, Any]:
     """
     Mengagregasi metrik performa operasional & agen bulan berjalan
-    untuk disajikan dalam bentuk Executive Comparison Matrix (ASTAGA vs OKIPAY vs TOTAL).
+    untuk disajikan dalam bentuk Executive Comparison Matrix (3 Pilar Bisnis + Konsolidasi):
+    1. ASTAGA Reload (Retail & Cabang Fisik: BSD, ICON, PP, PRG, ONLINE)
+    2. OKIPAYMENT Retail (Online PlayStore Channel)
+    3. OKIPAYMENT H2H (Mitra B2B Host-to-Host: DIGIFLAZZ, Pinasthika, dll)
+    4. KONSOLIDASI (Total Server)
     """
     cache_key = f"{year}"
     if not force and cache_key in _OVERVIEW_MATRIX_CACHE:
@@ -33,7 +40,7 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
     try:
         dataset = ae.get_analisa_dataset()
         astaga_months = sorted([k for k in dataset.get("ASTAGA", {}).keys() if k.startswith(f"{year}-")])
-        latest_month = astaga_months[-1].split("-")[1] if astaga_months else "10"
+        latest_month = astaga_months[-1].split("-")[1] if astaga_months else "11"
         ym = f"{year}-{latest_month}"
 
         # 1. Tarik ringkasan Analisa Transaksi (Operasional & SLA)
@@ -46,26 +53,33 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
         a_mod = astaga_res.get("modules_summary", {})
         o_mod = okipay_res.get("modules_summary", {})
 
-        # 2. Tarik ringkasan Reseller Downline (#agen?tab=reseller)
-        astaga_reseller = re_eng.calculate_reseller_dashboard(brand="ASTAGA", month_code=ym, year=year)
-        okipay_reseller = re_eng.calculate_reseller_dashboard(brand="OKIPAY", month_code=ym, year=year)
-
-        a_kpi = astaga_reseller.get("kpi", {})
-        o_kpi = okipay_reseller.get("kpi", {})
-
-        # 3. Tarik metrik AVG DAILY MEMBER dari daily_engine (#daily)
+        # 2. Tarik metrik Daily Report (termasuk performansi cabang per channel)
         astaga_daily = de.calculate_daily_report(brand="ASTAGA", curr_month=ym, year=year)
         okipay_daily = de.calculate_daily_report(brand="OKIPAY", curr_month=ym, year=year)
 
         a_avg_daily_mem = float(astaga_daily.get("kpi", {}).get("avg_mem_curr", 0.0))
-        o_avg_daily_mem = float(okipay_daily.get("kpi", {}).get("avg_mem_curr", 0.0))
-        tot_avg_daily_mem = round(a_avg_daily_mem + o_avg_daily_mem, 1)
+        a_tpm = round(float(astaga_daily.get("kpi", {}).get("tpm_curr", 0.0)), 2)
+
+        oki_branches = {b["cabang"]: b for b in okipay_daily.get("branches", [])}
+        br_online = oki_branches.get("ONLINE", {})
+        br_h2h = oki_branches.get("H2H", {})
+
+        # 3. Tarik ringkasan Reseller Downline (#agen?tab=reseller) - Mode Cepat kpi_only
+        astaga_reseller = re_eng.calculate_reseller_dashboard(brand="ASTAGA", month_code=ym, year=year, kpi_only=True)
+        a_kpi = astaga_reseller.get("kpi", {})
+
+        # OKIPAY Retail (khusus cabang ONLINE) & OKIPAY H2H (khusus cabang H2H)
+        oki_res_online = re_eng.calculate_reseller_dashboard(brand="OKIPAY", month_code=ym, year=year, cabang="ONLINE", kpi_only=True)
+        o_ret_kpi = oki_res_online.get("kpi", {})
+
+        oki_res_h2h = re_eng.calculate_reseller_dashboard(brand="OKIPAY", month_code=ym, year=year, cabang="H2H", kpi_only=True)
+        o_h2h_kpi = oki_res_h2h.get("kpi", {})
 
         # 4. Hitung Global / Gabungan (Konsolidasi)
         active_days = a_sum.get("active_days") or a_sum.get("total_points") or 26
         month_label = a_sum.get("granularity_label", f"Harian (Bulan {latest_month} {year})")
 
-        # ASTAGA Metrics
+        # --- PILAR 1: ASTAGA RELOAD (RETAIL & FISIK) ---
         a_daily = a_sum.get("daily_trx_avg", 0)
         a_total = a_sum.get("total_trx", 0)
         a_sukses = a_sum.get("total_sukses", 0)
@@ -79,53 +93,77 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
         a_reactivated = a_kpi.get("reactivated", 0)
         a_new_reactivated = a_new + a_reactivated
         a_churn = a_kpi.get("churned", 0)
-        a_tpm = round(float(astaga_daily.get("kpi", {}).get("tpm_curr", 0.0)), 2)
         a_top_cat = a_sum.get("top_category", "TELCO")
         a_ewallet_pct = a_kpi.get("avg_pct_ewallet", 0.0)
         a_top_branch = a_sum.get("top_branch", "BSD")
 
-        # OKIPAY Metrics
-        o_daily = o_sum.get("daily_trx_avg", 0)
-        o_total = o_sum.get("total_trx", 0)
-        o_sukses = o_sum.get("total_sukses", 0)
-        o_speed_sec = o_sum.get("avg_dur_sec", 0.0)
-        o_speed_str = o_sum.get("avg_dur_str", "00:00")
-        o_sukses_pct = o_sum.get("avg_sukses_pct", 0.0)
-        o_sukses_str = o_sum.get("avg_sukses_str", "0.0%")
-        o_active_cust = o_kpi.get("active_current", 0)
-        o_retained = o_kpi.get("retained", 0)
-        o_new = o_kpi.get("new_active", 0)
-        o_reactivated = o_kpi.get("reactivated", 0)
-        o_new_reactivated = o_new + o_reactivated
-        o_churn = o_kpi.get("churned", 0)
-        o_tpm = round(float(okipay_daily.get("kpi", {}).get("tpm_curr", 0.0)), 2)
-        o_top_cat = o_sum.get("top_category", "TELCO")
-        o_ewallet_pct = o_kpi.get("avg_pct_ewallet", 0.0)
-        o_top_branch = o_sum.get("top_branch", "H2H")
+        # --- PILAR 2: OKIPAYMENT (RETAIL ONLINE) ---
+        o_ret_daily = round(float(br_online.get("daily_curr", 0.0)), 1)
+        o_ret_total = int(br_online.get("total_trx", 0))
+        o_ret_sukses = int(br_online.get("total_sukses", 0))
+        o_ret_speed_sec = float(br_online.get("speed_sec", 15.0))
+        o_ret_speed_str = br_online.get("speed_str", "00:15")
+        o_ret_speed_status = br_online.get("speed_status", "Prima")
+        o_ret_sukses_pct = float(br_online.get("sukses_pct", 0.0))
+        o_ret_sukses_str = br_online.get("sukses_str", f"{o_ret_sukses_pct}%")
+        o_ret_active_cust = o_ret_kpi.get("active_current", 0)
+        o_ret_avg_daily_mem = round(float(br_online.get("daily_mem_curr", 0.0)), 1)
+        o_ret_retained = o_ret_kpi.get("retained", 0)
+        o_ret_new = o_ret_kpi.get("new_active", 0)
+        o_ret_reactivated = o_ret_kpi.get("reactivated", 0)
+        o_ret_new_reactivated = o_ret_new + o_ret_reactivated
+        o_ret_churn = o_ret_kpi.get("churned", 0)
+        o_ret_tpm = round(float(br_online.get("tpm_curr", 0.0)), 2)
+        o_ret_top_cat = "TELCO"
+        o_ret_ewallet_pct = o_ret_kpi.get("avg_pct_ewallet", 0.0)
+        o_ret_top_branch = "ONLINE"
 
-        # TOTAL Konsolidasi
-        tot_daily = a_daily + o_daily
-        tot_total = a_total + o_total
-        tot_sukses = a_sukses + o_sukses
+        # --- PILAR 3: OKIPAYMENT (H2H CHANNEL) ---
+        o_h2h_daily = round(float(br_h2h.get("daily_curr", 0.0)), 1)
+        o_h2h_total = int(br_h2h.get("total_trx", 0))
+        o_h2h_sukses = int(br_h2h.get("total_sukses", 0))
+        o_h2h_speed_sec = float(br_h2h.get("speed_sec", 20.0))
+        o_h2h_speed_str = br_h2h.get("speed_str", "00:20")
+        o_h2h_speed_status = br_h2h.get("speed_status", "Prima")
+        o_h2h_sukses_pct = float(br_h2h.get("sukses_pct", 0.0))
+        o_h2h_sukses_str = br_h2h.get("sukses_str", f"{o_h2h_sukses_pct}%")
+        o_h2h_active_cust = o_h2h_kpi.get("active_current", 0)
+        o_h2h_avg_daily_mem = round(float(br_h2h.get("daily_mem_curr", 0.0)), 1)
+        o_h2h_retained = o_h2h_kpi.get("retained", 0)
+        o_h2h_new = o_h2h_kpi.get("new_active", 0)
+        o_h2h_reactivated = o_h2h_kpi.get("reactivated", 0)
+        o_h2h_new_reactivated = o_h2h_new + o_h2h_reactivated
+        o_h2h_churn = o_h2h_kpi.get("churned", 0)
+        o_h2h_tpm = round(float(br_h2h.get("tpm_curr", 0.0)), 2)
+        o_h2h_top_cat = "TELCO"
+        o_h2h_ewallet_pct = o_h2h_kpi.get("avg_pct_ewallet", 0.0)
+        o_h2h_top_branch = "H2H"
+
+        # --- PILAR 4: TOTAL KONSOLIDASI (SELURUH SERVER) ---
+        tot_daily = round(a_daily + o_ret_daily + o_h2h_daily, 1)
+        tot_total = a_total + o_ret_total + o_h2h_total
+        tot_sukses = a_sukses + o_ret_sukses + o_h2h_sukses
         tot_sukses_pct = round((tot_sukses / tot_total * 100), 1) if tot_total > 0 else 0.0
         tot_sukses_str = f"{tot_sukses_pct}%"
 
-        # Rata-rata bobot speed
-        tot_speed_sec = round(((a_speed_sec * a_sukses) + (o_speed_sec * o_sukses)) / tot_sukses, 1) if tot_sukses > 0 else 0.0
+        # Rata-rata bobot speed tertimbang sukses
+        tot_speed_sec = round(((a_speed_sec * a_sukses) + (o_ret_speed_sec * o_ret_sukses) + (o_h2h_speed_sec * o_h2h_sukses)) / tot_sukses, 1) if tot_sukses > 0 else 0.0
         tot_speed_str = me.format_duration_str(tot_speed_sec)
 
-        tot_active_cust = a_active_cust + o_active_cust
-        tot_retained = a_retained + o_retained
-        tot_new = a_new + o_new
-        tot_reactivated = a_reactivated + o_reactivated
+        tot_active_cust = a_active_cust + o_ret_active_cust + o_h2h_active_cust
+        tot_avg_daily_mem = round(a_avg_daily_mem + o_ret_avg_daily_mem + o_h2h_avg_daily_mem, 1)
+        tot_retained = a_retained + o_ret_retained + o_h2h_retained
+        tot_new = a_new + o_ret_new + o_h2h_new
+        tot_reactivated = a_reactivated + o_ret_reactivated + o_h2h_reactivated
         tot_new_reactivated = tot_new + tot_reactivated
-        tot_churn = a_churn + o_churn
+        tot_churn = a_churn + o_ret_churn + o_h2h_churn
         tot_tpm = round(tot_daily / tot_avg_daily_mem, 2) if tot_avg_daily_mem > 0 else 0.0
 
         # Porsi total ewallet
         a_ewallet_trx = a_kpi.get("total_ewallet", 0)
-        o_ewallet_trx = o_kpi.get("total_ewallet", 0)
-        tot_ewallet_pct = round(((a_ewallet_trx + o_ewallet_trx) / tot_sukses * 100), 1) if tot_sukses > 0 else 0.0
+        o_ret_ewallet_trx = o_ret_kpi.get("total_ewallet", 0)
+        o_h2h_ewallet_trx = o_h2h_kpi.get("total_ewallet", 0)
+        tot_ewallet_pct = round(((a_ewallet_trx + o_ret_ewallet_trx + o_h2h_ewallet_trx) / tot_sukses * 100), 1) if tot_sukses > 0 else 0.0
 
         res_data = {
             "ok": True,
@@ -159,28 +197,80 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
                 "modules_waspada": a_mod.get("waspada_count", 0),
                 "modules_gangguan": a_mod.get("gangguan_count", 0)
             },
+            "okipay_online": {
+                "brand_title": "OKIPAY (RETAIL)",
+                "brand_tag": "Online Channel",
+                "daily_trx": o_ret_daily,
+                "total_trx": o_ret_total,
+                "total_sukses": o_ret_sukses,
+                "speed_str": o_ret_speed_str,
+                "speed_sec": o_ret_speed_sec,
+                "speed_status": o_ret_speed_status,
+                "sukses_str": o_ret_sukses_str,
+                "sukses_pct": o_ret_sukses_pct,
+                "active_cust": o_ret_active_cust,
+                "avg_daily_mem": o_ret_avg_daily_mem,
+                "retained_cust": o_ret_retained,
+                "new_cust": o_ret_new,
+                "reactivated_cust": o_ret_reactivated,
+                "new_and_reactivated": o_ret_new_reactivated,
+                "churn_cust": o_ret_churn,
+                "tpm": o_ret_tpm,
+                "top_category": o_ret_top_cat,
+                "ewallet_pct": o_ret_ewallet_pct,
+                "top_branch": o_ret_top_branch,
+                "modules_prima": o_mod.get("prima_count", 0),
+                "modules_waspada": o_mod.get("waspada_count", 0),
+                "modules_gangguan": o_mod.get("gangguan_count", 0)
+            },
+            "okipay_h2h": {
+                "brand_title": "OKIPAY (H2H)",
+                "brand_tag": "Mitra B2B Server",
+                "daily_trx": o_h2h_daily,
+                "total_trx": o_h2h_total,
+                "total_sukses": o_h2h_sukses,
+                "speed_str": o_h2h_speed_str,
+                "speed_sec": o_h2h_speed_sec,
+                "speed_status": o_h2h_speed_status,
+                "sukses_str": o_h2h_sukses_str,
+                "sukses_pct": o_h2h_sukses_pct,
+                "active_cust": o_h2h_active_cust,
+                "avg_daily_mem": o_h2h_avg_daily_mem,
+                "retained_cust": o_h2h_retained,
+                "new_cust": o_h2h_new,
+                "reactivated_cust": o_h2h_reactivated,
+                "new_and_reactivated": o_h2h_new_reactivated,
+                "churn_cust": o_h2h_churn,
+                "tpm": o_h2h_tpm,
+                "top_category": o_h2h_top_cat,
+                "ewallet_pct": o_h2h_ewallet_pct,
+                "top_branch": o_h2h_top_branch,
+                "modules_prima": o_mod.get("prima_count", 0),
+                "modules_waspada": o_mod.get("waspada_count", 0),
+                "modules_gangguan": o_mod.get("gangguan_count", 0)
+            },
             "okipay": {
                 "brand_title": "OKIPAYMENT",
-                "brand_tag": "Online & H2H",
-                "daily_trx": o_daily,
-                "total_trx": o_total,
-                "total_sukses": o_sukses,
-                "speed_str": o_speed_str,
-                "speed_sec": o_speed_sec,
-                "speed_status": "Prima" if o_speed_sec < 20 else ("Waspada" if o_speed_sec <= 30 else "Gangguan"),
-                "sukses_str": o_sukses_str,
-                "sukses_pct": o_sukses_pct,
-                "active_cust": o_active_cust,
-                "avg_daily_mem": o_avg_daily_mem,
-                "retained_cust": o_retained,
-                "new_cust": o_new,
-                "reactivated_cust": o_reactivated,
-                "new_and_reactivated": o_new_reactivated,
-                "churn_cust": o_churn,
-                "tpm": o_tpm,
-                "top_category": o_top_cat,
-                "ewallet_pct": o_ewallet_pct,
-                "top_branch": o_top_branch,
+                "brand_tag": "Online & H2H (Gabungan)",
+                "daily_trx": round(o_ret_daily + o_h2h_daily, 1),
+                "total_trx": o_ret_total + o_h2h_total,
+                "total_sukses": o_ret_sukses + o_h2h_sukses,
+                "speed_str": o_sum.get("avg_dur_str", "00:16"),
+                "speed_sec": o_sum.get("avg_dur_sec", 16.0),
+                "speed_status": "Prima",
+                "sukses_str": o_sum.get("avg_sukses_str", "96.5%"),
+                "sukses_pct": o_sum.get("avg_sukses_pct", 96.5),
+                "active_cust": o_ret_active_cust + o_h2h_active_cust,
+                "avg_daily_mem": round(o_ret_avg_daily_mem + o_h2h_avg_daily_mem, 1),
+                "retained_cust": o_ret_retained + o_h2h_retained,
+                "new_cust": o_ret_new + o_h2h_new,
+                "reactivated_cust": o_ret_reactivated + o_h2h_reactivated,
+                "new_and_reactivated": o_ret_new_reactivated + o_h2h_new_reactivated,
+                "churn_cust": o_ret_churn + o_h2h_churn,
+                "tpm": round((o_ret_daily + o_h2h_daily) / (o_ret_avg_daily_mem + o_h2h_avg_daily_mem), 2) if (o_ret_avg_daily_mem + o_h2h_avg_daily_mem) > 0 else 0.0,
+                "top_category": "TELCO",
+                "ewallet_pct": o_ret_ewallet_pct,
+                "top_branch": "H2H",
                 "modules_prima": o_mod.get("prima_count", 0),
                 "modules_waspada": o_mod.get("waspada_count", 0),
                 "modules_gangguan": o_mod.get("gangguan_count", 0)
@@ -204,16 +294,15 @@ def get_latest_month_summary(year: str = "2026", force: bool = False) -> Dict[st
                 "new_and_reactivated": tot_new_reactivated,
                 "churn_cust": tot_churn,
                 "tpm": tot_tpm,
-                "top_category": "TELCO",
+                "top_category": a_top_cat,
                 "ewallet_pct": tot_ewallet_pct,
-                "top_branch": "BSD & H2H",
+                "top_branch": a_top_branch,
                 "modules_prima": a_mod.get("prima_count", 0) + o_mod.get("prima_count", 0),
                 "modules_waspada": a_mod.get("waspada_count", 0) + o_mod.get("waspada_count", 0),
                 "modules_gangguan": a_mod.get("gangguan_count", 0) + o_mod.get("gangguan_count", 0)
             }
         }
 
-        # Simpan di cache in-memory
         _OVERVIEW_MATRIX_CACHE[cache_key] = res_data
         return res_data
 

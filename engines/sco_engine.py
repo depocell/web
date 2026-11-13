@@ -913,18 +913,31 @@ def push_to_github():
 
         # 2. Sync dan Push ke depocell/SCO (GitHub Pages)
         target_repo = os.path.join(BASE_DIR, ".cache", "sco_git")
+        env_file = os.path.join(BASE_DIR, ".env")
+        remote_sco_url = os.environ.get("SCO_GITHUB_URL", "")
+        if not remote_sco_url and os.path.exists(env_file):
+            try:
+                with open(env_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.startswith("SCO_GITHUB_URL="):
+                            remote_sco_url = line.split("=", 1)[1].strip().strip('"').strip("'")
+                            break
+            except Exception:
+                pass
+        if not remote_sco_url:
+            remote_sco_url = "https://github.com/depocell/SCO.git"
+
         if not os.path.exists(target_repo):
             os.makedirs(os.path.dirname(target_repo), exist_ok=True)
-            subprocess.run(["git", "clone", "https://github.com/depocell/SCO.git", target_repo], capture_output=True, text=True, env=env)
+            subprocess.run(["git", "clone", remote_sco_url, target_repo], capture_output=True, text=True, env=env)
         else:
+            subprocess.run(["git", "-C", target_repo, "remote", "set-url", "origin", remote_sco_url], capture_output=True, text=True)
             subprocess.run(["git", "-C", target_repo, "pull", "origin", "main"], capture_output=True, text=True, env=env)
-
-        subprocess.run(["git", "-C", target_repo, "config", "credential.username", "depocell"], capture_output=True, text=True)
 
         files_to_sync = [
             "index.html", "app.js", "style.css", "data_sco.json", "data_reseller.json",
             "KPI_SCO.xlsx", "leaflet.js", "leaflet.css", "html2canvas.min.js",
-            "logo_myastaga.png", "unnamed.png"
+            "logo_myastaga.png", "unnamed.png", "dp_icon.png"
         ]
         import shutil
         for fname in files_to_sync:
@@ -938,10 +951,12 @@ def push_to_github():
         
         if sco_status.stdout.strip():
             subprocess.run(["git", "-C", target_repo, "commit", "-m", f"chore: update SCO performance data ({now_str})"], capture_output=True, text=True, env=env)
-            push_res = subprocess.run(["git", "-C", target_repo, "push", "origin", "main"], capture_output=True, text=True, env=env, timeout=60)
-            if push_res.returncode != 0:
-                err_msg = push_res.stderr or push_res.stdout or "Push error ke depocell/SCO"
-                return {"ok": False, "error": err_msg}
+
+        # Selalu pastikan commit lokal ter-push ke GitHub Pages remote
+        push_res = subprocess.run(["git", "-C", target_repo, "push", "origin", "main"], capture_output=True, text=True, env=env, timeout=60)
+        if push_res.returncode != 0:
+            err_msg = push_res.stderr or push_res.stdout or "Push error ke depocell/SCO"
+            return {"ok": False, "error": err_msg}
 
         return {"ok": True, "message": "Berhasil push data SCO ke GitHub Pages & Web Report!", "timestamp": now_str}
     except Exception as e:

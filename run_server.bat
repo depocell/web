@@ -14,15 +14,14 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') 
 :: 2. Bersihkan instance tele_bot.py lama jika ada
 powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*tele_bot.py*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
 
-:: 3. Jalankan DepAs AI Copilot (@depas_ai_bot) di console terpisah / background
-echo [1/2] Menyalakan DepAs AI Copilot (@depas_ai_bot)...
-start "DepAs Copilot" /MIN python tele_bot.py
+:: 3. (DepAs AI Copilot dipensiunkan - seluruh AI disatukan ke Ompasha Agent)
+:: start "DepAs Copilot" /MIN python tele_bot.py
 
 :: 4. Jalankan Web Report Server (FastAPI)
-echo [2/2] Menyalakan Web Report Server di port 8000...
+echo Menyalakan Web Report Server di port 8000...
 echo - Local: http://localhost:8000
 echo - Public: https://depas.my.id (jika tunnel nyala)
-echo - Copilot: @depas_ai_bot (Tanya AI aktif)
+echo - Unified Agent: Ompasha Agent (WhatsApp & Telegram aktif)
 echo.
 echo Tekan Ctrl+C untuk menghentikan server.
 echo ========================================================

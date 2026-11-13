@@ -2,9 +2,30 @@
 
 let _systemDataCache = null;
 
+function switchSettingTab(tab) {
+  const btn1 = document.getElementById("tab-setting-tampilan");
+  const btn2 = document.getElementById("tab-setting-system");
+  const content1 = document.getElementById("content-setting-tampilan");
+  const content2 = document.getElementById("content-setting-system");
+
+  if (tab === "tampilan") {
+    if (btn1) btn1.classList.add("active");
+    if (btn2) btn2.classList.remove("active");
+    if (content1) content1.style.display = "flex";
+    if (content2) content2.style.display = "none";
+  } else {
+    if (btn1) btn1.classList.remove("active");
+    if (btn2) btn2.classList.add("active");
+    if (content1) content1.style.display = "none";
+    if (content2) content2.style.display = "flex";
+  }
+}
+window.switchSettingTab = switchSettingTab;
+
 async function loadSettings() {
   console.log("[SETTINGS] Memuat modul Sistem & Pengaturan...");
   initThemeButtons();
+  switchSettingTab("tampilan");
   await fetchSystemInfo();
 }
 
@@ -182,32 +203,48 @@ function renderSummaryPlatform(data) {
   }
 }
 
-// ─── USER PREFERENCES (THEME & DEFAULT BRANCH) ───────────────────────────────
+// ─── USER PREFERENCES (STYLE: MODERN/CLASSIC & MODE: LIGHT/DARK) ───────────
 
 function initThemeButtons() {
-  const currentTheme = localStorage.getItem("theme_preference") || (
-    window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-  );
-  updateThemeButtonActiveState(currentTheme);
+  updateThemeButtonActiveState();
 }
 
-function updateThemeButtonActiveState(theme) {
-  const lightBtn = document.getElementById("theme-light-btn");
-  const darkBtn = document.getElementById("theme-dark-btn");
-  if (lightBtn) lightBtn.classList.toggle("active", theme === "light");
-  if (darkBtn) darkBtn.classList.toggle("active", theme === "dark");
+function updateThemeButtonActiveState() {
+  const style = document.documentElement.getAttribute("data-theme-style") || localStorage.getItem("theme_style") || "modern";
+  const mode = document.documentElement.getAttribute("data-theme-mode") || localStorage.getItem("theme_mode") || "dark";
+
+  const modernBtn = document.getElementById("style-modern-btn");
+  const classicBtn = document.getElementById("style-classic-btn");
+  if (modernBtn) modernBtn.classList.toggle("active", style === "modern");
+  if (classicBtn) classicBtn.classList.toggle("active", style === "classic");
+
+  const lightBtn = document.getElementById("mode-light-btn");
+  const darkBtn = document.getElementById("mode-dark-btn");
+  if (lightBtn) lightBtn.classList.toggle("active", mode === "light");
+  if (darkBtn) darkBtn.classList.toggle("active", mode === "dark");
+
+  const pill = document.getElementById("active-theme-preview-pill");
+  if (pill) {
+    const styleLabel = style === "classic" ? "Classic Serpul" : "Modern Enterprise";
+    const modeLabel = mode === "light" ? "Terang" : "Gelap";
+    pill.textContent = `${styleLabel} • ${modeLabel}`;
+  }
 }
 window.updateThemeButtonActiveState = updateThemeButtonActiveState;
 
-function setAppTheme(theme) {
-  if (theme !== "light" && theme !== "dark") return;
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("theme_preference", theme);
-  updateThemeButtonActiveState(theme);
-  if (typeof window.updateThemeToggleUI === "function") {
-    window.updateThemeToggleUI(theme);
+function setAppStyle(style) {
+  if (typeof window.setThemeStyle === "function") {
+    window.setThemeStyle(style);
   }
 }
+window.setAppStyle = setAppStyle;
+
+function setAppMode(mode) {
+  if (typeof window.setThemeMode === "function") {
+    window.setThemeMode(mode);
+  }
+}
+window.setAppMode = setAppMode;
 
 async function refreshSystemData(btn) {
   if (btn) {

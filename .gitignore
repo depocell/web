@@ -6,6 +6,7 @@
 __pycache__/
 *.pyc
 scratch/
+scratch_*
 MASTER/master.db
 # Ignore root-level raw dumps but keep UI icons in static/img
 MASTER/.server_secret
@@ -40,6 +41,7 @@ C:\RAW DATA/
 node_modules/
 wa_gateway/node_modules/
 wa_gateway/session/
+wa_gateway/auth_*/
 MASTER/PENGIRIM/
 
 bin/

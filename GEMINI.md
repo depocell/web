@@ -130,17 +130,21 @@ res = profit_engine.calculate_profit_analysis(brand="ASTAGA", year="2026", month
 
 ---
 
-## 8. HUKUM KLASIFIKASI TIPE AGEN ASTAGA & LIMIT SALDO
+## 8. HUKUM KLASIFIKASI TIPE AGEN ASTAGA & LIMIT (BUKAN SALDO)
+> **Prinsip Penting: LIMIT ≠ SALDO**
+> 1. **Saldo** adalah uang kas/mutasi berjalan yang bergerak dinamis setiap detik di switching engine server OtomaX. Karena database Web Report bersifat periodik (non-real-time), **kolom Saldo DIHAPUS / DITIADAKAN dari Master Data Customer** agar tidak menimbulkan kerancuan data basi.
+> 2. **Limit** adalah plafon pinjaman/kredit statis (kebijakan operasional) yang diberikan kepada toko/reseller. Seluruh terminologi di Web Report wajib menggunakan istilah **`Limit`** (atau **`Plafon Kredit`**), BUKAN `limit_saldo`.
+
 Tipe agen untuk brand ASTAGA memiliki tepat 3 klasifikasi resmi (DILARANG menggunakan `Standard` atau nama lain):
 1. **`Limit`**:
-   * Agen yang memiliki plafon kredit/limit saldo aktif (`limit_saldo != 0`).
-   * Di server OtomaX, limit saldo tersimpan sebagai plafon negatif (misal `-1.000.000`).
-   * Pada UI ditampilkan sebagai nilai rupiah positif (misal `Rp 1.000.000`).
+   * Agen yang memiliki fasilitas plafon kredit / limit aktif (`limit != 0`).
+   * Di server OtomaX, limit tersimpan sebagai plafon negatif (misal `-1.800.000`).
+   * Pada UI Web Report ditampilkan sebagai nilai rupiah positif (misal `Rp 1.800.000`).
 2. **`Non Limit`**:
-   * Agen cabang fisik (toko fisik non-prima seperti grup `MV`, `RV`, `RL`, `M`, `R`, dsb) yang sebelumnya memiliki limit saldo, namun karena evaluasi operasional plafonnya telah dihilangkan (`limit_saldo == 0`).
+   * Agen cabang fisik (toko fisik non-prima seperti grup `MV`, `RV`, `RL`, `M`, `R`, dsb) yang sebelumnya memiliki limit, namun karena evaluasi operasional plafonnya telah dihilangkan / dinolkan (`limit == 0`).
    * Tipenya berstatus `Non Limit` (BUKAN `Prima`).
 3. **`Prima`**:
-   * Agen yang dari awal pendaftarannya memang tidak membutuhkan plafon limit saldo (`limit_saldo == 0`), mencakup:
+   * Agen yang dari awal pendaftarannya memang tidak membutuhkan plafon limit kredit (`limit == 0`), mencakup:
      - Reseller grup `P` (Prima reguler).
      - Seluruh agen di bawah cabang `ONLINE` (pendaftaran mandiri via Google PlayStore).
 * Sinkronisasi data bulanan dari OtomaX (`astaga.tsv`) wajib otomatis memperbarui status limit dan tipe ini.
@@ -339,6 +343,31 @@ Tipe agen untuk brand ASTAGA memiliki tepat 3 klasifikasi resmi (DILARANG menggu
 
 </div>
 ```
+
+---
+
+## 11. HUKUM STRUKTUR GROUP HARGA ASTAGA (PRICELIST GROUP)
+Pedoman resmi mengenai kamus kode group harga, sejarah hierarki margin, dan operasional pendaftaran akun di server OtomaX brand ASTAGA:
+
+### 1. Kamus Singkatan & Kode Group Resmi:
+* **`D`** : **Dealer**
+* **`M`** : **Master**
+* **`MV`** : **Master Verified**
+* **`R`** : **Reseller**
+* **`RV`** : **Reseller Verified**
+* **`RL`** : **Reseller Limit**
+* **`P`** : **Prima**
+* **`O`** : **Online**
+
+### 2. Sejarah & Hierarki Pembuatan Price List:
+Urutan hierarki historis pembuatan skema harga/margin dari level induk teratas ke hilir:
+$$\text{D} > \text{M} > \text{R} > \text{P} > \text{O}$$
+*(Dealer $\rightarrow$ Master $\rightarrow$ Reseller $\rightarrow$ Prima $\rightarrow$ Online)*
+
+### 3. Kebijakan Operasional Akun yang Berlaku Saat Ini:
+* **Jika Membutuhkan Limit / Plafon Kredit**: Akun diarahkan/didaftarkan ke group **`RL`** *(Reseller Limit)*.
+* **Jika Mendaftar Mandiri via Google PlayStore**: Akun otomatis masuk ke group **`O`** *(Online)* di bawah cabang `ONLINE`.
+* **Jika Tidak Butuh Limit / Datang Langsung ke Kantor Cabang untuk Deposit Tunai**: Akun didaftarkan ke group **`P`** *(Prima)*.
 
 ---
 *Pedoman ini dibuat agar seluruh AI Agent di thread/chat mana pun memiliki output angka yang 100% konsisten, adil, dan valid, serta tampilan antarmuka yang modern, presisi, dan berstandar enterprise.*

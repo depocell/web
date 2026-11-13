@@ -280,17 +280,34 @@ async def api_auth_status(request):
 
     valid, username, role = auth_engine.verify_session_token(token)
 
+    if valid:
+
+        return JSONResponse({
+
+            "ok": True,
+
+            "authenticated": True,
+
+            "is_local": False,
+
+            "username": username,
+
+            "role": role
+
+        })
+
+    # Default remote / VPS tanpa login: Otomatis mode Tamu (Viewer)
     return JSONResponse({
 
         "ok": True,
 
-        "authenticated": valid,
+        "authenticated": True,
 
         "is_local": False,
 
-        "username": username if valid else None,
+        "username": "Tamu",
 
-        "role": role if valid else "guest"
+        "role": "tamu"
 
     })
 
@@ -430,136 +447,6 @@ async def api_admin_users_delete(request):
 
 
 
-async def api_admin_tickets_list(request):
-
-    """Mengembalikan daftar tiket eskalasi AI (Help Me Please) ke Data Center."""
-
-    tkt_index_path = os.path.join(BASE_DIR, "pages", "analisa", "tickets", "tickets_index.json")
-
-    tickets = []
-
-    if os.path.exists(tkt_index_path):
-
-        try:
-
-            with open(tkt_index_path, "r", encoding="utf-8") as f:
-
-                tickets = json.load(f)
-
-        except Exception:
-
-            tickets = []
-
-    total = len(tickets)
-
-    pending = sum(1 for t in tickets if t.get("status") == "PENDING")
-
-    resolved = sum(1 for t in tickets if t.get("status") == "RESOLVED")
-
-    return JSONResponse({
-
-        "ok": True,
-
-        "tickets": tickets,
-
-        "total": total,
-
-        "pending": pending,
-
-        "resolved": resolved
-
-    })
-
-
-
-
-
-async def api_admin_tickets_resolve(request):
-
-    """Menandai tiket eskalasi sebagai RESOLVED."""
-
-    try:
-
-        body = await request.json()
-
-        ticket_id = body.get("ticket_id")
-
-        note = body.get("note", "Data sudah diracik dan disuntikkan ke snapshot AI.")
-
-        if not ticket_id:
-
-            return JSONResponse({"ok": False, "error": "ticket_id wajib diisi"}, status_code=400)
-
-            
-
-        tkt_dir = os.path.join(BASE_DIR, "pages", "analisa", "tickets")
-
-        tkt_file = os.path.join(tkt_dir, f"{ticket_id}.json")
-
-        if os.path.exists(tkt_file):
-
-            try:
-
-                with open(tkt_file, "r", encoding="utf-8") as f:
-
-                    t_data = json.load(f)
-
-                t_data["status"] = "RESOLVED"
-
-                t_data["resolution_note"] = note
-
-                with open(tkt_file, "w", encoding="utf-8") as f:
-
-                    json.dump(t_data, f, ensure_ascii=False, indent=2)
-
-            except Exception:
-
-                pass
-
-                
-
-        # Update index
-
-        index_file = os.path.join(tkt_dir, "tickets_index.json")
-
-        if os.path.exists(index_file):
-
-            try:
-
-                with open(index_file, "r", encoding="utf-8") as f:
-
-                    idx = json.load(f)
-
-                for item in idx:
-
-                    if item.get("ticket_id") == ticket_id:
-
-                        item["status"] = "RESOLVED"
-
-                        item["resolution_note"] = note
-
-                        break
-
-                with open(index_file, "w", encoding="utf-8") as f:
-
-                    json.dump(idx, f, ensure_ascii=False, indent=2)
-
-            except Exception:
-
-                pass
-
-                
-
-        return JSONResponse({"ok": True, "message": f"Tiket {ticket_id} berhasil diselesaikan!"})
-
-    except Exception as e:
-
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-
-
-
-
-
 async def api_auth_change_password(request):
 
     """Mengubah password akun manajemen."""
@@ -607,21 +494,18 @@ async def page_sco_redirect(request):
 
 
 async def api_overview(request):
-
     """Data komputasi perbandingan Daily Transaksi Sukses per Cabang."""
-
-    import importlib
-
-    importlib.reload(overview_engine)
-
     year = request.query_params.get("year", "2026")
-
+    cabang = request.query_params.get("cabang")
     force = request.query_params.get("force", "0") in ("1", "true")
-
+    if force:
+        import importlib
+        importlib.reload(reseller_engine)
+        importlib.reload(daily_engine)
+        importlib.reload(overview_engine)
+        overview_engine.clear_overview_cache()
     try:
-
         data = await asyncio.to_thread(overview_engine.calculate_daily_growth, year=year, force=force)
-
         return JSONResponse({"ok": True, "data": data})
 
     except Exception as e:
@@ -703,15 +587,83 @@ async def api_daily(request):
     try:
 
         data = await asyncio.to_thread(daily_engine.calculate_daily_report, brand=brand, curr_month=curr, prev_month=prev)
-
         return JSONResponse({"ok": True, "data": data})
-
     except Exception as e:
-
         import traceback
-
         traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+async def api_daily_send_whatsapp(request):
+    """Kirim Daily Summary Report via WhatsApp Gateway (081389779977) murni in-memory."""
+    import urllib.request
+    import json
+    import datetime
+    import engines.daily_engine as de
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    target = body.get("target", "self")
+    brand = body.get("brand", "ASTAGA").upper()
+    period = body.get("period", "2026-11")
+    cut_off = body.get("cut_off")
+
+    if not cut_off:
+        try:
+            report_data = await asyncio.to_thread(de.calculate_daily_report, brand, period)
+            days = report_data.get("days_curr", 11)
+            month_name = "Nov" if "11" in period else "Okt"
+            cut_off = f"{days} {month_name} 2026"
+        except Exception:
+            cut_off = "11 Nov 2026"
+
+    # Waktu WIB (UTC+7)
+    now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=7)
+    h = now.hour
+    if 4 <= h < 11:
+        greeting = "Selamat Pagi"
+    elif 11 <= h < 15:
+        greeting = "Selamat Siang"
+    elif 15 <= h < 19:
+        greeting = "Selamat Sore"
+    else:
+        greeting = "Selamat Malam"
+
+    # Jika dikirim per brand secara manual (apa yang sedang aktif di layar)
+    if body.get("image_base64"):
+        caption = f"{greeting}, berikut info transaksi {brand} per {cut_off}, terimakasih."
+
+        gw_url = "http://127.0.0.1:5006/send-image"
+        payload = json.dumps({
+            "target": target,
+            "imageBase64": body.get("image_base64"),
+            "caption": caption
+        }).encode("utf-8")
+    else:
+        caption = f"{greeting}, berikut info transaksi {brand} per {cut_off}, terimakasih."
+        gw_url = "http://127.0.0.1:5006/send-daily-pair"
+        payload = json.dumps({
+            "target": target,
+            "cutOffDate": cut_off,
+            "astagaBase64": body.get("astaga_base64"),
+            "okipayBase64": body.get("okipay_base64")
+        }).encode("utf-8")
+
+    req = urllib.request.Request(gw_url, data=payload, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp_data = json.loads(resp.read().decode("utf-8"))
+            resp_data["caption"] = caption
+            resp_data["brand"] = brand
+            return JSONResponse(resp_data)
+    except urllib.error.URLError as e:
+        return JSONResponse({
+            "ok": False,
+            "error": "WhatsApp Gateway (port 5006) belum aktif atau belum di-scan. Silakan buka http://localhost:5006/qr untuk menautkan perangkat."
+        }, status_code=503)
+    except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
@@ -735,6 +687,8 @@ async def api_pivot_options(request):
     brand = request.query_params.get("brand", "ASTAGA").upper()
 
     year = request.query_params.get("year", "2026")
+
+    cabang = request.query_params.get("cabang")
 
     piv_type = request.query_params.get("type", "channel").lower()
 
@@ -1078,9 +1032,11 @@ async def api_reseller(request):
 
     year = request.query_params.get("year", "2026")
 
+    cabang = request.query_params.get("cabang")
+
     try:
 
-        data = await asyncio.to_thread(reseller_engine.calculate_reseller_dashboard, brand=brand, month_code=month, year=year)
+        data = await asyncio.to_thread(reseller_engine.calculate_reseller_dashboard, brand=brand, month_code=month, year=year, cabang=cabang)
 
         return JSONResponse({"ok": True, "data": data})
 
@@ -1105,6 +1061,8 @@ async def api_fraud_analysis(request):
     month = request.query_params.get("month")
 
     year = request.query_params.get("year", "2026")
+
+    cabang = request.query_params.get("cabang")
 
     sco = request.query_params.get("sco")
 
@@ -1148,6 +1106,8 @@ async def api_ewallet_tren(request):
 
     year = request.query_params.get("year", "2026")
 
+    cabang = request.query_params.get("cabang")
+
     force = request.query_params.get("force", "").lower() in ("1", "true")
 
     try:
@@ -1178,6 +1138,8 @@ async def api_tujuan_sync(request):
     """Menyinkronkan file nomor tujuan (tujuan*.tsv) dari folder INSERT TUJUAN ke SQLite dan Parquet."""
     brand = request.query_params.get("brand", "ASTAGA").upper()
     year = request.query_params.get("year", "2026")
+
+    cabang = request.query_params.get("cabang")
     try:
         import sync_tujuan
         data = await asyncio.to_thread(sync_tujuan.sync_tujuan_all, brand=brand, year=year)
@@ -1200,6 +1162,8 @@ async def api_fraud_detail(request):
     month = request.query_params.get("month")
 
     year = request.query_params.get("year", "2026")
+
+    cabang = request.query_params.get("cabang")
 
     kode_reseller = request.query_params.get("kode_reseller")
 
@@ -1263,6 +1227,8 @@ async def api_agen(request):
 
     year = request.query_params.get("year", "2026")
 
+    cabang = request.query_params.get("cabang")
+
     try:
 
         data = await asyncio.to_thread(agen_engine.calculate_agen_dashboard, brand=brand, month_code=month, year=year)
@@ -1320,6 +1286,8 @@ async def api_survey_candidates(request):
     month = request.query_params.get("month")
 
     year = request.query_params.get("year", "2026")
+
+    cabang = request.query_params.get("cabang")
 
     try:
 
@@ -1399,6 +1367,15 @@ async def api_survey_send(request):
 
 
 
+        # Dapatkan username petugas survey dari session auth / body
+        token = request.cookies.get("depas_session")
+        valid, session_user, _ = auth_engine.verify_session_token(token)
+        surveyor = body.get("surveyor")
+        if valid and session_user:
+            surveyor = session_user
+        elif not surveyor or surveyor == "Guest":
+            surveyor = "Admin (Lokal)" if is_local_request(request) else "admin"
+
         res = await asyncio.to_thread(
 
             survey_engine.record_survey_send,
@@ -1423,7 +1400,9 @@ async def api_survey_send(request):
 
             is_test=is_test,
 
-            test_target_phone=test_target_phone
+            test_target_phone=test_target_phone,
+
+            surveyor=surveyor
 
         )
 
@@ -1453,7 +1432,15 @@ async def api_survey_reply(request):
 
         reply_text = body.get("reply_text", "")
 
-        res = await asyncio.to_thread(survey_engine.record_survey_reply, log_id=log_id, reply_text=reply_text)
+        token = request.cookies.get("depas_session")
+        valid, session_user, _ = auth_engine.verify_session_token(token)
+        surveyor = body.get("surveyor")
+        if valid and session_user:
+            surveyor = session_user
+        elif not surveyor or surveyor == "Guest":
+            surveyor = "Admin (Lokal)" if is_local_request(request) else "admin"
+
+        res = await asyncio.to_thread(survey_engine.record_survey_reply, log_id=log_id, reply_text=reply_text, surveyor=surveyor)
 
         return JSONResponse(res)
 
@@ -1749,6 +1736,8 @@ async def api_system_info(request):
 
     year = request.query_params.get("year", "2026")
 
+    cabang = request.query_params.get("cabang")
+
     try:
 
         data = await asyncio.to_thread(system_engine.get_system_overview, year=year)
@@ -1762,6 +1751,81 @@ async def api_system_info(request):
         traceback.print_exc()
 
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+
+async def api_services_status(request):
+    """Status realtime layanan background (Cloudflare Tunnel & AI Assistant Bot)."""
+    import importlib
+    import engines.service_engine as se
+    try:
+        se = importlib.reload(se)
+        data = await asyncio.to_thread(se.get_services_status)
+        return JSONResponse(data)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+async def api_services_toggle(request):
+    """Start, stop, atau toggle layanan background (tunnel / ai)."""
+    import importlib
+    import engines.service_engine as se
+    try:
+        se = importlib.reload(se)
+
+        try:
+
+            body = await request.json()
+
+        except Exception:
+
+            body = {}
+
+        service = body.get("service")
+
+        action = body.get("action", "toggle")
+
+
+
+        if service == "tunnel":
+
+            is_run = await asyncio.to_thread(se.is_tunnel_running)
+
+            if action == "start" or (action == "toggle" and not is_run):
+
+                await asyncio.to_thread(se.start_tunnel)
+
+            else:
+
+                await asyncio.to_thread(se.stop_tunnel)
+
+        elif service == "ai":
+
+            is_run = await asyncio.to_thread(se.is_ai_running)
+
+            if action == "start" or (action == "toggle" and not is_run):
+
+                await asyncio.to_thread(se.start_ai)
+
+            else:
+
+                await asyncio.to_thread(se.stop_ai)
+
+        else:
+
+            return JSONResponse({"ok": False, "error": "Layanan tidak dikenal"}, status_code=400)
+
+
+
+        await asyncio.sleep(0.5)
+
+        status_data = await asyncio.to_thread(se.get_services_status)
+
+        return JSONResponse(status_data)
+
+    except Exception as e:
+
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 
 
@@ -1829,6 +1893,8 @@ async def api_analisa_profit(request):
 
     year = request.query_params.get("year", "2026")
 
+    cabang = request.query_params.get("cabang")
+
     month = request.query_params.get("month")
 
     try:
@@ -1847,6 +1913,26 @@ async def api_analisa_profit(request):
 
 
 
+
+
+async def api_analisa_skema_limit(request):
+    """Data analisa skema harga (Pricelist Group) dan limit saldo."""
+    import engines.skema_limit_engine as skema_limit_engine
+    if request.query_params.get("reload") == "1":
+        import importlib
+        importlib.reload(skema_limit_engine)
+    brand = request.query_params.get("brand", "ASTAGA").upper()
+    year = request.query_params.get("year", "2026")
+
+    cabang = request.query_params.get("cabang")
+    month = request.query_params.get("month", "10")
+    try:
+        data = await asyncio.to_thread(skema_limit_engine.calculate_skema_limit, brand=brand, year=year, month=month)
+        return JSONResponse({"ok": True, "data": data})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
 async def api_analisa_product_hierarchy(request):
@@ -1882,6 +1968,8 @@ async def api_admin_status(request):
         importlib.reload(admin_engine)
 
     year = request.query_params.get("year", "2026")
+
+    cabang = request.query_params.get("cabang")
 
     try:
 
@@ -2128,6 +2216,50 @@ async def api_admin_upload_reseller_tsv(request):
 
 
 
+async def api_admin_upload_limit_tsv(request):
+    """Menerima upload file TSV/CSV Master Limit & Markup (LIMIT_astaga.tsv / okipay.tsv),
+    memperbarui kolom limit_saldo, markup, tgl_aktivitas_terakhir, me-reevaluasi tipe agen,
+    dan menyelaraskan cache Parquet, Dim CSV, serta modul SCO."""
+    try:
+        import time
+        form = await request.form()
+        brand = form.get("brand", "ASTAGA").upper()
+        uploaded_file = form.get("file")
+
+        if uploaded_file and hasattr(uploaded_file, "filename") and uploaded_file.filename:
+            upload_dir = os.path.join(BASE_DIR, ".cache", "uploads")
+            os.makedirs(upload_dir, exist_ok=True)
+            filename = getattr(uploaded_file, "filename", None) or f"limit_{brand}.tsv"
+            temp_path = os.path.join(upload_dir, filename)
+
+            contents = await uploaded_file.read()
+            with open(temp_path, "wb") as f:
+                f.write(contents)
+
+            def _do_update():
+                return master_data_engine.update_reseller_limits_and_markup(brand=brand, tsv_path=temp_path)
+
+            res = await asyncio.to_thread(_do_update)
+
+            try:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except Exception:
+                pass
+        else:
+            # Sync langsung dari file lokal C:\DMS RAW DATA\MASTER\LIMIT_{brand}.tsv
+            def _do_update_local():
+                return master_data_engine.update_reseller_limits_and_markup(brand=brand)
+
+            res = await asyncio.to_thread(_do_update_local)
+
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 async def api_admin_upload_pengirim_tsv(request):
     """Menerima upload file TSV Master Pengirim / Kontak OtomaX (KONTAK_ASTAGA / OKIPAY),
     menjalankan pemetaan nomor pengirim (SMS, WA, Jabber), dan update database SQLite reseller_contacts."""
@@ -2189,6 +2321,7 @@ async def api_export_transactions_parquet(request):
         brand = request.query_params.get("brand", "ASTAGA").upper()
 
         year = request.query_params.get("year", "2026")
+
 
         month = request.query_params.get("month", "").strip()
 
@@ -2329,6 +2462,7 @@ async def api_export_transactions_csv(request):
         brand = request.query_params.get("brand", "ASTAGA").upper()
 
         year = request.query_params.get("year", "2026")
+
 
         month = request.query_params.get("month", "").strip()
 
@@ -2712,6 +2846,7 @@ async def api_export_finance_rekap(request):
 
         year = request.query_params.get("year", "2026")
 
+
         month = request.query_params.get("month", "").strip()
 
 
@@ -2864,6 +2999,10 @@ async def api_admin_agent_save(request):
 
         agen_engine.clear_agen_dashboard_cache()
 
+        # Otomatis regenerate data SCO di background agar halaman #sco langsung sinkron
+        if brand == "ASTAGA":
+            asyncio.create_task(asyncio.to_thread(sco_engine.generate_sco_data))
+
         return JSONResponse({"ok": True, "message": f"Akun {agen_id} ({res.get('leveling')}) berhasil disimpan!", "data": res})
 
     except Exception as e:
@@ -2980,6 +3119,8 @@ async def api_admin_products(request):
 
         operator = request.query_params.get("operator", "ALL")
 
+        nama_provider = request.query_params.get("nama_provider", "ALL")
+
         paket = request.query_params.get("paket", "ALL")
 
         search = request.query_params.get("search", "")
@@ -2992,9 +3133,9 @@ async def api_admin_products(request):
 
         result = master_product_engine.query_products(
 
-            brand=brand, kategori=kategori, operator=operator, paket=paket,
+            brand=brand, kategori=kategori, operator=operator, nama_provider=nama_provider, paket=paket,
 
-            search=search, page=page, page_size=page_size
+            search=search, sort_by=request.query_params.get("sort_by", "kode_produk"), sort_dir=request.query_params.get("sort_dir", "ASC"), page=page, page_size=page_size
 
         )
 
@@ -3014,6 +3155,28 @@ async def api_admin_products(request):
 
 
 
+async def api_admin_product_options(request):
+
+    """Mengambil list opsi kategori, operator, paket, dan statistik untuk brand tertentu."""
+
+    try:
+
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+
+        options = master_product_engine.get_filter_options(brand=brand)
+
+        return JSONResponse({"ok": True, "brand": brand, "options": options})
+
+    except Exception as e:
+
+        import traceback
+
+        traceback.print_exc()
+
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+
 async def api_admin_product_detail(request):
 
     """Mengambil detail spesifik produk."""
@@ -3024,15 +3187,15 @@ async def api_admin_product_detail(request):
 
         kode_produk = request.query_params.get("kode_produk", "").strip().upper()
 
+        options = master_product_engine.get_filter_options(brand=brand)
+
         if not kode_produk:
 
-            return JSONResponse({"ok": False, "error": "kode_produk is required"}, status_code=400)
+            return JSONResponse({"ok": True, "data": {"found": False}, "options": options})
 
             
 
         data = master_product_engine.get_product_detail(brand, kode_produk)
-
-        options = master_product_engine.get_filter_options(brand=brand)
 
         return JSONResponse({"ok": True, "data": data, "options": options})
 
@@ -3190,87 +3353,34 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 
 
-        # 3. Validasi token sesi untuk seluruh rute internal lainnya
-
+        # 3. Akses Remote / VPS (Bebas Login - Default Mode Tamu/Viewer):
+        # Dapur olah data & admin tetap eksklusif di Web EXE lokal.
         token = request.cookies.get("depas_session")
-
         valid, username, role = auth_engine.verify_session_token(token)
+        if not valid:
+            username = "Tamu"
+            role = "tamu"
 
-        if valid:
-
-            # 3a. Role-Based Access Control (RBAC):
-
-            # Jika user adalah 'tamu' (non-admin), blokir akses ke dapur admin & finansial
-
-            if role != "admin":
-
-                if (
-
-                    path.startswith("/api/admin/") or 
-
-                    path.startswith("/pages/admin") or
-
-                    path.startswith("/pages/bot_ai") or
-
-                    path.startswith("/pages/daily") or
-
-                    path.startswith("/pages/sco")
-
-                ):
-
-                    if path.startswith("/api/"):
-
-                        return JSONResponse(
-
-                            {"ok": False, "error": "Akses ditolak. Fitur ini khusus Administrator."},
-
-                            status_code=403
-
-                        )
-
-                    return RedirectResponse("/#overview", status_code=302)
-
-
-
-                if path == "/api/analisa/profit":
-
-                    return JSONResponse(
-
-                        {"ok": False, "error": "Akses ditolak. Analisa profit & laba khusus Administrator."},
-
-                        status_code=403
-
-                    )
-
-
-
-            return await call_next(request)
-
-
-
-        # 4. Jika unauthenticated:
-
-        if path.startswith("/api/"):
-
-            return JSONResponse(
-
-                {"ok": False, "error": "Akses ditolak. Sesi tidak ditemukan atau telah kedaluwarsa. Silakan login terlebih dahulu."},
-
-                status_code=401
-
+        # 4. Role-Based Access Control (RBAC):
+        # Jika bukan role 'admin', blokir akses ke dapur olah data & finansial rahasia
+        if role != "admin":
+            is_admin_path = (
+                path.startswith("/api/admin/") or 
+                path.startswith("/pages/admin") or
+                path.startswith("/pages/pivot_admin") or
+                path.startswith("/api/auth/users") or
+                path == "/api/analisa/profit" or
+                path == "/api/daily/send-whatsapp"
             )
+            if is_admin_path:
+                if path.startswith("/api/"):
+                    return JSONResponse(
+                        {"ok": False, "error": "Akses ditolak. Fitur Dapur & Admin khusus dijalankan di Web EXE lokal."},
+                        status_code=403
+                    )
+                return RedirectResponse("/#overview", status_code=302)
 
-
-
-        # Jika buka halaman web: redirect ke /login
-
-        next_url = str(request.url.path)
-
-        if request.url.query:
-
-            next_url += f"?{request.url.query}"
-
-        return RedirectResponse(f"/login?next={next_url}", status_code=302)
+        return await call_next(request)
 
 
 
@@ -3305,8 +3415,8 @@ routes = [
     Route("/api/yoy",           api_yoy),
 
     Route("/api/daily/periods", api_daily_periods),
-
     Route("/api/daily",         api_daily),
+    Route("/api/daily/send-whatsapp", api_daily_send_whatsapp, methods=["POST"]),
 
     Route("/api/pivot/options", api_pivot_options),
 
@@ -3355,6 +3465,10 @@ routes = [
 
     Route("/api/system-info",   api_system_info),
 
+    Route("/api/system/services-status", api_services_status),
+
+    Route("/api/system/services-toggle", api_services_toggle, methods=["POST"]),
+
     Route("/api/admin/status",          api_admin_status),
 
     Route("/api/admin/upsert",          api_admin_upsert, methods=["POST"]),
@@ -3366,6 +3480,7 @@ routes = [
     Route("/api/admin/upload-tsv",       api_admin_upload_tsv, methods=["POST"]),
 
     Route("/api/admin/upload-reseller-tsv", api_admin_upload_reseller_tsv, methods=["POST"]),
+        Route("/api/admin/upload-limit-tsv", api_admin_upload_limit_tsv, methods=["POST"]),
     Route("/api/admin/upload-pengirim-tsv", api_admin_upload_pengirim_tsv, methods=["POST"]),
 
     Route("/api/export/transactions.csv", api_export_transactions_csv),
@@ -3395,6 +3510,8 @@ routes = [
 
     Route("/api/admin/products",        api_admin_products),
 
+    Route("/api/admin/products/options", api_admin_product_options),
+
     Route("/api/admin/products/detail", api_admin_product_detail),
 
     Route("/api/admin/products/save",   api_admin_product_save, methods=["POST"]),
@@ -3409,9 +3526,7 @@ routes = [
 
     Route("/api/admin/users/delete",    api_admin_users_delete, methods=["POST"]),
 
-    Route("/api/admin/tickets",         api_admin_tickets_list),
 
-    Route("/api/admin/tickets/resolve", api_admin_tickets_resolve, methods=["POST"]),
 
     Route("/api/analisa/data",   api_analisa_data),
 
@@ -3420,6 +3535,8 @@ routes = [
     Route("/api/analisa/overview", api_analisa_data),
 
     Route("/api/analisa/profit", api_analisa_profit),
+
+    Route("/api/analisa/skema-limit", api_analisa_skema_limit),
 
     Route("/api/analisa/product-hierarchy", api_analisa_product_hierarchy),
 
@@ -3489,13 +3606,7 @@ def _prewarm():
 
             trx_engine.build_cache(brand, "2026")
 
-            # 2. Muat langsung ke RAM (_MEMORY_CACHE) dengan kolom ym & is_sukses
-
-            telemetry_engine.set_busy(f"Pre-warm RAM {brand} 2026...", "Memuat dataset ke memori")
-
-            trx_engine.load(brand, "2026")
-
-            # 3. Preload master customer & produk
+            # 2. Preload master customer & produk (ringan < 2MB RAM)
 
             telemetry_engine.set_busy(f"Pre-load Master {brand}...", "Customer & Product Map")
 
@@ -3503,9 +3614,12 @@ def _prewarm():
 
             prod_engine.get_product_map(brand)
 
-            # Preload pivot prepared transactions
-
-            pivot_engine.get_prepared_trx(brand, "2026")
+        # Pre-warm Overview Matrix di background agar instan saat user buka web
+        try:
+            telemetry_engine.set_busy("Pre-warm Overview Dashboard...", "Executive Matrix")
+            overview_engine.calculate_daily_growth(year="2026")
+        except Exception as e:
+            print(f"[BOOT] Overview pre-warm warning: {e}")
 
 
 
@@ -3627,7 +3741,8 @@ if __name__ == "__main__":
 
     _open_browser()
 
-    print("Server berjalan di http://localhost:8000 (Membuka browser otomatis...)")
-
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Server berjalan di http://{host}:{port}")
+    uvicorn.run(app, host=host, port=port, log_level="info")
 

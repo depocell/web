@@ -5,7 +5,7 @@
 
 const surveyState = {
   brand: 'ASTAGA',
-  period: '2026-10',
+  period: '',
   activeTab: 'list',
   candidates: [],
   filteredCandidates: [],
@@ -28,7 +28,7 @@ const surveyState = {
 // =========================================================================
 function loadSurveyPage() {
   surveyState.brand = 'ASTAGA';
-  surveyState.period = '2026-10';
+  // surveyState.period dinamis mengikuti bulan aktif terbaru
 
   checkGatewayStatus();
   if (surveyState.gatewayInterval) clearInterval(surveyState.gatewayInterval);
@@ -154,7 +154,10 @@ async function loadSurveyCandidates() {
   }
 
   try {
-    const res = await fetch(`/api/survey/candidates?brand=${encodeURIComponent(surveyState.brand)}&month=${encodeURIComponent(surveyState.period)}`);
+    const url = surveyState.period
+      ? `/api/survey/candidates?brand=${encodeURIComponent(surveyState.brand)}&month=${encodeURIComponent(surveyState.period)}`
+      : `/api/survey/candidates?brand=${encodeURIComponent(surveyState.brand)}`;
+    const res = await fetch(url);
     const json = await res.json();
 
     if (json.ok && Array.isArray(json.candidates)) {
@@ -163,6 +166,11 @@ async function loadSurveyCandidates() {
       const cnt = document.getElementById('survey-count-target');
       if (cnt) cnt.textContent = json.summary.total_churn || json.candidates.length;
 
+      if (json.periode) {
+        surveyState.period = json.periode;
+        const pBadge = document.getElementById('survey-period-badge');
+        if (pBadge) pBadge.textContent = `Periode ${json.periode}`;
+      }
       const wBadge = document.getElementById('survey-window-badge');
       if (wBadge && json.window_label) {
         wBadge.textContent = `Rentang: ${json.window_label}`;
@@ -362,9 +370,9 @@ function renderCandidatesTable() {
     
     let statusBadge = '<span class="badge" style="background: var(--table-header); color: var(--text-muted);">Belum</span>';
     if (c.status === 'REPLIED') {
-      statusBadge = '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Sudah Balas</span>';
+      statusBadge = `<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Sudah Balas</span>${c.surveyor ? `<div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">oleh: <strong style="color:var(--text-main);">${escapeHtml(c.surveyor)}</strong></div>` : ''}`;
     } else if (c.status === 'SENT' || c.status === 'TEST_SENT' || (c.status && c.status.startsWith('SENT')) || (c.status && c.status.includes('wa.me'))) {
-      statusBadge = '<span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">Terkirim</span>';
+      statusBadge = `<span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">Terkirim</span>${c.surveyor ? `<div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">oleh: <strong style="color:var(--text-main);">${escapeHtml(c.surveyor)}</strong></div>` : ''}`;
     } else if (c.status === 'NOT_ON_WA') {
       statusBadge = '<span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 700;">Tidak Ada WA</span>';
     }
@@ -442,7 +450,7 @@ function renderCandidatesTable() {
 async function loadSurveyLogs() {
   const tbody = document.getElementById('survey-logs-tbody');
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="8" style="padding: 30px; text-align: center; color: var(--text-muted);">Memuat riwayat log survei...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="padding: 30px; text-align: center; color: var(--text-muted);">Memuat riwayat log survei...</td></tr>';
   }
 
   try {
@@ -455,6 +463,19 @@ async function loadSurveyLogs() {
 
       const logCnt = document.getElementById('survey-count-logs');
       if (logCnt) logCnt.textContent = json.logs.length;
+
+      // Update opsi filter petugas
+      const surveyorSelect = document.getElementById('survey-logs-filter-surveyor');
+      if (surveySelect) {
+        const prevVal = surveyorSelect.value;
+        const surveyors = Array.from(new Set(json.logs.map(l => l.surveyor || l.surveyor_username || 'admin').filter(Boolean))).sort();
+        let optHtml = '<option value="ALL">Semua Petugas</option>';
+        surveyors.forEach(s => {
+          optHtml += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`;
+        });
+        surveyorSelect.innerHTML = optHtml;
+        if (surveyors.includes(prevVal)) surveyorSelect.value = prevVal;
+      }
 
       applyLogsFilterAndSearch();
     } else {
@@ -490,6 +511,12 @@ function applyLogsFilterAndSearch() {
     list = list.filter(l => (l.status || '').startsWith('SENT') || l.status === 'TEST_SENT' || (l.status || '').includes('wa.me'));
   }
 
+  // 1b. Filter Petugas
+  const selectedSurveyor = document.getElementById('survey-logs-filter-surveyor')?.value || 'ALL';
+  if (selectedSurveyor !== 'ALL') {
+    list = list.filter(l => (l.surveyor || l.surveyor_username || 'admin').toLowerCase() === selectedSurveyor.toLowerCase());
+  }
+
   // 2. Search Box Query (Toko, ID Reseller, No WA, Cabang, SCO, Balasan)
   if (query) {
     list = list.filter(l => {
@@ -499,7 +526,8 @@ function applyLogsFilterAndSearch() {
       const cabang = (l.cabang || '').toLowerCase();
       const sco = (l.sco_name || '').toLowerCase();
       const reply = (l.reply_received || '').toLowerCase();
-      return name.includes(query) || id.includes(query) || phone.includes(query) || cabang.includes(query) || sco.includes(query) || reply.includes(query);
+      const surveyor = (l.surveyor || l.surveyor_username || '').toLowerCase();
+      return name.includes(query) || id.includes(query) || phone.includes(query) || cabang.includes(query) || sco.includes(query) || reply.includes(query) || surveyor.includes(query);
     });
   }
 
@@ -514,7 +542,7 @@ function renderLogsTable() {
 
   const logs = surveyState.filteredLogs;
   if (logs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="padding: 30px; text-align: center; color: var(--text-muted);">Belum ada riwayat survei untuk filter ini.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="padding: 30px; text-align: center; color: var(--text-muted);">Belum ada riwayat survei untuk filter ini.</td></tr>';
     return;
   }
 
@@ -573,11 +601,50 @@ function renderLogsTable() {
     }
 
     const sentTime = l.sent_at ? l.sent_at.substring(0, 16).replace('T', ' ') : '-';
+    const surveyorName = l.surveyor || l.surveyor_username || 'admin';
+    const sLower = String(surveyorName).toLowerCase();
+    let badgeBg = 'var(--surface-bg)';
+    let badgeBorder = 'var(--surface-border)';
+    let badgeColor = 'var(--text-main)';
+    let roleTitle = 'Petugas';
+    
+    if (sLower === 'admin' || sLower.includes('admin')) {
+      badgeBg = '#eff6ff';
+      badgeBorder = '#bfdbfe';
+      badgeColor = '#1d4ed8';
+      roleTitle = 'Administrator';
+    } else if (sLower === 'marketing') {
+      badgeBg = '#faf5ff';
+      badgeBorder = '#e9d5ff';
+      badgeColor = '#7e22ce';
+      roleTitle = 'Marketing';
+    } else if (sLower === 'user') {
+      badgeBg = '#f0fdf4';
+      badgeBorder = '#bbf7d0';
+      badgeColor = '#15803d';
+      roleTitle = 'User Operasional';
+    } else if (sLower === 'tamu') {
+      badgeBg = '#f8fafc';
+      badgeBorder = '#e2e8f0';
+      badgeColor = '#475569';
+      roleTitle = 'Tamu';
+    }
+
+    const surveyorBadge = `
+      <span class="badge" style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${badgeColor}; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="Diproses Oleh: ${escapeHtml(surveyorName)} (${roleTitle})">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>${escapeHtml(surveyorName)}</span>
+      </span>
+    `;
 
     html += `
       <tr style="border-bottom: 1px solid var(--surface-border);">
         <td style="padding: 10px 12px; text-align: center; color: var(--text-muted); font-weight: 700;">#${l.id}</td>
         <td style="padding: 10px 12px; font-family: monospace; font-size: 11px; color: var(--text-muted); white-space: nowrap;">${sentTime}</td>
+        <td style="padding: 10px 12px; text-align: center;">${surveyorBadge}</td>
         <td style="padding: 10px 12px;">
           <strong style="color: var(--text-main); font-size: 12.5px; display: block;">${escapeHtml(l.reseller_name || l.reseller_id)}</strong>
           <span style="font-size: 10.5px; font-family: monospace; color: var(--primary);">${escapeHtml(l.reseller_id)}</span>
@@ -760,6 +827,59 @@ async function renderSurveyCharts() {
       }
     });
   }
+
+  // 4. Render Rekap Performa Petugas (Sesuai Akun Login)
+  const surveyorMap = {};
+  logs.forEach(l => {
+    const s = l.surveyor || l.surveyor_username || 'admin';
+    if (!surveyorMap[s]) surveyorMap[s] = { total: 0, replied: 0, pending: 0 };
+    surveyorMap[s].total++;
+    if (l.status === 'REPLIED') {
+      surveyorMap[s].replied++;
+    } else {
+      surveyorMap[s].pending++;
+    }
+  });
+
+  const pTbody = document.getElementById('survey-petugas-rekap-tbody');
+  if (pTbody) {
+    const sEntries = Object.entries(surveyorMap).sort((a, b) => b[1].total - a[1].total);
+    if (sEntries.length === 0) {
+      pTbody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">Belum ada riwayat survei untuk periode ini.</td></tr>';
+    } else {
+      let pHtml = '';
+      sEntries.forEach(([sName, data], pIdx) => {
+        const rate = data.total > 0 ? Math.round((data.replied / data.total) * 100) : 0;
+        const sLower = sName.toLowerCase();
+        let bBg = '#eff6ff', bColor = '#1d4ed8', bBorder = '#bfdbfe';
+        if (sLower === 'marketing') { bBg = '#faf5ff'; bColor = '#7e22ce'; bBorder = '#e9d5ff'; }
+        else if (sLower === 'user') { bBg = '#f0fdf4'; bColor = '#15803d'; bBorder = '#bbf7d0'; }
+        else if (sLower === 'tamu') { bBg = '#f8fafc'; bColor = '#475569'; bBorder = '#e2e8f0'; }
+
+        pHtml += `
+          <tr style="border-bottom: 1px solid var(--surface-border);">
+            <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: var(--text-muted);">${pIdx + 1}</td>
+            <td style="padding: 10px 12px;">
+              <span class="badge" style="background: ${bBg}; border: 1px solid ${bBorder}; color: ${bColor}; font-weight: 700; font-size: 11.5px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>${escapeHtml(sName)}</span>
+              </span>
+            </td>
+            <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: var(--text-main); font-size: 13px;">${data.total} Toko</td>
+            <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: #15803d;">${data.replied} Toko</td>
+            <td style="padding: 10px 12px; text-align: center; color: var(--text-muted);">${data.pending} Toko</td>
+            <td style="padding: 10px 12px; text-align: center;">
+              <span class="badge" style="background: ${rate >= 50 ? '#dcfce7' : '#fef3c7'}; color: ${rate >= 50 ? '#15803d' : '#b45309'}; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 4px;">${rate}%</span>
+            </td>
+          </tr>
+        `;
+      });
+      pTbody.innerHTML = pHtml;
+    }
+  }
 }
 window.renderSurveyCharts = renderSurveyCharts;
 
@@ -787,6 +907,16 @@ async function openSurveyModal(resellerId, resellerName, cabang, sco, prevTrx) {
 
   const phoneElem = document.getElementById('survey-modal-phone');
   phoneElem.textContent = 'Memuat kontak...';
+
+  // Petugas login info
+  const currentSurveyor = (typeof currentAuthUser !== 'undefined' && currentAuthUser.username && currentAuthUser.username !== 'Guest')
+    ? currentAuthUser.username
+    : (document.getElementById('sidebar-username')?.textContent?.trim() || 'admin');
+  const currentRole = (typeof currentAuthUser !== 'undefined' && currentAuthUser.role) ? currentAuthUser.role : 'admin';
+  const pNameElem = document.getElementById('survey-modal-petugas-name');
+  if (pNameElem) pNameElem.textContent = currentSurveyor;
+  const pRoleElem = document.getElementById('survey-modal-petugas-role');
+  if (pRoleElem) pRoleElem.textContent = `Akun Login (${currentRole.toUpperCase()})`;
 
   const msgArea = document.getElementById('survey-message-text');
   msgArea.value = 'Memuat pesan sapaan AI...';
@@ -860,6 +990,10 @@ async function submitSurveyAction() {
 
   const customMsg = document.getElementById('survey-message-text').value.trim();
 
+  const currentSurveyor = (typeof currentAuthUser !== 'undefined' && currentAuthUser.username)
+    ? currentAuthUser.username
+    : (document.getElementById('sidebar-username')?.textContent?.trim() || 'admin');
+
   // 1. Catat log pengiriman via wa.me ke database (background)
   fetch('/api/survey/send', {
     method: 'POST',
@@ -875,16 +1009,25 @@ async function submitSurveyAction() {
       prev_trx: cand.prev_trx,
       message: customMsg,
       is_test: false,
-      mode: 'wa.me'
+      mode: 'wa.me',
+      surveyor: currentSurveyor
     })
   }).then(() => {
     loadSurveyCandidates();
     loadSurveyLogs();
   }).catch(() => {});
 
-  // 2. Langsung buka chat resmi WhatsApp
+  // 2. Langsung buka chat resmi WhatsApp (aman dari popup blocker)
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(customMsg)}`;
-  window.open(waUrl, '_blank');
+  const link = document.createElement('a');
+  link.href = waUrl;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    try { document.body.removeChild(link); } catch (e) {}
+  }, 300);
 
   // 3. Tutup modal
   closeSurveyModal();
@@ -1179,6 +1322,24 @@ function openReplyModal(logId, resellerName, currentText = '') {
   document.getElementById('reply-modal-sub').textContent = `Log ID #${logId} • Reseller Churn`;
   document.getElementById('reply-input-text').value = currentText || '';
 
+  const currentSurveyor = (typeof currentAuthUser !== 'undefined' && currentAuthUser.username && currentAuthUser.username !== 'Guest')
+    ? currentAuthUser.username
+    : (document.getElementById('sidebar-username')?.textContent?.trim() || 'admin');
+  const currentRole = (typeof currentAuthUser !== 'undefined' && currentAuthUser.role) ? currentAuthUser.role : 'admin';
+  const rName = document.getElementById('reply-modal-petugas-name');
+  if (rName) rName.textContent = currentSurveyor;
+  const rBadge = document.getElementById('reply-modal-petugas-badge');
+  if (rBadge) {
+    rBadge.textContent = currentRole.toUpperCase();
+    if (currentRole === 'admin') {
+      rBadge.style.background = '#eff6ff'; rBadge.style.color = '#2563eb';
+    } else if (currentSurveyor.toLowerCase() === 'marketing') {
+      rBadge.style.background = '#faf5ff'; rBadge.style.color = '#7e22ce';
+    } else {
+      rBadge.style.background = '#f0fdf4'; rBadge.style.color = '#15803d';
+    }
+  }
+
   modal.style.display = 'flex';
   document.getElementById('reply-input-text').focus();
 }
@@ -1223,7 +1384,8 @@ async function submitReplyAction() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         log_id: currentReplyLogId,
-        reply_text: text
+        reply_text: text,
+        surveyor: (typeof currentAuthUser !== 'undefined' && currentAuthUser.username) ? currentAuthUser.username : 'admin'
       })
     });
     const data = await res.json();

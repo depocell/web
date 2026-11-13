@@ -5,6 +5,6 @@
   "user_name": "Bossque",
   "prompt": "nah 12 toko baru itu apa saja? bisa kasih saya listnya saja?",
   "requirement": "Tarik detail nama pemilik dan nomor WhatsApp untuk 12 list agen baru ASTAGA Oktober 2026",
-  "status": "PENDING",
-  "resolution_note": ""
+  "status": "RESOLVED",
+  "resolution_note": "Data sudah diracik dan disuntikkan ke snapshot AI."
 }

@@ -189,6 +189,7 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
     # 3. PERFORMANSI CABANG
     df_curr_sukses["cabang"] = df_curr_sukses["ar_id"].astype(str).map(cabang_map).fillna("UNKNOWN")
     df_prev_sukses["cabang"] = df_prev_sukses["ar_id"].astype(str).map(cabang_map).fillna("UNKNOWN")
+    df_curr_all["cabang"] = df_curr_all["ar_id"].astype(str).map(cabang_map).fillna("UNKNOWN")
 
     channels = cfg["channels"]
     branches = []
@@ -202,8 +203,16 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
     for ch in channels:
         c_ch = df_curr_sukses[df_curr_sukses["cabang"] == ch]
         p_ch = df_prev_sukses[df_prev_sukses["cabang"] == ch]
+        c_all = df_curr_all[df_curr_all["cabang"] == ch]
 
-        d_trx_c = me.calculate_daily_rate(len(c_ch), days_curr)
+        tot_all_c = len(c_all)
+        tot_suk_c = len(c_ch)
+        suk_pct_c = round(tot_suk_c / tot_all_c * 100, 1) if tot_all_c > 0 else 0.0
+        dur_c = float(c_ch["durasi_sec"].mean()) if not c_ch.empty else 0.0
+        dur_str_c = _format_duration(dur_c)
+        speed_status_c = "Prima" if dur_c < 20 else ("Waspada" if dur_c <= 30 else "Gangguan")
+
+        d_trx_c = me.calculate_daily_rate(tot_suk_c, days_curr)
         d_trx_p = me.calculate_daily_rate(len(p_ch), days_prev)
         diff_c_trx = me.calculate_daily_growth(d_trx_c, d_trx_p)["growth_diff"]
 
@@ -225,6 +234,13 @@ def calculate_daily_report(brand: str = "ASTAGA", curr_month: str = None, prev_m
 
         branches.append({
             "cabang": ch,
+            "total_trx": tot_all_c,
+            "total_sukses": tot_suk_c,
+            "sukses_pct": suk_pct_c,
+            "sukses_str": f"{suk_pct_c}%",
+            "speed_sec": round(dur_c, 1),
+            "speed_str": dur_str_c,
+            "speed_status": speed_status_c,
             "daily_curr": d_trx_c,
             "daily_prev": d_trx_p,
             "diff_trx": diff_c_trx,

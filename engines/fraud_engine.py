@@ -240,11 +240,19 @@ def import_trx_tujuan_from_file(file_path: str, brand: str = "ASTAGA") -> dict:
 
 
 
+_IMPORTED_TUJUAN_TRACKER = {}
+
 def auto_import_pending_tujuan_files(brand: str = "ASTAGA") -> list:
 
-    r"""Memindai folder C:\DMS RAW DATA\UPSERT HARIAN dan TRANSAKSI untuk file nomor tujuan baru."""
+    r"""Memindai folder C:\DMS RAW DATA\TRANSAKSI\ASTAGA\CSV\BULANAN\2026\INSERT TUJUAN untuk file nomor tujuan baru."""
+
+    global _IMPORTED_TUJUAN_TRACKER
+
+    brand = (brand or "ASTAGA").strip().upper()
 
     folders = [
+
+        r"C:\DMS RAW DATA\TRANSAKSI\ASTAGA\CSV\BULANAN\2026\INSERT TUJUAN",
 
         r"C:\DMS RAW DATA\UPSERT HARIAN",
 
@@ -270,11 +278,39 @@ def auto_import_pending_tujuan_files(brand: str = "ASTAGA") -> list:
 
                 if any(k in fname.upper() for k in ["TUJUAN", "TARGET", "MSISDN", "PHONE", "NOMOR"]):
 
-                    res = import_trx_tujuan_from_file(fpath, brand)
+                    try:
 
-                    if res.get("ok"):
+                        mtime = os.path.getmtime(fpath)
 
-                        imported_summary.append(res)
+                    except OSError:
+
+                        continue
+
+                    # Jika file belum pernah diimpor atau mtime berubah (file diperbarui)
+
+                    if _IMPORTED_TUJUAN_TRACKER.get(fpath) != mtime:
+
+                        res = import_trx_tujuan_from_file(fpath, brand)
+
+                        if res.get("ok"):
+
+                            _IMPORTED_TUJUAN_TRACKER[fpath] = mtime
+
+                            imported_summary.append(res)
+
+    # Jika ada file baru yang diimpor, otomatis sinkronkan ke cache Parquet
+
+    if imported_summary:
+
+        try:
+
+            import sync_tujuan
+
+            sync_tujuan.sync_tujuan_all(brand)
+
+        except Exception as e:
+
+            print(f"[WARN] Gagal auto-sync ke Parquet: {e}")
 
     return imported_summary
 
@@ -1237,7 +1273,7 @@ def calculate_tren_ewallet_agen(brand: str = "ASTAGA", year: str = "2026", force
         ("0126", "Jan 26"), ("0226", "Feb 26"), ("0326", "Mar 26"),
         ("0426", "Apr 26"), ("0526", "Mei 26"), ("0626", "Jun 26"),
         ("0726", "Jul 26"), ("0826", "Agu 26"), ("0926", "Sep 26"),
-        ("1026", "Okt 26")
+        ("1026", "Okt 26"), ("1126", "Nov 26"), ("1226", "Des 26")
     ]
 
     agen_monthly: Dict[str, Dict[str, float]] = {}

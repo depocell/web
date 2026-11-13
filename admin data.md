@@ -12,7 +12,7 @@ Dokumen ini adalah **Single Source of Truth (SOP Wajib)** untuk modul **Admin Da
 5. [Tab 3: Master Produk & Kategori (Composite Key & Integrasi E-Wallet)](#5-tab-3-master-produk--kategori-composite-key--integrasi-e-wallet)
 6. [Tab 4: Pengaturan User (Keamanan & Hak Akses)](#6-tab-4-pengaturan-user-keamanan--hak-akses)
 7. [Tab 5: Status Freshness Sistem (Monitoring Integritas Data & Cache)](#7-tab-5-status-freshness-sistem-monitoring-integritas-data--cache)
-8. [Tab 6: Eskalasi AI / Help Me Please (Pusat Tiket Otomasi CS)](#8-tab-6-eskalasi-ai--help-me-please-pusat-tiket-otomasi-cs)
+8. [Pensiun Sistem Tiket & Eskalasi AI (Zero-Ticket Architecture)](#8-pensiun-sistem-tiket--eskalasi-ai-zero-ticket-architecture)
 9. [Pemisahan Modul Rekap Finansial ke Halaman #pivot-admin](#9-pemisahan-modul-rekap-finansial-ke-halaman-pivot-admin)
 10. [Arsitektur Caching Berjenjang (Hierarchical Cache L1-L4)](#10-arsitektur-caching-berjenjang-hierarchical-cache-l1-l4)
 11. [Katalog Lengkap REST API Endpoints (`server.py`)](#11-katalog-lengkap-rest-api-endpoints-serverpy)
@@ -214,15 +214,12 @@ Tab 5 adalah pusat telemetri dan diagnostik kesehatan data server lokal.
 
 ---
 
-## 8. TAB 6: ESKALASI AI / HELP ME PLEASE (PUSAT TIKET OTOMASI CS)
+## 8. PENSIUN SISTEM TIKET & ESKALASI AI (ZERO-TICKET ARCHITECTURE)
 
-Tab 6 adalah antarmuka pemantauan tiket kendala yang diajukan oleh agen atau tim operasional melalui bot Telegram terintegrasi (**`@depas_ai_bot`** / `tele_bot.py`).
-
-### 8.1. Alur Penanganan Tiket:
-1. **Penerimaan Tiket**: Saat agen melaporkan kendala saldo, transaksi pending, atau verifikasi akun ke bot Telegram, sistem otomatis membuat ID tiket unik (misal: `TKT-20261028-XXXXXX`).
-2. **Klasifikasi AI**: Copilot AI secara cerdas menganalisis sentimen, kategori kendala, serta mengecek status transaksi terkait di database.
-3. **Antrean di Web Admin**: Tiket muncul di tabel antrean Tab 6 lengkap dengan nama toko/agen, nomor WA/Telegram, ringkasan masalah, tingkat urgensi (*Urgent, Normal, Low*), dan status (*Open, In Progress, Resolved*).
-4. **Penyelesaian**: Tim admin dapat mengubah status tiket dan mengirimkan balasan langsung ke Telegram agen dari sistem.
+Sistem tiket eskalasi dan tab tiket di web admin telah **RESMI DIPENSIUNKAN DAN DIMUSNAHKAN**:
+1. Seluruh peran analisa transaksi, monitoring performa cabang, dan query server telah disatukan ke **Ompasha Copilot (`@ompasha_bot`)**.
+2. Tidak ada lagi antrean tiket (`TKT-*`) atau penundaan data. Pertanyaan Bossque dijawab secara instan melalui pembacaan langsung database mentah 1.7M+ transaksi di laptop.
+3. Tab tiket di halaman admin dan endpoint `/api/admin/tickets` telah dibersihkan secara penuh dari antarmuka Web Report.
 
 ---
 

@@ -2052,6 +2052,11 @@ function renderTrenTableRows(agents) {
           const v = (a.monthly && a.monthly[m.code] !== undefined) ? Number(a.monthly[m.code]) : 0;
           const isLatest = m.is_latest;
           const isPeak = v === maxVal && maxVal > 0;
+          const isZero = (v === 0);
+
+          if (isZero) {
+            return `<td class="text-right" style="${isLatest ? 'background: rgba(37,99,235,0.04);' : ''}"><span class="val-zero-churn" title="0 Transaksi (Mati/Churn)">-</span></td>`;
+          }
           if (isLatest) {
             return `<td class="text-right" style="font-weight: 800; color: var(--primary); font-size: 13px; background: rgba(37,99,235,0.06);">${formatDailyRate(v)}</td>`;
           }
@@ -2366,6 +2371,15 @@ async function openSurveyModal(agenId, agenName, cabang, sco, prevTrx) {
   document.getElementById('survey-modal-cabang').textContent = cabang;
   document.getElementById('survey-modal-sco').textContent = `SCO: ${sco}`;
   document.getElementById('survey-modal-prev-trx').textContent = `${(prevTrx || 0).toLocaleString('id-ID')} Trx`;
+
+  const currentSurveyor = (typeof currentAuthUser !== 'undefined' && currentAuthUser.username && currentAuthUser.username !== 'Guest')
+    ? currentAuthUser.username
+    : (document.getElementById('sidebar-username')?.textContent?.trim() || 'admin');
+  const currentRole = (typeof currentAuthUser !== 'undefined' && currentAuthUser.role) ? currentAuthUser.role : 'admin';
+  const pNameElem = document.getElementById('survey-modal-petugas-name');
+  if (pNameElem) pNameElem.textContent = currentSurveyor;
+  const pRoleElem = document.getElementById('survey-modal-petugas-role');
+  if (pRoleElem) pRoleElem.textContent = `Akun Login (${currentRole.toUpperCase()})`;
   
   const phoneElem = document.getElementById('survey-modal-phone');
   const sourceElem = document.getElementById('survey-modal-source');
@@ -2382,13 +2396,16 @@ async function openSurveyModal(agenId, agenName, cabang, sco, prevTrx) {
 
   try {
     const brand = agenUnifiedState.currentBrand || 'ASTAGA';
-    const month = agenUnifiedState.currentPeriod || '2026-10';
+    const month = agenUnifiedState.selectedMonth || (agenUnifiedState.resellerRaw ? agenUnifiedState.resellerRaw.selected_month : '');
     
-    // Fetch candidates from API
-    const resp = await fetch(`/api/survey/candidates?brand=${encodeURIComponent(brand)}&month=${encodeURIComponent(month)}`);
+    // Fetch candidates from API (otomatis mengikuti bulan aktif)
+    const url = month 
+      ? `/api/survey/candidates?brand=${encodeURIComponent(brand)}&month=${encodeURIComponent(month)}`
+      : `/api/survey/candidates?brand=${encodeURIComponent(brand)}`;
+    const resp = await fetch(url);
     const json = await resp.json();
     if (json.ok && Array.isArray(json.candidates)) {
-      const match = json.candidates.find(c => c.agen_id === agenId);
+      const match = json.candidates.find(c => c.agen_id === agenId || c.reseller_id === agenId);
       if (match) {
         currentSurveyCandidate = { ...currentSurveyCandidate, ...match };
         phoneElem.textContent = match.no_wa || 'Belum ada kontak';
@@ -2436,7 +2453,11 @@ async function submitSurveyAction() {
 
   const customMsg = document.getElementById('survey-message-text').value.trim();
   const brand = agenUnifiedState.currentBrand || 'ASTAGA';
-  const month = agenUnifiedState.currentPeriod || '2026-10';
+  const month = agenUnifiedState.selectedMonth || (agenUnifiedState.resellerRaw ? agenUnifiedState.resellerRaw.selected_month : '') || '2026-11';
+
+  const currentSurveyor = (typeof currentAuthUser !== 'undefined' && currentAuthUser.username)
+    ? currentAuthUser.username
+    : (document.getElementById('sidebar-username')?.textContent?.trim() || 'admin');
 
   // 1. Catat log ke server (background)
   fetch('/api/survey/send', {
@@ -2453,13 +2474,22 @@ async function submitSurveyAction() {
       prev_trx: currentSurveyCandidate.prev_trx,
       message: customMsg,
       is_test: false,
-      mode: 'wa.me'
+      mode: 'wa.me',
+      surveyor: currentSurveyor
     })
   }).catch(() => {});
 
-  // 2. Langsung buka chat resmi WhatsApp
+  // 2. Langsung buka chat resmi WhatsApp (aman dari popup blocker)
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(customMsg)}`;
-  window.open(waUrl, '_blank');
+  const link = document.createElement('a');
+  link.href = waUrl;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    try { document.body.removeChild(link); } catch (e) {}
+  }, 300);
 
   // 3. Tutup modal
   closeSurveyModal();

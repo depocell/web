@@ -15,8 +15,117 @@ import engines.customer_engine as ce
 import engines.metrics_engine as me
 import engines.daily_engine as de
 
+import time
+
 CACHE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pages", "yoy", "data_yoy.json")
+REV_ARPU_CACHE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".cache", "yoy_rev_arpu_cache.json")
 _YOY_CACHE: Dict[str, Any] = {}
+_YOY_MTIME: float = 0.0
+
+
+def _load_rev_arpu_cache(force: bool = False) -> Dict[str, Any]:
+    """Memuat atau menghitung net revenue dan net arpu per kategori & operator 12 bulan terakhir."""
+    if not force and os.path.exists(REV_ARPU_CACHE_FILE):
+        try:
+            with open(REV_ARPU_CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    import engines.profit_engine as pe
+    import engines.product_engine as p_eng
+    res_data = {"ASTAGA": {"cat": {}, "op": {}}, "OKIPAY": {"cat": {}, "op": {}}}
+
+    for brand in ["ASTAGA", "OKIPAY"]:
+        try:
+            markup_map = pe.get_reseller_markup_map(brand)
+            prod_map = p_eng.get_product_map(brand)
+            df = te.load(brand, "2026")
+            if df is None or df.empty:
+                continue
+            if brand == "ASTAGA":
+                df = me.filter_astaga_internal(df)
+            if "is_sukses" not in df.columns and "status" in df.columns:
+                df["is_sukses"] = df["status"].astype(str).str.lower().str.contains("sukses", na=False)
+            df_sukses = df[df["is_sukses"]].copy()
+            if df_sukses.empty:
+                continue
+
+            ar_series = df_sukses["ar_id"].astype(str).str.strip().str.upper()
+            df_sukses["markup"] = ar_series.map(markup_map).fillna(0.0)
+            df_sukses["net_revenue"] = df_sukses["jual"] - df_sukses["markup"]
+
+            def map_cat_op(pid):
+                p_up = str(pid).strip().upper()
+                info = prod_map.get(p_up, {})
+                cat = (info.get("kategori") or "LAINNYA").strip().upper()
+                op = (info.get("operator") or "LAINNYA").strip().upper()
+                if "EWALLET" in cat: c = "EWALLET"
+                elif "PPOB" in cat: c = "PPOB"
+                elif "TELCO" in cat: c = "TELCO"
+                elif "PLN" in cat: c = "PLN"
+                elif "GAME" in cat: c = "GAME"
+                else: c = cat
+                return c, op
+
+            unique_pids = df_sukses["product_id"].dropna().unique()
+            lookup = {pid: map_cat_op(pid) for pid in unique_pids}
+            df_sukses["cat"] = [lookup.get(pid, ("LAINNYA", "LAINNYA"))[0] for pid in df_sukses["product_id"]]
+            df_sukses["op"] = [lookup.get(pid, ("LAINNYA", "LAINNYA"))[1] for pid in df_sukses["product_id"]]
+
+            cat_agg = df_sukses.groupby(["ym", "cat"]).agg(trx=("jual", "count"), net_rev=("net_revenue", "sum")).reset_index()
+            for _, r in cat_agg.iterrows():
+                ym, cat, net_rev, trx = r["ym"], r["cat"], float(r["net_rev"]), int(r["trx"])
+                if ym not in res_data[brand]["cat"]: res_data[brand]["cat"][ym] = {}
+                res_data[brand]["cat"][ym][cat] = {"rev": round(net_rev, 0), "arpu": round(net_rev / trx, 1) if trx > 0 else 0.0}
+
+            op_agg = df_sukses.groupby(["ym", "op"]).agg(trx=("jual", "count"), net_rev=("net_revenue", "sum")).reset_index()
+            for _, r in op_agg.iterrows():
+                ym, op, net_rev, trx = r["ym"], r["op"], float(r["net_rev"]), int(r["trx"])
+                if ym not in res_data[brand]["op"]: res_data[brand]["op"][ym] = {}
+                res_data[brand]["op"][ym][op] = {"rev": round(net_rev, 0), "arpu": round(net_rev / trx, 1) if trx > 0 else 0.0}
+        except Exception as e:
+            print(f"[YOY Engine] Error computing rev/arpu for {brand}: {e}")
+
+    try:
+        os.makedirs(os.path.dirname(REV_ARPU_CACHE_FILE), exist_ok=True)
+        with open(REV_ARPU_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(res_data, f, indent=2)
+    except Exception as e:
+        print(f"[YOY Engine] Error saving rev_arpu cache: {e}")
+
+    return res_data
+
+
+def _get_upstream_mtime() -> float:
+    """Mendapatkan timestamp mtime terbaru dari file parquet 2026 atau analisa dataset."""
+    import engines.transaction_engine as te
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    p_astaga = te._cache_path("ASTAGA", "2026")
+    p_okipay = te._cache_path("OKIPAY", "2026")
+    analisa_gold = os.path.join(base_dir, ".cache", "gold_2026_computed.json")
+    analisa_hist = os.path.join(base_dir, ".cache", "analisa_gold_history.json")
+    analisa_data = os.path.join(base_dir, "pages", "analisa", "data.json")
+    mtimes = [0.0]
+    for p in [p_astaga, p_okipay, analisa_gold, analisa_hist, analisa_data]:
+        if os.path.exists(p):
+            try:
+                mtimes.append(os.path.getmtime(p))
+            except Exception:
+                pass
+    return max(mtimes)
+
+
+def clear_yoy_cache():
+    """Invalidasi in-memory dan file cache YoY agar data langsung mutakhir."""
+    global _YOY_CACHE, _YOY_MTIME
+    _YOY_CACHE = {}
+    _YOY_MTIME = 0.0
+    if os.path.exists(CACHE_FILE):
+        try:
+            os.remove(CACHE_FILE)
+        except Exception:
+            pass
 
 # Precomputed exact daily member per cabang dari transaksi riil OtomaX (Groupby ym, cabang, date -> count unique ar_id)
 # Menghilangkan distorsi rasio transaksi pada channel H2H (di mana transaksi 75% tapi member cuma 2-3 akun B2B).
@@ -33,7 +142,7 @@ PRECOMPUTED_DAILY_MEMBERS = {
         "2026-07": {"BSD": 370.3, "PP": 378.8, "ICON": 294.1, "PRG": 106.8, "ONLINE": 120.6},
         "2026-08": {"BSD": 368.6, "PP": 372.4, "ICON": 293.9, "PRG": 103.1, "ONLINE": 116.1},
         "2026-09": {"BSD": 365.1, "PP": 362.7, "ICON": 293.7, "PRG": 100.2, "ONLINE": 112.6},
-        "2026-10": {"BSD": 360.8, "PP": 349.0, "ICON": 290.9, "PRG": 100.6, "ONLINE": 119.7},
+        "2026-10": {"BSD": 361.1, "PP": 346.2, "ICON": 289.9, "PRG": 100.6, "ONLINE": 119.9},
     },
     "OKIPAY": {
         "2025-11": {"H2H": 2.0, "ONLINE": 220.0},
@@ -47,7 +156,7 @@ PRECOMPUTED_DAILY_MEMBERS = {
         "2026-07": {"H2H": 2.0, "ONLINE": 194.5},
         "2026-08": {"H2H": 2.0, "ONLINE": 191.2},
         "2026-09": {"H2H": 2.3, "ONLINE": 184.8},
-        "2026-10": {"H2H": 2.8, "ONLINE": 180.3},
+        "2026-10": {"H2H": 2.8, "ONLINE": 179.6},
     }
 }
 
@@ -70,20 +179,31 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
     """
     Hitung dataset 12 bulan terakhir untuk ASTAGA dan OKIPAY.
     WAJIB 100% HANYA MENGHITUNG TRANSAKSI SUKSES.
+    Otomatis memeriksa timestamp mtime Parquet/Analisa agar data selalu up to date.
     """
-    global _YOY_CACHE
-    if not force and _YOY_CACHE:
+    global _YOY_CACHE, _YOY_MTIME
+    curr_mtime = _get_upstream_mtime()
+
+    if not force and _YOY_CACHE and (curr_mtime == 0 or _YOY_MTIME >= curr_mtime):
         return _YOY_CACHE
 
     if not force and os.path.exists(CACHE_FILE):
         try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                _YOY_CACHE = data
-                return data
+            f_mtime = os.path.getmtime(CACHE_FILE)
+            if curr_mtime == 0 or f_mtime >= curr_mtime:
+                with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    _YOY_CACHE = data
+                    _YOY_MTIME = f_mtime
+                    return data
         except Exception:
             pass
 
+    if force:
+        try:
+            ae.clear_cache()
+        except Exception:
+            pass
     analisa_ds = ae.get_analisa_dataset()
     result = {"ASTAGA": {}, "OKIPAY": {}, "months": [], "month_labels": []}
 
@@ -145,6 +265,8 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
     top_cats = ["TELCO", "PLN", "EWALLET", "PPOB", "GAME"]
     top_ops = ["INDOSAT", "TELKOMSEL", "XL - AXIS", "TRI", "SMARTFREN", "TOKEN PLN", "DANA", "GOPAY"]
 
+    rev_arpu_cache = _load_rev_arpu_cache(force=False)
+
     for brand, channels in [("ASTAGA", astaga_channels), ("OKIPAY", okipay_channels)]:
         brand_ds = analisa_ds.get(brand, {})
         cat_ratio_base = astaga_cat_ratio if brand == "ASTAGA" else okipay_cat_ratio
@@ -159,7 +281,16 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
         series_kategori = {cat: [] for cat in top_cats}
         series_operator = {op: [] for op in top_ops}
 
+        series_kategori_rev = {cat: [] for cat in top_cats}
+        series_kategori_arpu = {cat: [] for cat in top_cats}
+        series_operator_rev = {op: [] for op in top_ops}
+        series_operator_arpu = {op: [] for op in top_ops}
+
         brand_mem_matrix = PRECOMPUTED_DAILY_MEMBERS.get(brand, {})
+        brand_cat_cache = rev_arpu_cache.get(brand, {}).get("cat", {})
+        brand_op_cache = rev_arpu_cache.get(brand, {}).get("op", {})
+        jan_cat_map = brand_cat_cache.get("2026-01", {})
+        jan_op_map = brand_op_cache.get("2026-01", {})
 
         for ym in months_12:
             m_item = brand_ds.get(ym, {})
@@ -177,11 +308,12 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
                 b_sum_trx += ch_daily_trx
             series_cabang_trx["TOTAL"].append(round(b_sum_trx, 1))
 
-            # 2. Cabang Daily Mbr (Menggunakan exact precomputed matrix)
-            ym_mem_map = brand_mem_matrix.get(ym, brand_mem_matrix.get("2026-10", {}))
+            # 2. Cabang Daily Mbr (Menggunakan exact dynamic member jika tersedia di analisa_ds, atau fallback ke precomputed matrix)
+            dyn_mem = m_item.get("branch_daily_members")
+            ym_mem_map = dyn_mem if dyn_mem else brand_mem_matrix.get(ym, brand_mem_matrix.get("2026-10", {}))
             tot_mem_sum = 0.0
             for ch in channels:
-                mem_val = ym_mem_map.get(ch, 0.0)
+                mem_val = float(ym_mem_map.get(ch, 0.0))
                 series_cabang_mem[ch].append(mem_val)
                 tot_mem_sum += mem_val
             series_cabang_mem["TOTAL"].append(round(tot_mem_sum, 1))
@@ -205,6 +337,32 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
                     item_val = op_perf[op]
                     op_val = item_val.get("trx", 0) if isinstance(item_val, dict) else item_val
                 series_operator[op].append(round(op_val / days, 1) if days > 0 else 0.0)
+
+            # 5. Kategori Net Rev & ARPU
+            ym_cat_data = brand_cat_cache.get(ym)
+            for cat in top_cats:
+                if ym_cat_data and cat in ym_cat_data:
+                    c_item = ym_cat_data[cat]
+                    series_kategori_rev[cat].append(round(c_item.get("rev", 0.0)))
+                    series_kategori_arpu[cat].append(round(c_item.get("arpu", 0.0), 1))
+                else:
+                    base_arpu = jan_cat_map.get(cat, {}).get("arpu", 20000.0)
+                    cat_trx = round(tot_sukses * cat_ratio_base.get(cat, 0.0))
+                    series_kategori_rev[cat].append(round(cat_trx * base_arpu))
+                    series_kategori_arpu[cat].append(round(base_arpu, 1))
+
+            # 6. Operator Net Rev & ARPU
+            ym_op_data = brand_op_cache.get(ym)
+            for op in top_ops:
+                if ym_op_data and op in ym_op_data:
+                    o_item = ym_op_data[op]
+                    series_operator_rev[op].append(round(o_item.get("rev", 0.0)))
+                    series_operator_arpu[op].append(round(o_item.get("arpu", 0.0), 1))
+                else:
+                    base_arpu = jan_op_map.get(op, {}).get("arpu", 25000.0)
+                    op_trx = round(tot_sukses * op_ratio_base.get(op, 0.0))
+                    series_operator_rev[op].append(round(op_trx * base_arpu))
+                    series_operator_arpu[op].append(round(base_arpu, 1))
 
         # Format datasets for Chart.js
         datasets_cabang_trx = []
@@ -242,6 +400,8 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
             })
 
         datasets_kategori = []
+        datasets_kategori_rev = []
+        datasets_kategori_arpu = []
         for cat in top_cats:
             color = category_colors.get(cat, "#64748b")
             datasets_kategori.append({
@@ -255,13 +415,59 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
                 "pointRadius": 4,
                 "pointHoverRadius": 6
             })
+            datasets_kategori_rev.append({
+                "label": cat,
+                "data": series_kategori_rev[cat],
+                "borderColor": color,
+                "backgroundColor": color,
+                "borderWidth": 2,
+                "tension": 0.25,
+                "fill": False,
+                "pointRadius": 4,
+                "pointHoverRadius": 6
+            })
+            datasets_kategori_arpu.append({
+                "label": cat,
+                "data": series_kategori_arpu[cat],
+                "borderColor": color,
+                "backgroundColor": color,
+                "borderWidth": 2,
+                "tension": 0.25,
+                "fill": False,
+                "pointRadius": 4,
+                "pointHoverRadius": 6
+            })
 
         datasets_operator = []
+        datasets_operator_rev = []
+        datasets_operator_arpu = []
         for op in top_ops:
             color = operator_colors.get(op, "#64748b")
             datasets_operator.append({
                 "label": op,
                 "data": series_operator[op],
+                "borderColor": color,
+                "backgroundColor": color,
+                "borderWidth": 2,
+                "tension": 0.25,
+                "fill": False,
+                "pointRadius": 4,
+                "pointHoverRadius": 6
+            })
+            datasets_operator_rev.append({
+                "label": op,
+                "data": series_operator_rev[op],
+                "borderColor": color,
+                "backgroundColor": color,
+                "borderWidth": 2,
+                "tension": 0.25,
+                "fill": False,
+                "pointRadius": 4,
+                "pointHoverRadius": 6
+            })
+            datasets_operator_arpu.append({
+                "label": op,
+                "data": series_operator_arpu[op],
                 "borderColor": color,
                 "backgroundColor": color,
                 "borderWidth": 2,
@@ -276,7 +482,11 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
             "cabang_trx": datasets_cabang_trx,
             "cabang_mem": datasets_cabang_mem,
             "kategori": datasets_kategori,
-            "operator": datasets_operator
+            "operator": datasets_operator,
+            "kategori_rev": datasets_kategori_rev,
+            "operator_rev": datasets_operator_rev,
+            "kategori_arpu": datasets_kategori_arpu,
+            "operator_arpu": datasets_operator_arpu
         }
 
     try:
@@ -287,6 +497,7 @@ def compute_yoy_dataset(force: bool = False) -> Dict[str, Any]:
         print(f"[YOY Engine] Error saving cache: {e}")
 
     _YOY_CACHE = result
+    _YOY_MTIME = time.time()
     return result
 
 

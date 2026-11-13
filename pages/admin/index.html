@@ -84,8 +84,6 @@
     background: transparent;
     box-shadow: none;
   }
-
-
 </style>
 
 <div class="admin-container">
@@ -103,13 +101,12 @@
 
   <!-- TAB NAVIGATION (EXACT STYLE OF #YOY) -->
   <div class="admin-tabs">
-    <button type="button" id="tab-btn-ingestion" onclick="switchAdminTab('ingestion')"
-      class="admin-tab-btn active">
+    <button type="button" id="tab-btn-ingestion" onclick="switchAdminTab('ingestion')" class="admin-tab-btn active">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
         stroke-linecap="round" stroke-linejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
       </svg>
-      <span>Tab 1: Ingestion &amp; Radar TSV</span>
+      <span>Ingestion &amp; TSV</span>
     </button>
     <button type="button" id="tab-btn-master" onclick="switchAdminTab('master')" class="admin-tab-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -119,7 +116,7 @@
         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
       </svg>
-      <span>Tab 2: Master Agen &amp; Reseller</span>
+      <span>Agen &amp; Reseller</span>
     </button>
     <button type="button" id="tab-btn-products" onclick="switchAdminTab('products')" class="admin-tab-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -130,7 +127,7 @@
         <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
         <line x1="12" y1="22.08" x2="12" y2="12"></line>
       </svg>
-      <span>Tab 3: Master Produk &amp; Kategori</span>
+      <span>Produk &amp; </span>
     </button>
     <button type="button" id="tab-btn-users" onclick="switchAdminTab('users')" class="admin-tab-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -140,25 +137,7 @@
         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
       </svg>
-      <span>Tab 4: Pengaturan User</span>
-    </button>
-    <button type="button" id="tab-btn-system" onclick="switchAdminTab('system')" class="admin-tab-btn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
-      <span>Tab 5: Status Freshness Sistem</span>
-    </button>
-    <button type="button" id="tab-btn-tickets" onclick="switchAdminTab('tickets')" class="admin-tab-btn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
-        <path d="M13 5v2"></path>
-        <path d="M13 17v2"></path>
-        <path d="M13 11v2"></path>
-      </svg>
-      <span>Tab 6: Eskalasi AI (Help Me Please)</span>
-      <span id="badge-ticket-count" style="display:none; background: #ef4444; color: #ffffff; border-radius: 10px; font-size: 10px; padding: 1px 6px; font-weight: 700; margin-left: 4px;">0</span>
+      <span>Pengaturan User</span>
     </button>
   </div>
 
@@ -167,8 +146,10 @@
   <div id="admin-global-brand-ribbon" class="card-box"
     style="display: none; padding: 10px 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: var(--surface-card); border-left: 4px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-      <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <span
+        style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
         </svg>
@@ -190,7 +171,8 @@
 
     <div style="font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
       <span>Menampilkan data:</span>
-      <span id="admin-global-brand-badge" class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; padding: 3px 12px; border-radius: 6px; font-size: 12px;">
+      <span id="admin-global-brand-badge" class="badge"
+        style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; padding: 3px 12px; border-radius: 6px; font-size: 12px;">
         ASTAGA
       </span>
     </div>
@@ -202,327 +184,15 @@
   <!-- ========================================================================= -->
   <div id="view-admin-ingestion" style="display: flex; flex-direction: column; gap: 20px;">
 
-    <!-- DIRECT TSV UPLOADER & DATA STREAM HUB (FASE 2) -->
-    <div style="display: flex; flex-direction: column; gap: 20px;">
-      
-      <!-- CARD 1: DIRECT TSV UPLOAD & PARQUET UPSERT -->
-      <div class="card-box" style="padding: 20px; background: var(--surface-card); border: 1px solid var(--surface-border); display: flex; flex-direction: column; gap: 14px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(37,99,235,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-            </div>
-            <div>
-              <div style="font-weight: 700; font-size: 14px;">Upload &amp; Upsert TSV Langsung</div>
-              
-            </div>
-          </div>
-          <span class="badge" style="background: var(--positive-bg); color: var(--positive); border: 1px solid var(--positive); font-size: 11px; font-weight: 600;">Fast Parquet</span>
-        </div>
-
-        <!-- PILIHAN BRAND -->
-        <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
-          <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Target Brand:</span>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; cursor: pointer;">
-            <input type="radio" name="direct-tsv-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
-            <span>ASTAGA</span>
-          </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; cursor: pointer;">
-            <input type="radio" name="direct-tsv-brand" value="OKIPAY" style="accent-color: var(--primary);" />
-            <span>OKIPAY</span>
-          </label>
-        </div>
-
-        <!-- NATIVE FILE PICKER BOX -->
-        <div class="admin-dropzone">
-          <div>
-            <div class="admin-dropzone-label">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-              <span>Pilih / Drag File TSV OtomaX (Otomatis Upsert Langsung):</span>
-            </div>
-            <input type="file" id="direct-tsv-file-input" class="admin-file-input" accept=".tsv,.txt" onchange="handleDirectTsvFileSelect(event)" />
-          </div>
-
-          <div id="direct-tsv-info-banner" class="admin-info-banner" style="display: none;">
-            <div id="direct-tsv-filename-display" style="font-weight: 700; color: var(--text-main);"></div>
-            <div id="direct-tsv-filesize-display" style="font-size: 11.5px; margin-top: 2px; color: var(--text-muted);"></div>
-          </div>
-        </div>
-
-        <!-- RESULT BANNER -->
-        <div id="direct-tsv-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12px; line-height: 1.5;"></div>
-      </div>
-
-      <!-- CARD 2: DATA STREAM FOR POWER BI & EXCEL POWER QUERY -->
-      <div class="card-box" style="padding: 20px; background: var(--surface-card); border: 1px solid var(--surface-border); display: flex; flex-direction: column; gap: 14px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16,185,129,0.08); display: flex; align-items: center; justify-content: center; color: #10b981;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-              </svg>
-            </div>
-            <div>
-              <div style="font-weight: 700; font-size: 14px;">Integrasi Data Stream (Live)</div>
-              
-            </div>
-          </div>
-          <span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 600;">Power BI &amp; Excel</span>
-        </div>
-
-        <!-- FILTER BAR: PILIHAN BRAND & PERIODE DOWNLOAD -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(0,0,0,0.02); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 12px;">
-          <!-- PILIH BRAND -->
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Brand:</span>
-            <div class="unified-brand-switcher">
-              <button type="button" id="stream-brand-btn-astaga" onclick="setStreamBrand('ASTAGA')" class="unified-brand-btn active" data-brand="ASTAGA">
-                <span class="brand-dot"></span> ASTAGA
-              </button>
-              <button type="button" id="stream-brand-btn-okipay" onclick="setStreamBrand('OKIPAY')" class="unified-brand-btn" data-brand="OKIPAY">
-                <span class="brand-dot"></span> OKIPAY
-              </button>
-            </div>
-          </div>
-
-          <!-- PILIH PERIODE (TAHUN & BULAN) -->
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-muted);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <span>Periode:</span>
-            </div>
-            <select id="stream-year-select" onchange="updateStreamUrls()" style="padding: 5px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); cursor: pointer;">
-              <option value="2026" selected>Tahun 2026</option>
-              <option value="2025">Tahun 2025</option>
-              <option value="2024">Tahun 2024</option>
-              <option value="2023">Tahun 2023</option>
-            </select>
-            <select id="stream-month-select" onchange="updateStreamUrls()" style="padding: 5px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); cursor: pointer;">
-              <option value="10" selected>Bulan 10 (Oktober)</option>
-              <option value="09">Bulan 09 (September)</option>
-              <option value="08">Bulan 08 (Agustus)</option>
-              <option value="07">Bulan 07 (Juli)</option>
-              <option value="06">Bulan 06 (Juni)</option>
-              <option value="05">Bulan 05 (Mei)</option>
-              <option value="04">Bulan 04 (April)</option>
-              <option value="03">Bulan 03 (Maret)</option>
-              <option value="02">Bulan 02 (Februari)</option>
-              <option value="01">Bulan 01 (Januari)</option>
-              <option value="12">Bulan 12 (Desember)</option>
-              <option value="11">Bulan 11 (November)</option>
-              <option value="ALL">Semua Bulan (Full 1 Tahun)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- HIDDEN INPUTS MENYIMPAN URL UNTUK ACTION SALIN & DOWNLOAD (URL TIDAK DITAMPILKAN DI LAYAR) -->
-        <input type="hidden" id="stream-url-csv" value="https://depas.my.id/api/export/transactions.csv?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
-        <input type="hidden" id="stream-url-parquet" value="https://depas.my.id/api/export/transactions.parquet?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
-        <input type="hidden" id="stream-url-agents" value="https://depas.my.id/api/export/agents.csv?brand=ASTAGA&key=depas2026" />
-        <input type="hidden" id="stream-url-customers" value="https://depas.my.id/api/export/customers.csv?brand=ASTAGA&key=depas2026" />
-        <input type="hidden" id="stream-url-products" value="https://depas.my.id/api/export/products.csv?brand=ASTAGA&key=depas2026" />
-        <input type="hidden" id="stream-url-finance" value="https://depas.my.id/api/export/finance-rekap.xlsx?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
-
-        <!-- 1. EXCEL POWER QUERY (CSV STREAM) -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">1. Transaksi Excel Power Query (CSV Stream)</span>
-              <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
-            </div>
-            
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" onclick="copyStreamUrl('stream-url-csv')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web untuk Power BI / Excel">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Salin Link</span>
-            </button>
-            <button type="button" onclick="downloadStreamUrl('stream-url-csv')" class="btn-system-refresh" style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span>Download CSV</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 2. POWER BI DESKTOP (PARQUET STREAM) -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">2. Transaksi Power BI Desktop (Parquet Stream)</span>
-              <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
-            </div>
-            
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" onclick="copyStreamUrl('stream-url-parquet')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web untuk Power BI">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Salin Link</span>
-            </button>
-            <button type="button" onclick="downloadStreamUrl('stream-url-parquet')" class="btn-system-refresh" style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span>Download Parquet</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 3. MASTER TOKO INDUK / AGEN LANGSUNG (LENGKAP KOORDINAT LAT/LONG) -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">3. Master Toko Induk / Agen Langsung (Dim_Agent)</span>
-              <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
-              <span class="badge" style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;">Lat/Long GPS</span>
-            </div>
-            
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" onclick="copyStreamUrl('stream-url-agents')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Salin Link</span>
-            </button>
-            <button type="button" onclick="downloadStreamUrl('stream-url-agents')" class="btn-system-refresh" style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span>Download CSV</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 4. MASTER RESELLER & DOWNLINE -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">4. Master Reseller &amp; Downline (Dim_Customer)</span>
-              <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
-            </div>
-            
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" onclick="copyStreamUrl('stream-url-customers')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Salin Link</span>
-            </button>
-            <button type="button" onclick="downloadStreamUrl('stream-url-customers')" class="btn-system-refresh" style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span>Download CSV</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 5. MASTER PRODUK & KATEGORI -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">5. Master Produk &amp; Kategori (Dim_Product)</span>
-              <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
-            </div>
-            
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" onclick="copyStreamUrl('stream-url-products')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Salin Link</span>
-            </button>
-            <button type="button" onclick="downloadStreamUrl('stream-url-products')" class="btn-system-refresh" style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span>Download CSV</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 6. REKAP BULANAN TIM FINANCE (EXCEL WORKBOOK 2 SHEET) -->
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(16, 124, 65, 0.03); border: 1px solid rgba(16, 124, 65, 0.2); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 700; color: #107c41;">6. Rekap Bulanan Tim Finance (Excel .xlsx)</span>
-              <span class="badge stream-brand-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
-              <span class="badge" style="background: rgba(16, 124, 65, 0.1); color: #107c41; border: 1px solid rgba(16, 124, 65, 0.25); font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">2 Sheet Workbook</span>
-            </div>
-            
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" onclick="copyStreamUrl('stream-url-finance')" class="btn-system-refresh" style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Salin Link</span>
-            </button>
-            <button type="button" onclick="downloadStreamUrl('stream-url-finance')" class="btn-system-refresh" style="padding: 6px 14px; font-size: 11.5px; background: #107c41; color: #fff; border: 1px solid #107c41; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span>Download Excel (.xlsx)</span>
-            </button>
-          </div>
-        </div>
-
-        <div style="background: rgba(0,0,0,0.02); border-radius: 6px; padding: 8px 12px; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
-          <strong>Tip:</strong> Di Power BI / Excel, cukup tekan tombol <em>Refresh</em> kapan saja untuk menarik data transaksi terbaru yang telah di-upsert di cloud.
-        </div>
-      </div>
-
-    </div>
-
-
     <!-- AUDIT MASTER: KODE BARU TERDETEKSI DI TRANSAKSI (UNMAPPED RESELLER & PRODUK) -->
     <div id="admin-unmapped-audit-section" class="card-box"
-      style="display: none; padding: 0; overflow: hidden; border: 1px solid #fde68a; background: var(--surface-card);">
+      style="display: none; padding: 0; overflow: hidden; border: 1px solid #fde68a; background: var(--surface-card); box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);">
       <div onclick="toggleAdminUnmappedAudit()"
         style="padding: 14px 18px; background: rgba(245, 158, 11, 0.08); border-bottom: 1px solid #fde68a; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="display:inline-flex; align-items:center; color:#d97706;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
               <line x1="12" y1="9" x2="12" y2="13"></line>
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -530,20 +200,29 @@
           </span>
           <div>
             <strong style="color: #b45309; font-size: 13.5px;">Audit Master: Kode Baru Terdeteksi di Transaksi</strong>
-            <span style="font-size: 12px; color: #92400e; margin-left: 6px;">(Muncul di transaksi hasil Ingestion tapi belum ada di Master)</span>
+            <span style="font-size: 12px; color: #92400e; margin-left: 6px;">(Muncul di transaksi hasil Ingestion tapi
+              belum ada di Master)</span>
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
           <span class="badge" id="admin-unmapped-total-badge"
-            style="background: #fde68a; color: #92400e; font-weight: 700; padding: 4px 10px; border-radius: 6px;">0 Item</span>
-          <span id="admin-unmapped-toggle-icon" style="font-size: 12px; font-weight: 600; color: #b45309;">▼ Buka Detail</span>
+            style="background: #fde68a; color: #92400e; font-weight: 700; padding: 4px 10px; border-radius: 6px;">0
+            Item</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #b45309;">
+            <span id="admin-unmapped-toggle-label">Tutup Detail</span>
+            <svg id="admin-unmapped-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s ease; transform: rotate(180deg);">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
         </div>
       </div>
 
       <!-- DETAIL ACCORDION CONTENT -->
       <div id="admin-unmapped-dropdown-content" style="padding: 18px; display: block;">
         <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
-          Berikut adalah daftar kode reseller dan produk yang terdeteksi aktif pada data transaksi, namun belum terdaftar di tabel master. Silakan klik tombol <strong>+ Tambah</strong> untuk mendaftarkannya secara langsung ke Master Agen atau Master Produk.
+          Berikut adalah daftar kode reseller dan produk yang terdeteksi aktif pada data transaksi, namun belum
+          terdaftar di tabel master. Silakan klik tombol <strong>+ Tambah</strong> untuk mendaftarkannya secara langsung
+          ke Master Agen atau Master Produk.
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
@@ -572,6 +251,423 @@
       </div>
     </div>
 
+    <!-- DIRECT TSV UPLOADER & DATA STREAM HUB (FASE 2) -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+
+      <!-- CARD 1: DIRECT TSV UPLOAD & PARQUET UPSERT -->
+      <div class="card-box"
+        style="padding: 20px; background: var(--surface-card); border: 1px solid var(--surface-border); display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div
+              style="width: 34px; height: 34px; border-radius: 8px; background: rgba(37,99,235,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">Upload &amp; TSV</div>
+
+            </div>
+          </div>
+          <span class="badge"
+            style="background: var(--positive-bg); color: var(--positive); border: 1px solid var(--positive); font-size: 11px; font-weight: 600;">Fast
+            Parquet</span>
+        </div>
+
+        <!-- PILIHAN BRAND -->
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Target Brand:</span>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; cursor: pointer;">
+            <input type="radio" name="direct-tsv-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
+            <span>ASTAGA</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; cursor: pointer;">
+            <input type="radio" name="direct-tsv-brand" value="OKIPAY" style="accent-color: var(--primary);" />
+            <span>OKIPAY</span>
+          </label>
+        </div>
+
+        <!-- NATIVE FILE PICKER BOX -->
+        <div class="admin-dropzone">
+          <div>
+            <div class="admin-dropzone-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>Pilih / Drag File TSV OtomaX (Otomatis Upsert Langsung):</span>
+            </div>
+            <input type="file" id="direct-tsv-file-input" class="admin-file-input" accept=".tsv,.txt"
+              onchange="handleDirectTsvFileSelect(event)" />
+          </div>
+
+          <div id="direct-tsv-info-banner" class="admin-info-banner" style="display: none;">
+            <div id="direct-tsv-filename-display" style="font-weight: 700; color: var(--text-main);"></div>
+            <div id="direct-tsv-filesize-display" style="font-size: 11.5px; margin-top: 2px; color: var(--text-muted);">
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE EXECUTION CONSOLE -->
+        <div class="card-box" id="admin-console-box"
+          style="display: none; padding: 0; overflow: hidden; border: 1px solid var(--surface-border); border-radius: 8px;">
+          <div
+            style="padding: 10px 16px; background: var(--surface-bg); border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 5px; margin-right: 4px;">
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+              </div>
+              <div id="console-spinner"
+                style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; transition: all 0.3s ease;">
+              </div>
+              <strong style="font-size: 13px;" id="console-title">Live Pipeline Execution</strong>
+            </div>
+            <div style="font-size: 11.5px; font-weight: 700; font-family: var(--font-mono, monospace); color: var(--primary);" id="console-percent">0%</div>
+          </div>
+
+          <div style="width: 100%; height: 3px; background: rgba(0,0,0,0.06); position: relative;">
+            <div id="console-progress-bar"
+              style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+          </div>
+
+          <div id="console-terminal"
+            style="background: #090d16; color: #f8fafc; font-family: var(--font-mono, 'JetBrains Mono', 'Courier New', monospace); font-size: 11.5px; padding: 14px 16px; min-height: 140px; max-height: 260px; overflow-y: auto; line-height: 1.65;">
+            <div style="color: #64748b;">Menunggu eksekusi job...</div>
+          </div>
+        </div>
+
+        <!-- RESULT BANNER -->
+        <div id="direct-tsv-result-box"
+          style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12px; line-height: 1.5;"></div>
+      </div>
+
+      <!-- CARD 2: DATA STREAM FOR POWER BI & EXCEL POWER QUERY -->
+      <div class="card-box"
+        style="padding: 20px; background: var(--surface-card); border: 1px solid var(--surface-border); display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div
+              style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16,185,129,0.08); display: flex; align-items: center; justify-content: center; color: #10b981;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">Integrasi Data</div>
+
+            </div>
+          </div>
+          <span class="badge"
+            style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 600;">Power
+            BI &amp; Excel</span>
+        </div>
+
+        <!-- FILTER BAR: PILIHAN BRAND & PERIODE DOWNLOAD -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(0,0,0,0.02); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 12px;">
+          <!-- PILIH BRAND -->
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span
+              style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Brand:</span>
+            <div class="unified-brand-switcher">
+              <button type="button" id="stream-brand-btn-astaga" onclick="setStreamBrand('ASTAGA')"
+                class="unified-brand-btn active" data-brand="ASTAGA">
+                <span class="brand-dot"></span> ASTAGA
+              </button>
+              <button type="button" id="stream-brand-btn-okipay" onclick="setStreamBrand('OKIPAY')"
+                class="unified-brand-btn" data-brand="OKIPAY">
+                <span class="brand-dot"></span> OKIPAY
+              </button>
+            </div>
+          </div>
+
+          <!-- PILIH PERIODE (TAHUN & BULAN) -->
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div
+              style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-muted);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span>Periode:</span>
+            </div>
+            <select id="stream-year-select" onchange="updateStreamUrls()"
+              style="padding: 5px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); cursor: pointer;">
+              <option value="2026" selected>Tahun 2026</option>
+              <option value="2025">Tahun 2025</option>
+              <option value="2024">Tahun 2024</option>
+              <option value="2023">Tahun 2023</option>
+            </select>
+            <select id="stream-month-select" onchange="updateStreamUrls()"
+              style="padding: 5px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); cursor: pointer;">
+              <option value="10" selected>Bulan 10 (Oktober)</option>
+              <option value="09">Bulan 09 (September)</option>
+              <option value="08">Bulan 08 (Agustus)</option>
+              <option value="07">Bulan 07 (Juli)</option>
+              <option value="06">Bulan 06 (Juni)</option>
+              <option value="05">Bulan 05 (Mei)</option>
+              <option value="04">Bulan 04 (April)</option>
+              <option value="03">Bulan 03 (Maret)</option>
+              <option value="02">Bulan 02 (Februari)</option>
+              <option value="01">Bulan 01 (Januari)</option>
+              <option value="12">Bulan 12 (Desember)</option>
+              <option value="11">Bulan 11 (November)</option>
+              <option value="ALL">Semua Bulan (Full 1 Tahun)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- HIDDEN INPUTS MENYIMPAN URL UNTUK ACTION SALIN & DOWNLOAD (URL TIDAK DITAMPILKAN DI LAYAR) -->
+        <input type="hidden" id="stream-url-csv"
+          value="https://depas.my.id/api/export/transactions.csv?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
+        <input type="hidden" id="stream-url-parquet"
+          value="https://depas.my.id/api/export/transactions.parquet?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
+        <input type="hidden" id="stream-url-agents"
+          value="https://depas.my.id/api/export/agents.csv?brand=ASTAGA&key=depas2026" />
+        <input type="hidden" id="stream-url-customers"
+          value="https://depas.my.id/api/export/customers.csv?brand=ASTAGA&key=depas2026" />
+        <input type="hidden" id="stream-url-products"
+          value="https://depas.my.id/api/export/products.csv?brand=ASTAGA&key=depas2026" />
+        <input type="hidden" id="stream-url-finance"
+          value="https://depas.my.id/api/export/finance-rekap.xlsx?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
+
+        <!-- 1. EXCEL POWER QUERY (CSV STREAM) -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">1. Transaksi Excel Power Query
+                (CSV Stream)</span>
+              <span class="badge stream-brand-badge"
+                style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
+            </div>
+
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="copyStreamUrl('stream-url-csv')" class="btn-system-refresh"
+              style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web untuk Power BI / Excel">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin Link</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-csv')" class="btn-system-refresh"
+              style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. POWER BI DESKTOP (PARQUET STREAM) -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">2. Transaksi Power BI Desktop
+                (Parquet Stream)</span>
+              <span class="badge stream-brand-badge"
+                style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
+            </div>
+
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="copyStreamUrl('stream-url-parquet')" class="btn-system-refresh"
+              style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web untuk Power BI">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin Link</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-parquet')" class="btn-system-refresh"
+              style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download Parquet</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. MASTER TOKO INDUK / AGEN LANGSUNG (LENGKAP KOORDINAT LAT/LONG) -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">3. Master Toko Induk / Agen
+                Langsung (Dim_Agent)</span>
+              <span class="badge stream-brand-badge"
+                style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
+              <span class="badge"
+                style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;">Lat/Long
+                GPS</span>
+            </div>
+
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="copyStreamUrl('stream-url-agents')" class="btn-system-refresh"
+              style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin Link</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-agents')" class="btn-system-refresh"
+              style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. MASTER RESELLER & DOWNLINE -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">4. Master Reseller &amp;
+                Downline (Dim_Customer)</span>
+              <span class="badge stream-brand-badge"
+                style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
+            </div>
+
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="copyStreamUrl('stream-url-customers')" class="btn-system-refresh"
+              style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin Link</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-customers')" class="btn-system-refresh"
+              style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. MASTER PRODUK & KATEGORI -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">5. Master Produk &amp; Kategori
+                (Dim_Product)</span>
+              <span class="badge stream-brand-badge"
+                style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
+            </div>
+
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="copyStreamUrl('stream-url-products')" class="btn-system-refresh"
+              style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin Link</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-products')" class="btn-system-refresh"
+              style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6. REKAP BULANAN TIM FINANCE (EXCEL WORKBOOK 2 SHEET) -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(16, 124, 65, 0.03); border: 1px solid rgba(16, 124, 65, 0.2); border-radius: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 700; color: #107c41;">6. Rekap Bulanan Tim Finance (Excel
+                .xlsx)</span>
+              <span class="badge stream-brand-badge"
+                style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">ASTAGA</span>
+              <span class="badge"
+                style="background: rgba(16, 124, 65, 0.1); color: #107c41; border: 1px solid rgba(16, 124, 65, 0.25); font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">2
+                Sheet Workbook</span>
+            </div>
+
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="copyStreamUrl('stream-url-finance')" class="btn-system-refresh"
+              style="padding: 6px 12px; font-size: 11.5px;" title="Salin Link Web">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Salin Link</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-finance')" class="btn-system-refresh"
+              style="padding: 6px 14px; font-size: 11.5px; background: #107c41; color: #fff; border: 1px solid #107c41; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download Excel (.xlsx)</span>
+            </button>
+          </div>
+        </div>
+
+        <div
+          style="background: rgba(0,0,0,0.02); border-radius: 6px; padding: 8px 12px; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+          <strong>Tip:</strong> telah di-upsert di cloud.
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
 
@@ -580,15 +676,18 @@
   <!-- ========================================================================= -->
   <div id="view-admin-master" style="display: none; flex-direction: column; gap: 20px;">
 
-    <!-- DIRECT UPLOAD MASTER RESELLER & PENGIRIM TSV (TWIN CARDS) -->
+    <!-- DIRECT UPLOAD MASTER RESELLER, LIMIT & PENGIRIM TSV (TRIO CARDS) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
-      
+
       <!-- CARD 1: DIRECT UPLOAD MASTER RESELLER TSV -->
-      <div class="card-box" style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #0891b2; display: flex; flex-direction: column; gap: 12px;">
+      <div class="card-box"
+        style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #0891b2; display: flex; flex-direction: column; gap: 12px;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(8,145,178,0.1); display: flex; align-items: center; justify-content: center; color: #0891b2;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div
+              style="width: 32px; height: 32px; border-radius: 8px; background: rgba(8,145,178,0.1); display: flex; align-items: center; justify-content: center; color: #0891b2;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -597,14 +696,16 @@
             </div>
             <div>
               <div style="font-weight: 700; font-size: 14px;">Upload &amp; Sinkronisasi Data Reseller (Pohon MLM)</div>
-              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Database Akun/Member OtomaX (astaga.tsv / okipay.tsv)</div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Database Akun/Member OtomaX
+                (astaga.tsv / okipay.tsv)</div>
             </div>
           </div>
-          
+
           <!-- BRAND SELECTOR -->
           <div style="display: flex; align-items: center; gap: 10px;">
             <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
-              <input type="radio" name="reseller-upload-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
+              <input type="radio" name="reseller-upload-brand" value="ASTAGA" checked
+                style="accent-color: var(--primary);" />
               <span>ASTAGA</span>
             </label>
             <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
@@ -616,32 +717,95 @@
 
         <!-- FILE INPUT -->
         <div style="display: flex; flex-direction: column; gap: 8px;">
-          <input type="file" id="reseller-tsv-file-input" class="admin-file-input" accept=".tsv,.txt" onchange="handleResellerTsvFileSelect(event)" />
+          <input type="file" id="reseller-tsv-file-input" class="admin-file-input" accept=".tsv,.txt"
+            onchange="handleResellerTsvFileSelect(event)" />
         </div>
 
         <!-- PROGRESS & RESULT BOX -->
-        <div id="reseller-upload-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
+        <div id="reseller-upload-result-box"
+          style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
       </div>
 
-      <!-- CARD 2: DIRECT UPLOAD NOMOR PENGIRIM TSV (SMS & JABBER/WA) -->
-      <div class="card-box" style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #10b981; display: flex; flex-direction: column; gap: 12px;">
+      <!-- CARD 2: QUICK UPDATE PLAFON LIMIT & MARKUP (NEW!) -->
+      <div class="card-box"
+        style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #f59e0b; display: flex; flex-direction: column; gap: 12px;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16,185,129,0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            <div
+              style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.1); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                <line x1="2" y1="10" x2="22" y2="10"></line>
               </svg>
             </div>
             <div>
-              <div style="font-weight: 700; font-size: 14px;">Upload &amp; Sinkronisasi Nomor Pengirim (SMS &amp; WA)</div>
-              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Export tabel Pengirim OtomaX (KONTAK_ASTAGA / OKIPAY)</div>
+              <div style="font-weight: 700; font-size: 14px;">Quick Update: Plafon Limit &amp; Markup</div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">File TSV/CSV 3-4 Kolom (Kode,
+                Limit Saldo, Markup, Tgl Aktif)</div>
             </div>
           </div>
-          
+
           <!-- BRAND SELECTOR -->
           <div style="display: flex; align-items: center; gap: 10px;">
             <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
-              <input type="radio" name="pengirim-upload-brand" value="ASTAGA" checked style="accent-color: var(--primary);" />
+              <input type="radio" name="limit-upload-brand" value="ASTAGA" checked
+                style="accent-color: var(--primary);" />
+              <span>ASTAGA</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+              <input type="radio" name="limit-upload-brand" value="OKIPAY" style="accent-color: var(--primary);" />
+              <span>OKIPAY</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- FILE INPUT & QUICK ACTION -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="file" id="limit-tsv-file-input" class="admin-file-input" accept=".tsv,.txt,.csv"
+            onchange="handleLimitTsvFileSelect(event)" />
+          <div
+            style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; margin-top: 2px;">
+            <span style="color: var(--text-muted);">Atau sync langsung file default:</span>
+            <button type="button" onclick="quickSyncLocalLimitTsv()"
+              style="background: transparent; border: none; color: #f59e0b; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">
+              Sync LIMIT_astaga.tsv
+            </button>
+          </div>
+        </div>
+
+        <!-- PROGRESS & RESULT BOX -->
+        <div id="limit-upload-result-box"
+          style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
+      </div>
+
+      <!-- CARD 3: DIRECT UPLOAD NOMOR PENGIRIM TSV (SMS & JABBER/WA) -->
+      <div class="card-box"
+        style="padding: 18px 20px; background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #10b981; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16,185,129,0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                </path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">Upload &amp; Sinkronisasi Nomor Pengirim (SMS &amp; WA)
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Export tabel Pengirim OtomaX
+                (KONTAK_ASTAGA / OKIPAY)</div>
+            </div>
+          </div>
+
+          <!-- BRAND SELECTOR -->
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
+              <input type="radio" name="pengirim-upload-brand" value="ASTAGA" checked
+                style="accent-color: var(--primary);" />
               <span>ASTAGA</span>
             </label>
             <label style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer;">
@@ -653,11 +817,13 @@
 
         <!-- FILE INPUT -->
         <div style="display: flex; flex-direction: column; gap: 8px;">
-          <input type="file" id="pengirim-tsv-file-input" class="admin-file-input" accept=".tsv,.txt,.csv" onchange="handlePengirimTsvFileSelect(event)" />
+          <input type="file" id="pengirim-tsv-file-input" class="admin-file-input" accept=".tsv,.txt,.csv"
+            onchange="handlePengirimTsvFileSelect(event)" />
         </div>
 
         <!-- PROGRESS & RESULT BOX -->
-        <div id="pengirim-upload-result-box" style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
+        <div id="pengirim-upload-result-box"
+          style="display: none; padding: 12px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
       </div>
 
     </div>
@@ -705,8 +871,10 @@
 
         <!-- SUB-TOGGLE LEVELING (SEMUA AKUN / AGEN INDUK / DOWNLINE) -->
         <div class="chart-subtoggle" style="margin-right: 4px;">
-          <button type="button" class="chart-subtoggle-btn active" id="btn-master-lev-all" onclick="switchMasterLeveling('ALL')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" class="chart-subtoggle-btn active" id="btn-master-lev-all"
+            onclick="switchMasterLeveling('ALL')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -714,15 +882,19 @@
             </svg>
             <span>Semua Akun (Reseller)</span>
           </button>
-          <button type="button" class="chart-subtoggle-btn" id="btn-master-lev-agen" onclick="switchMasterLeveling('AGEN')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" class="chart-subtoggle-btn" id="btn-master-lev-agen"
+            onclick="switchMasterLeveling('AGEN')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
               <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
             <span>Hanya Agen Induk (Toko)</span>
           </button>
-          <button type="button" class="chart-subtoggle-btn" id="btn-master-lev-downline" onclick="switchMasterLeveling('DOWNLINE')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" class="chart-subtoggle-btn" id="btn-master-lev-downline"
+            onclick="switchMasterLeveling('DOWNLINE')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <line x1="6" y1="3" x2="6" y2="15"></line>
               <circle cx="18" cy="6" r="3"></circle>
               <circle cx="6" cy="18" r="3"></circle>
@@ -757,7 +929,7 @@
             style="padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; border-radius: 8px; background: #0891b2; color: white; border: none; cursor: pointer;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
             </svg>
             <span id="btn-sync-reseller-text">Sync TSV Mingguan</span>
           </button>
@@ -840,19 +1012,20 @@
         <table class="data-table" id="master-agents-table"
           style="width: 100%; border-collapse: collapse; font-size: 13px;">
           <thead>
-            <tr style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
+            <tr
+              style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
               <th style="padding: 12px 16px; width: 230px;">RESELLER (ID &amp; NAMA)</th>
               <th style="padding: 12px 12px; width: 130px;">LEVEL &amp; GRUP</th>
               <th style="padding: 12px 14px; width: 180px;">UPLINE &amp; INDUK</th>
               <th style="padding: 12px 12px; width: 140px;">CABANG &amp; TIPE</th>
               <th style="padding: 12px 14px; width: 160px;">TIM SALES (SCO &amp; DSO)</th>
-              <th style="padding: 12px 14px; width: 140px; text-align: right;">SALDO &amp; LIMIT</th>
+              <th style="padding: 12px 14px; width: 130px; text-align: right;">LIMIT</th>
               <th style="padding: 12px 14px; width: 110px; text-align: center;">AKSI</th>
             </tr>
           </thead>
           <tbody id="master-agents-tbody">
             <tr>
-              <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted);">
+              <td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted);">
                 Memuat data master agen...
               </td>
             </tr>
@@ -998,6 +1171,15 @@
           </select>
         </div>
 
+        <!-- NAMA (PROVIDER) DROPDOWN -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Nama (Provider):</label>
+          <select id="prod-filter-nama-provider" onchange="executeProductFilter()"
+            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 12.5px; max-width: 250px;">
+            <option value="ALL">Semua Provider (Nama)</option>
+          </select>
+        </div>
+
         <!-- PAKET DROPDOWN -->
         <div style="display: flex; align-items: center; gap: 6px;">
           <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Paket:</label>
@@ -1007,11 +1189,17 @@
           </select>
         </div>
 
-        <!-- RESET FILTER BUTTON -->
-        <button type="button" onclick="resetProductFilter()"
-          style="margin-left: auto; background: none; border: none; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">
-          Reset Filter
-        </button>
+        <!-- RESET FILTER BUTTON & 15D PERIOD BADGE -->
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div id="product-15d-badge" style="display: none; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.18); border-radius: 6px; font-size: 11.5px; font-weight: 600; color: var(--primary);">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+            <span id="product-15d-text">15 Hari Terakhir</span>
+          </div>
+          <button type="button" onclick="resetProductFilter()"
+            style="background: none; border: none; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;">
+            Reset Filter
+          </button>
+        </div>
 
       </div>
 
@@ -1025,16 +1213,50 @@
           <thead>
             <tr
               style="background: var(--table-header); border-bottom: 1px solid var(--surface-border); text-align: left;">
-              <th style="padding: 12px 16px; width: 340px;">KODE &amp; NAMA PRODUK</th>
-              <th style="padding: 12px 14px; width: 160px;">KATEGORI</th>
-              <th style="padding: 12px 14px; width: 180px;">OPERATOR / PROVIDER</th>
-              <th style="padding: 12px 14px; width: 170px;">PAKET / JENIS PRODUK</th>
-              <th style="padding: 12px 16px; width: 100px; text-align: center;">AKSI</th>
+              <th style="padding: 12px 16px; min-width: 240px; cursor: pointer;" onclick="sortProductTable('kode_produk')" title="Urutkan berdasarkan Kode Produk">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span>KODE &amp; NAMA PRODUK</span>
+                  <span id="sort-icon-kode_produk" style="font-size: 11px; color: var(--text-muted);">&uarr;</span>
+                </div>
+              </th>
+              <th style="padding: 12px 14px; min-width: 130px; cursor: pointer;" onclick="sortProductTable('kategori')" title="Urutkan berdasarkan Kategori">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span>KATEGORI</span>
+                  <span id="sort-icon-kategori" style="font-size: 11px; color: var(--text-muted);"></span>
+                </div>
+              </th>
+              <th style="padding: 12px 14px; min-width: 130px; cursor: pointer;" onclick="sortProductTable('operator')" title="Urutkan berdasarkan Operator">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span>OPERATOR</span>
+                  <span id="sort-icon-operator" style="font-size: 11px; color: var(--text-muted);"></span>
+                </div>
+              </th>
+              <th style="padding: 12px 14px; min-width: 120px; cursor: pointer;" onclick="sortProductTable('paket')" title="Urutkan berdasarkan Paket">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span>PAKET / JENIS</span>
+                  <span id="sort-icon-paket" style="font-size: 11px; color: var(--text-muted);"></span>
+                </div>
+              </th>
+              <th style="padding: 10px 14px; min-width: 175px; text-align: right; cursor: pointer;" onclick="sortProductTable('modal_avg')" title="Urutkan berdasarkan Rata-rata Modal">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                  <span style="font-weight: 700;">MODAL (15 HARI)</span>
+                  <span id="sort-icon-modal_avg" style="font-size: 11px; color: var(--text-muted);"></span>
+                </div>
+                <div style="font-size: 10.5px; font-weight: normal; color: var(--text-muted); margin-top: 1px;">Min &bull; Max &bull; Avg</div>
+              </th>
+              <th style="padding: 10px 14px; min-width: 185px; text-align: right; cursor: pointer;" onclick="sortProductTable('jual_avg')" title="Urutkan berdasarkan Rata-rata Jual">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                  <span style="font-weight: 700;">HARGA JUAL (15 HARI)</span>
+                  <span id="sort-icon-jual_avg" style="font-size: 11px; color: var(--text-muted);"></span>
+                </div>
+                <div style="font-size: 10.5px; font-weight: normal; color: var(--text-muted); margin-top: 1px;">Min &bull; Max &bull; Avg</div>
+              </th>
+              <th style="padding: 12px 16px; width: 80px; text-align: center;">AKSI</th>
             </tr>
           </thead>
           <tbody id="master-products-tbody">
             <tr>
-              <td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted);">
+              <td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted);">
                 Memuat data master produk...
               </td>
             </tr>
@@ -1077,18 +1299,12 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- TAB 4: STATUS FRESHNESS & SISTEM PENGATURAN -->
-  <!-- ========================================================================= -->
-  <div id="view-admin-system" style="display: none; flex-direction: column; gap: 20px;">
-    <!-- Konten Freshness dimuat dinamis dari /pages/settings/index.html -->
-  </div>
-
-<!-- ========================================================================= -->
   <!-- TAB 6: MANAJEMEN PENGGUNA & HAK AKSES (ROLE-BASED ACCESS CONTROL)          -->
   <!-- ========================================================================= -->
   <div id="view-admin-users" style="display: none; flex-direction: column; gap: 20px;">
     <!-- HEADER ACTION STRIP -->
-    <div class="card-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 18px 20px;">
+    <div class="card-box"
+      style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 18px 20px;">
       <div>
         <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main);">
           Manajemen Pengguna &amp; Hak Akses
@@ -1098,16 +1314,20 @@
         </p>
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
-        <button type="button" onclick="loadAdminUsers()" class="btn-system-refresh" style="padding: 8px 14px; font-size: 13px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" onclick="loadAdminUsers()" class="btn-system-refresh"
+          style="padding: 8px 14px; font-size: 13px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
             <polyline points="1 20 1 14 7 14"></polyline>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
           Refresh Data
         </button>
-        <button type="button" onclick="openAddUserModal()" class="btn-primary" style="display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" onclick="openAddUserModal()" class="btn-primary"
+          style="display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
@@ -1120,36 +1340,44 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
       <div class="card-box" style="padding: 16px 18px; border-left: 4px solid var(--primary);">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-          <span class="badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">
+          <span class="badge"
+            style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">
             ROLE: ADMIN
           </span>
           <strong style="font-size: 13px; color: var(--text-main);">Hak Akses Penuh (Executive)</strong>
         </div>
         <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5;">
-          Dapat mengakses seluruh laporan, modul Ingestion, Master Agen &amp; Produk, Status Freshness Sistem, Executive Financial &amp; Profit Center, serta mengubah konfigurasi user dan password.
+          Dapat mengakses seluruh laporan, modul Ingestion, Master Agen &amp; Produk, Status Freshness Sistem, Executive
+          Financial &amp; Profit Center, serta mengubah konfigurasi user dan password.
         </p>
       </div>
 
       <div class="card-box" style="padding: 16px 18px; border-left: 4px solid #10b981;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-          <span class="badge" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px;">
+          <span class="badge"
+            style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px;">
             ROLE: TAMU
           </span>
           <strong style="font-size: 13px; color: var(--text-main);">Hak Akses Operasional Saja</strong>
         </div>
         <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5;">
-          Dapat memantau seluruh transaksi harian, pivot operasional, analisa tren penjualan, agen, dan rekap fisik. Terproteksi penuh dari menu Admin & Setting (Daily Report, SCO Suite, Admin & Olah Data), data laba/profit, harga beli, dan markup upline.
+          Dapat memantau seluruh transaksi harian, pivot operasional, analisa tren penjualan, agen, dan rekap fisik.
+          Terproteksi penuh dari menu Admin & Setting (Daily Report, SCO Suite, Admin & Olah Data), data laba/profit,
+          harga beli, dan markup upline.
         </p>
       </div>
     </div>
 
     <!-- USER TABLE CARD -->
     <div class="card-box" style="padding: 0; overflow: hidden;">
-      <div style="padding: 14px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--table-header);">
-        <span style="font-size: 12.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+      <div
+        style="padding: 14px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--table-header);">
+        <span
+          style="font-size: 12.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
           Daftar Pengguna Aktif Terdaftar
         </span>
-        <span id="admin-users-count" class="badge" style="background: var(--surface-bg); color: var(--text-muted); border: 1px solid var(--surface-border); font-size: 11px;">
+        <span id="admin-users-count" class="badge"
+          style="background: var(--surface-bg); color: var(--text-muted); border: 1px solid var(--surface-border); font-size: 11px;">
           Memuat...
         </span>
       </div>
@@ -1157,7 +1385,8 @@
       <div style="overflow-x: auto;">
         <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
           <thead>
-            <tr style="border-bottom: 1px solid var(--surface-border); text-align: left; background: var(--surface-card);">
+            <tr
+              style="border-bottom: 1px solid var(--surface-border); text-align: left; background: var(--surface-card);">
               <th style="padding: 10px 16px; width: 50px;">NO</th>
               <th style="padding: 10px 16px;">USERNAME</th>
               <th style="padding: 10px 16px; width: 140px;">ROLE / HAK AKSES</th>
@@ -1193,7 +1422,8 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <div
           style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--primary);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
@@ -1201,7 +1431,7 @@
         <div>
           <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);" id="modal-agent-title">Edit Data Agen
           </h3>
-          
+
         </div>
       </div>
       <button type="button" onclick="closeEditAgentModal()"
@@ -1216,23 +1446,28 @@
       <!-- ROW 1: KODE AKUN, NAMA, GRUP, TGL REGISTRASI -->
       <div style="display: grid; grid-template-columns: 1fr 1.8fr 0.8fr 1.4fr; gap: 12px;">
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kode Akun (ID)</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kode
+            Akun (ID)</label>
           <input type="text" id="edit-agent-id" required placeholder="misal: AR40247"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); font-family: var(--font-mono); font-weight: 700; color: var(--primary);">
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nama Akun / Toko</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nama
+            Akun / Toko</label>
           <input type="text" id="edit-agent-nama" required placeholder="misal: ANUGRAH CELL"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Grup</label>
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Grup</label>
           <input type="text" id="edit-agent-grup" value="P" placeholder="P"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 700; font-family: var(--font-mono); text-transform: uppercase;">
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="2" x2="16" y2="6"></line>
               <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -1246,18 +1481,22 @@
       </div>
 
       <!-- ROW 2: KODE UPLINE & LIVE STATUS & LEVELING -->
-      <div style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+      <div
+        style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; align-items: start;">
           <div>
-            <label style="font-size: 11.5px; font-weight: 700; color: var(--primary); text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+            <label
+              style="font-size: 11.5px; font-weight: 700; color: var(--primary); text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
               <span>Kode Upline (Wajib)</span>
               <span style="color: #dc2626;">*</span>
             </label>
-            <input type="text" id="edit-agent-upline" placeholder="misal: AR00006 atau AR34632" oninput="handleUplineInput(this)" required
+            <input type="text" id="edit-agent-upline" placeholder="misal: AR00006 atau AR34632"
+              oninput="handleUplineInput(this)" required
               style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--primary); background: var(--surface-card); color: var(--text-main); font-family: var(--font-mono); font-weight: 700; text-transform: uppercase;">
           </div>
           <div>
-            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Leveling</label>
+            <label
+              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Leveling</label>
             <select id="edit-agent-leveling" onchange="handleLevelingChange(this)"
               style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 700;">
               <option value="AGEN">AGEN (Toko Induk)</option>
@@ -1265,14 +1504,17 @@
             </select>
           </div>
           <div>
-            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Toko Induk (Root)</label>
+            <label
+              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Toko
+              Induk (Root)</label>
             <input type="text" id="edit-agent-root" readonly placeholder="Otomatis"
               style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-muted); font-family: var(--font-mono); font-weight: 700; cursor: not-allowed;">
           </div>
         </div>
 
         <!-- UPLINE LIVE STATUS BADGE -->
-        <div id="upline-status-badge" style="font-size: 12px; line-height: 1.4; padding: 6px 10px; border-radius: 6px; background: rgba(37, 99, 235, 0.08); border: 1px solid #bfdbfe; color: #1e40af; display: none;">
+        <div id="upline-status-badge"
+          style="font-size: 12px; line-height: 1.4; padding: 6px 10px; border-radius: 6px; background: rgba(37, 99, 235, 0.08); border: 1px solid #bfdbfe; color: #1e40af; display: none;">
           Ketik Kode Upline untuk auto-mapping cabang dan leveling.
         </div>
       </div>
@@ -1280,40 +1522,46 @@
       <!-- ROW 3: CABANG & TIPE -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang Induk</label>
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cabang
+            Induk</label>
           <select id="edit-agent-cabang" onchange="handleCabangSelectChange(this)" required
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
             <!-- Populated dinamis -->
           </select>
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tipe Reseller</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Tipe
+            Reseller</label>
           <select id="edit-agent-type" onchange="handleTypeSelectChange(this)"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
-            <option value="Limit">Limit (Plafon Saldo)</option>
+            <option value="Limit">Limit (Plafon Kredit)</option>
             <option value="Non Limit">Non Limit (Eks-Limit / Konvensional)</option>
             <option value="Prima">Prima (Reguler / Tanpa Plafon)</option>
           </select>
         </div>
       </div>
 
-      <!-- ROW 4: LIMIT SALDO & LOKASI -->
+      <!-- ROW 4: LIMIT & LOKASI -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div>
           <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-            Limit Saldo (Plafon Kredit)
+            Limit (Plafon Kredit)
           </label>
           <div style="position: relative; margin-top: 4px;">
-            <span style="position: absolute; left: 10px; top: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted);">Rp</span>
+            <span
+              style="position: absolute; left: 10px; top: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted);">Rp</span>
             <input type="text" id="edit-agent-limit" placeholder="0" oninput="handleLimitInput(this)"
               style="width: 100%; padding: 8px 10px 8px 34px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 700; font-family: var(--font-mono);">
           </div>
           <div id="limit-hint" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-            Plafon saldo minus (otomatis 0 untuk Non Limit / Prima)
+            Plafon limit kredit (otomatis 0 untuk Non Limit / Prima)
           </div>
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Lokasi / Wilayah</label>
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Lokasi /
+            Wilayah</label>
           <input type="text" id="edit-agent-location" placeholder="misal: TANGERANG SELATAN"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
         </div>
@@ -1322,7 +1570,8 @@
       <!-- ROW 5: SCO & DSO -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">SCO (Sales Collection Officer)</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">SCO
+            (Sales Collection Officer)</label>
           <select id="edit-agent-sco" onchange="handleScoSelectChange(this)"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
             <option value="NON SCO">NON SCO (Belum Dipetakan)</option>
@@ -1332,7 +1581,8 @@
             style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">DSO (Direct Sales Officer)</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">DSO
+            (Direct Sales Officer)</label>
           <select id="edit-agent-dso" onchange="handleDsoSelectChange(this)"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
             <option value="-">- (Non-DSO / Tanpa DSO)</option>
@@ -1346,7 +1596,9 @@
       <!-- ROW 6: JADWAL & MARKUP KOMISI -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Jadwal Kunjungan</label>
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Jadwal
+            Kunjungan</label>
           <select id="edit-agent-jadwal" onchange="handleJadwalSelectChange(this)"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main);">
             <option value="-">- (Tanpa Jadwal / Non-Kunjungan)</option>
@@ -1359,22 +1611,28 @@
             style="display: none; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 6px; border: 1px dashed var(--primary); background: var(--surface-bg); color: var(--text-main); font-size: 12px;">
         </div>
         <div>
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Markup Komisi Upline (Rp)</label>
+          <label
+            style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Markup
+            Komisi Upline (Rp)</label>
           <input type="number" id="edit-agent-markup" placeholder="0" min="0" value="0"
             style="width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600;">
         </div>
       </div>
 
       <!-- PROPAGATION NOTICE -->
-      <div style="background: rgba(37, 99, 235, 0.05); border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 12px; color: #1e40af; line-height: 1.5;">
+      <div
+        style="background: rgba(37, 99, 235, 0.05); border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 12px; color: #1e40af; line-height: 1.5;">
         <strong style="display:flex; align-items:center; gap:5px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
           Sinkronisasi Multi-Level &amp; Power Query Otomatis:
         </strong>
         <div style="margin-top: 2px;">
-          Menyimpan akun baru atau mengedit data ini akan langsung mengekspor <strong>Dim_Customer &amp; Dim_Agent CSV</strong> ke <code>C:\DMS RAW DATA\MASTER</code> sehingga Power Query Excel dapat langsung di-refresh tanpa download ulang ribuan data.
+          Menyimpan akun baru atau mengedit data ini akan langsung mengekspor <strong>Dim_Customer &amp; Dim_Agent
+            CSV</strong> ke <code>C:\DMS RAW DATA\MASTER</code> sehingga Power Query Excel dapat langsung di-refresh
+          tanpa download ulang ribuan data.
         </div>
       </div>
 
@@ -1407,7 +1665,8 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <div
           style="width: 32px; height: 32px; border-radius: 8px; background: #f0fdf4; display: flex; align-items: center; justify-content: center; color: #16a34a;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -1434,7 +1693,7 @@
             <th style="padding: 8px 12px;">NAMA TOKO</th>
             <th style="padding: 8px 12px; width: 110px;">UPLINE LANGSUNG</th>
             <th style="padding: 8px 12px; width: 100px;">LEVELING</th>
-            <th style="padding: 8px 12px; width: 110px; text-align: right;">SALDO (RP)</th>
+            <th style="padding: 8px 12px; width: 120px; text-align: right;">LIMIT (RP)</th>
           </tr>
         </thead>
         <tbody id="modal-downlines-tbody">
@@ -1474,8 +1733,11 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <div
           style="width: 32px; height: 32px; border-radius: 8px; background: #fef3c7; display: flex; align-items: center; justify-content: center; color: #d97706; font-size: 16px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+            </path>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
@@ -1483,7 +1745,7 @@
         <div>
           <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);" id="modal-product-title">Edit Master
             Produk</h3>
-          
+
         </div>
       </div>
       <button type="button" onclick="closeEditProductModal()"
@@ -1530,7 +1792,8 @@
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <label
-              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Operator /
+              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Operator
+              /
               Provider</label>
             <button type="button" onclick="toggleCustomField('operator')" id="btn-toggle-custom-operator"
               style="background: none; border: none; font-size: 11px; color: var(--primary); cursor: pointer; text-decoration: underline; padding: 0;">
@@ -1548,7 +1811,8 @@
 
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Paket / Jenis Produk</label>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Paket
+            / Jenis Produk</label>
           <button type="button" onclick="toggleCustomField('paket')" id="btn-toggle-custom-paket"
             style="background: none; border: none; font-size: 11px; color: var(--primary); cursor: pointer; text-decoration: underline; padding: 0;">
             + Ketik Manual
@@ -1566,7 +1830,8 @@
       <div
         style="background: rgba(16, 185, 129, 0.05); border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px; font-size: 12px; color: #065f46; line-height: 1.5;">
         <strong style="display:flex; align-items:center; gap:5px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
           Sinkronisasi Instan:
@@ -1600,10 +1865,13 @@
 <div id="modal-add-user" class="admin-modal-backdrop" style="display: none;">
   <div class="admin-modal-box" style="max-width: 480px;">
     <!-- HEADER -->
-    <div style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+    <div
+      style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--primary);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div
+          style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
             <line x1="19" y1="8" x2="19" y2="14"></line>
@@ -1612,28 +1880,34 @@
         </div>
         <div>
           <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">Tambah Pengguna Baru</h3>
-          
+
         </div>
       </div>
-      <button type="button" onclick="closeAddUserModal()" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+      <button type="button" onclick="closeAddUserModal()"
+        style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
     </div>
 
     <!-- BODY -->
-    <form id="form-add-user" onsubmit="submitAddUser(event)" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+    <form id="form-add-user" onsubmit="submitAddUser(event)"
+      style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
       <div>
-        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
-        <input type="text" id="add-user-username" required placeholder="Contoh: user_operasional, audit, dll" autocomplete="off"
+        <label
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
+        <input type="text" id="add-user-username" required placeholder="Contoh: user_operasional, audit, dll"
+          autocomplete="off"
           style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-weight: 600; font-size: 13px;">
       </div>
 
       <div>
-        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kata Sandi (Password)</label>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kata
+          Sandi (Password)</label>
         <input type="password" id="add-user-password" required placeholder="Minimal 4 karakter..."
           style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px;">
       </div>
 
       <div>
-        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Peran Akses (Role)</label>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Peran
+          Akses (Role)</label>
         <select id="add-user-role" required
           style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px; font-weight: 600;">
           <option value="tamu">Tamu (Hanya Laporan Operasional)</option>
@@ -1641,13 +1915,17 @@
         </select>
       </div>
 
-      <div id="add-user-error" style="display: none; padding: 10px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 12px;"></div>
+      <div id="add-user-error"
+        style="display: none; padding: 10px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 12px;">
+      </div>
 
       <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 10px;">
-        <button type="button" onclick="closeAddUserModal()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
+        <button type="button" onclick="closeAddUserModal()"
+          style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
           Batal
         </button>
-        <button type="submit" id="btn-submit-add-user" class="btn-primary" style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+        <button type="submit" id="btn-submit-add-user" class="btn-primary"
+          style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
           Simpan User
         </button>
       </div>
@@ -1661,10 +1939,13 @@
 <div id="modal-reset-user-pwd" class="admin-modal-backdrop" style="display: none;">
   <div class="admin-modal-box" style="max-width: 440px;">
     <!-- HEADER -->
-    <div style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
+    <div
+      style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center;">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fefce8; display: flex; align-items: center; justify-content: center; color: #ca8a04;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div
+          style="width: 32px; height: 32px; border-radius: 8px; background: #fefce8; display: flex; align-items: center; justify-content: center; color: #ca8a04;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
@@ -1674,158 +1955,47 @@
           <p id="reset-pwd-subtitle" style="display: none;"></p>
         </div>
       </div>
-      <button type="button" onclick="closeResetPasswordModal()" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
+      <button type="button" onclick="closeResetPasswordModal()"
+        style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 4px;">&times;</button>
     </div>
 
     <!-- BODY -->
-    <form id="form-reset-user-pwd" onsubmit="submitResetPassword(event)" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+    <form id="form-reset-user-pwd" onsubmit="submitResetPassword(event)"
+      style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
       <input type="hidden" id="reset-pwd-username">
 
       <div>
-        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
-        <div id="reset-pwd-display-user" style="padding: 8px 12px; margin-top: 4px; border-radius: 6px; background: var(--surface-bg); border: 1px solid var(--surface-border); font-weight: 700; font-family: var(--font-mono); color: var(--primary);"></div>
+        <label
+          style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Username</label>
+        <div id="reset-pwd-display-user"
+          style="padding: 8px 12px; margin-top: 4px; border-radius: 6px; background: var(--surface-bg); border: 1px solid var(--surface-border); font-weight: 700; font-family: var(--font-mono); color: var(--primary);">
+        </div>
       </div>
 
       <div>
-        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kata Sandi Baru</label>
+        <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Kata
+          Sandi Baru</label>
         <input type="password" id="reset-pwd-new-password" required placeholder="Minimal 4 karakter..."
           style="width: 100%; margin-top: 4px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-card); color: var(--text-main); font-size: 13px;">
       </div>
 
-      <div id="reset-pwd-error" style="display: none; padding: 10px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 12px;"></div>
+      <div id="reset-pwd-error"
+        style="display: none; padding: 10px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-size: 12px;">
+      </div>
 
       <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 10px;">
-        <button type="button" onclick="closeResetPasswordModal()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
+        <button type="button" onclick="closeResetPasswordModal()"
+          style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-bg); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer;">
           Batal
         </button>
-        <button type="submit" id="btn-submit-reset-pwd" class="btn-primary" style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+        <button type="submit" id="btn-submit-reset-pwd" class="btn-primary"
+          style="padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
           Perbarui Password
         </button>
       </div>
     </form>
   </div>
 </div>
-
-
-  <!-- =================================================================== -->
-  <!-- 7. SUB-TAB: ESKALASI AI (HELP ME PLEASE)                           -->
-  <!-- =================================================================== -->
-  <div id="view-admin-tickets" style="display: none; flex-direction: column; gap: 20px;">
-    <!-- HEADER ACTION STRIP -->
-    <div class="card-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 18px 20px;">
-      <div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main);">
-            Pusat Tiket Eskalasi AI (Help Me Please)
-          </h3>
-          <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2);">
-            Data Center Queue
-          </span>
-        </div>
-        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
-          Log antrean pertanyaan Bossque dari Telegram @depas_ai_bot yang membutuhkan racikan agregasi baru di Data Center.
-        </p>
-      </div>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <button type="button" onclick="loadAdminTickets()" class="btn-system-refresh" title="Muat Ulang Antrean Tiket">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-          <span>Refresh Tiket</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- STATS STRIP -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
-      <div class="card-box" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
-        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
-            <path d="M13 5v2"></path><path d="M13 17v2"></path><path d="M13 11v2"></path>
-          </svg>
-        </div>
-        <div>
-          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Tiket</div>
-          <div id="stat-total-tickets" style="font-size: 20px; font-weight: 700; color: var(--text-main); line-height: 1.2;">0</div>
-        </div>
-      </div>
-
-      <div class="card-box" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
-        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-        </div>
-        <div>
-          <div style="font-size: 11px; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">Menunggu Data Center (Pending)</div>
-          <div id="stat-pending-tickets" style="font-size: 20px; font-weight: 700; color: #f59e0b; line-height: 1.2;">0</div>
-        </div>
-      </div>
-
-      <div class="card-box" style="padding: 16px; display: flex; align-items: center; gap: 14px;">
-        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-        </div>
-        <div>
-          <div style="font-size: 11px; font-weight: 600; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;">Sudah Terpenuhi (Resolved)</div>
-          <div id="stat-resolved-tickets" style="font-size: 20px; font-weight: 700; color: #10b981; line-height: 1.2;">0</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TABLE CONTAINER -->
-    <div class="card-box" style="padding: 0; overflow: hidden;">
-      <div style="padding: 14px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-          <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">Daftar Tiket Permintaan Analisis</span>
-        </div>
-        <div>
-          <select id="filter-ticket-status" onchange="filterAdminTickets()" class="form-select" style="font-size: 12px; padding: 5px 10px; border-radius: 6px;">
-            <option value="ALL">Semua Status</option>
-            <option value="PENDING">Hanya PENDING</option>
-            <option value="RESOLVED">Hanya RESOLVED</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="overflow-x: auto;">
-        <table class="table-clean" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
-          <thead>
-            <tr style="background: var(--surface-hover); text-align: left; border-bottom: 1px solid var(--surface-border);">
-              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 170px;">ID Tiket</th>
-              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 150px;">Waktu &amp; Pengirim</th>
-              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted);">Pertanyaan Asli Bossque</th>
-              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted);">Kebutuhan Data Center</th>
-              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 110px; text-align: center;">Status</th>
-              <th style="padding: 12px 16px; font-weight: 600; color: var(--text-muted); width: 110px; text-align: right;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="tickets-table-body">
-            <tr>
-              <td colspan="6" style="padding: 30px; text-align: center; color: var(--text-muted);">
-                Memuat antrean tiket eskalasi...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 
 <style>
   .admin-subtab-btn {
@@ -2075,9 +2245,11 @@
     .master-unified-kpi-bar {
       grid-template-columns: repeat(3, 1fr);
     }
+
     .master-kpi-segment:nth-child(3) {
       border-right: none;
     }
+
     .master-kpi-segment:nth-child(1),
     .master-kpi-segment:nth-child(2),
     .master-kpi-segment:nth-child(3) {
@@ -2089,13 +2261,16 @@
     .master-unified-kpi-bar {
       grid-template-columns: repeat(2, 1fr);
     }
+
     .master-kpi-segment {
       border-right: 1px solid var(--surface-border);
       border-bottom: 1px solid var(--surface-border);
     }
+
     .master-kpi-segment:nth-child(2n) {
       border-right: none;
     }
+
     .master-kpi-segment:nth-last-child(-n+2) {
       border-bottom: none;
     }
@@ -2115,9 +2290,11 @@
     .product-unified-kpi-bar {
       grid-template-columns: repeat(2, 1fr);
     }
+
     .product-unified-kpi-bar .master-kpi-segment:nth-child(2) {
       border-right: none;
     }
+
     .product-unified-kpi-bar .master-kpi-segment:nth-child(1),
     .product-unified-kpi-bar .master-kpi-segment:nth-child(2) {
       border-bottom: 1px solid var(--surface-border);
@@ -2128,10 +2305,12 @@
     .product-unified-kpi-bar {
       grid-template-columns: 1fr;
     }
+
     .product-unified-kpi-bar .master-kpi-segment {
       border-right: none;
       border-bottom: 1px solid var(--surface-border);
     }
+
     .product-unified-kpi-bar .master-kpi-segment:last-child {
       border-bottom: none;
     }
@@ -2210,6 +2389,4 @@
     font-size: 12.5px;
     color: var(--text-main);
   }
-
 </style>
-

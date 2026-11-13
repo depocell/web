@@ -8,6 +8,8 @@ let yoyRawData = null;
 let chartCabangTrxInstance = null;
 let chartCabangMemInstance = null;
 let chartProdukTrxInstance = null;
+let chartProdukRevInstance = null;
+let chartProdukArpuInstance = null;
 
 // Custom DataLabels Plugin untuk Chart.js (Zero external dependencies)
 const customDataLabelsPlugin = {
@@ -25,13 +27,52 @@ const customDataLabelsPlugin = {
         if (val === null || val === undefined || isNaN(val) || val === 0) return;
 
         ctx.save();
-        ctx.fillStyle = dataset.borderColor || "#1e293b";
+        // Kondisikan label mode gelap vs terang:
+        const dark = typeof window.isDarkMode === "function" ? window.isDarkMode() : (document.documentElement.getAttribute("data-theme-mode") === "dark" || (document.documentElement.getAttribute("data-theme") || "").includes("dark"));
+        ctx.fillStyle = dark ? "#f1f5f9" : (dataset.borderColor || "#0f172a");
         ctx.font = "600 10px monospace";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
 
         // Format angka (misal 2.007 atau 361)
         const formattedVal = Math.round(val).toLocaleString("id-ID");
+        ctx.fillText(formattedVal, element.x, element.y - 5);
+        ctx.restore();
+      });
+    });
+  }
+};
+
+// Datalabels plugin khusus Net Revenue (Ringkas Miliar / Juta)
+const customDataLabelsRevPlugin = {
+  id: "customDataLabelsRev",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const datasets = chart.data.datasets;
+
+    datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (meta.hidden) return;
+
+      meta.data.forEach((element, index) => {
+        const val = dataset.data[index];
+        if (val === null || val === undefined || isNaN(val) || val === 0) return;
+
+        ctx.save();
+        const dark = typeof window.isDarkMode === "function" ? window.isDarkMode() : (document.documentElement.getAttribute("data-theme-mode") === "dark" || (document.documentElement.getAttribute("data-theme") || "").includes("dark"));
+        ctx.fillStyle = dark ? "#f1f5f9" : (dataset.borderColor || "#0f172a");
+        ctx.font = "600 10px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+
+        let formattedVal = "";
+        if (val >= 1e9) {
+          formattedVal = (val / 1e9).toFixed(1) + "M";
+        } else if (val >= 1e6) {
+          formattedVal = Math.round(val / 1e6) + "Jt";
+        } else {
+          formattedVal = Math.round(val).toLocaleString("id-ID");
+        }
         ctx.fillText(formattedVal, element.x, element.y - 5);
         ctx.restore();
       });
@@ -81,15 +122,27 @@ function switchYoYProdView(view) {
 
   const btnKat = document.getElementById("btn-sub-kategori");
   const btnOp = document.getElementById("btn-sub-operator");
-  const titleEl = document.getElementById("yoy-prod-chart-title");
+  const titleTrxEl = document.getElementById("yoy-prod-chart-title");
+  const titleRevEl = document.getElementById("yoy-prod-rev-chart-title");
+  const titleArpuEl = document.getElementById("yoy-prod-arpu-chart-title");
 
   if (btnKat) btnKat.classList.toggle("active", view === "kategori");
   if (btnOp) btnOp.classList.toggle("active", view === "operator");
 
-  if (titleEl) {
-    titleEl.textContent = (view === "kategori") 
+  if (titleTrxEl) {
+    titleTrxEl.textContent = (view === "kategori") 
       ? "Tren Daily Trx per Kategori Produk (12 Bulan Terakhir)"
       : "Tren Daily Trx per Operator Populer (12 Bulan Terakhir)";
+  }
+  if (titleRevEl) {
+    titleRevEl.textContent = (view === "kategori") 
+      ? "Tren Net Revenue per Kategori Produk (12 Bulan Terakhir)"
+      : "Tren Net Revenue per Operator Populer (12 Bulan Terakhir)";
+  }
+  if (titleArpuEl) {
+    titleArpuEl.textContent = (view === "kategori") 
+      ? "Tren Net ARPU per Kategori Produk (12 Bulan Terakhir)"
+      : "Tren Net ARPU per Operator Populer (12 Bulan Terakhir)";
   }
 
   renderProdukChart();
@@ -227,72 +280,211 @@ function renderProdukChart() {
 
   const labels = yoyRawData.month_labels || [];
   const brandData = yoyRawData.data;
-  const datasets = (currentYoYProdView === "kategori") 
+
+  // 1. CHART PRODUK TRX (Daily Trx Run-rate)
+  const datasetsTrx = (currentYoYProdView === "kategori") 
     ? (brandData.kategori || []) 
     : (brandData.operator || []);
 
-  const ctxProd = document.getElementById("chart-yoy-produk-trx");
-  if (!ctxProd) return;
+  const ctxProdTrx = document.getElementById("chart-yoy-produk-trx");
+  if (ctxProdTrx) {
+    if (chartProdukTrxInstance) chartProdukTrxInstance.destroy();
 
-  if (chartProdukTrxInstance) chartProdukTrxInstance.destroy();
-
-  chartProdukTrxInstance = new Chart(ctxProd, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: datasets
-    },
-    plugins: [customDataLabelsPlugin],
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: {
-        padding: { top: 24, right: 12, bottom: 8, left: 8 }
+    chartProdukTrxInstance = new Chart(ctxProdTrx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: datasetsTrx
       },
-      interaction: {
-        mode: "index",
-        intersect: false
-      },
-      plugins: {
-        legend: {
-          position: "top",
-          labels: {
-            boxWidth: 12,
-            font: { size: 11, weight: "600" },
-            padding: 14
-          }
+      plugins: [customDataLabelsPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: { top: 24, right: 12, bottom: 8, left: 8 }
         },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const label = context.dataset.label || "";
-              const val = Math.round(context.parsed.y || 0).toLocaleString("id-ID");
-              return ` ${label}: ${val} trx/hari`;
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
+              boxWidth: 12,
+              font: { size: 11, weight: "600" },
+              padding: 14
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || "";
+                const val = Math.round(context.parsed.y || 0).toLocaleString("id-ID");
+                return ` ${label}: ${val} trx/hari`;
+              }
             }
           }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 11, weight: "600" } }
         },
-        y: {
-          beginAtZero: true,
-          grid: { color: "rgba(0, 0, 0, 0.05)" },
-          ticks: {
-            callback: function(val) {
-              return Number(val).toLocaleString("id-ID");
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 11, weight: "600" } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(0, 0, 0, 0.05)" },
+            ticks: {
+              callback: function(val) {
+                return Number(val).toLocaleString("id-ID");
+              }
             }
           }
         }
       }
-    }
-  });
+    });
+  }
+
+  // 2. CHART PRODUK NET REVENUE
+  const datasetsRev = (currentYoYProdView === "kategori")
+    ? (brandData.kategori_rev || [])
+    : (brandData.operator_rev || []);
+
+  const ctxProdRev = document.getElementById("chart-yoy-produk-rev");
+  if (ctxProdRev) {
+    if (chartProdukRevInstance) chartProdukRevInstance.destroy();
+
+    chartProdukRevInstance = new Chart(ctxProdRev, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: datasetsRev
+      },
+      plugins: [customDataLabelsRevPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: { top: 24, right: 12, bottom: 8, left: 8 }
+        },
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
+              boxWidth: 12,
+              font: { size: 11, weight: "600" },
+              padding: 14
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || "";
+                const val = Math.round(context.parsed.y || 0).toLocaleString("id-ID");
+                return ` ${label}: Rp ${val}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 11, weight: "600" } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(0, 0, 0, 0.05)" },
+            ticks: {
+              callback: function(val) {
+                if (val >= 1e9) return "Rp " + (val / 1e9).toFixed(1) + " M";
+                if (val >= 1e6) return "Rp " + (val / 1e6).toFixed(0) + " Jt";
+                return "Rp " + Number(val).toLocaleString("id-ID");
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 3. CHART PRODUK NET ARPU
+  const datasetsArpu = (currentYoYProdView === "kategori")
+    ? (brandData.kategori_arpu || [])
+    : (brandData.operator_arpu || []);
+
+  const ctxProdArpu = document.getElementById("chart-yoy-produk-arpu");
+  if (ctxProdArpu) {
+    if (chartProdukArpuInstance) chartProdukArpuInstance.destroy();
+
+    chartProdukArpuInstance = new Chart(ctxProdArpu, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: datasetsArpu
+      },
+      plugins: [customDataLabelsPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: { top: 24, right: 12, bottom: 8, left: 8 }
+        },
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
+              boxWidth: 12,
+              font: { size: 11, weight: "600" },
+              padding: 14
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || "";
+                const val = Math.round(context.parsed.y || 0).toLocaleString("id-ID");
+                return ` ${label}: Rp ${val} / trx`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 11, weight: "600" } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(0, 0, 0, 0.05)" },
+            ticks: {
+              callback: function(val) {
+                return "Rp " + Number(val).toLocaleString("id-ID");
+              }
+            }
+          }
+        }
+      }
+    });
+  }
 }
 
 async function loadYoY(force = false) {
   const labelEl = document.getElementById("yoy-period-label");
+  const refreshBtn = document.getElementById("btn-yoy-refresh");
+
+  if (refreshBtn && force) {
+    refreshBtn.classList.add("loading");
+    const span = refreshBtn.querySelector("span");
+    if (span) span.textContent = "Memperbarui...";
+  }
 
   try {
     const res = await fetch(`/api/yoy?brand=${currentYoYBrand}&force=${force ? '1' : '0'}&t=${Date.now()}`);
@@ -320,6 +512,12 @@ async function loadYoY(force = false) {
     console.error("[YoY Error]:", err);
     if (labelEl) {
       labelEl.textContent = `Gagal memuat data: ${err.message}`;
+    }
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.classList.remove("loading");
+      const span = refreshBtn.querySelector("span");
+      if (span) span.textContent = "Refresh";
     }
   }
 }

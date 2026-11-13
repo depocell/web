@@ -1,22 +1,219 @@
-<!-- PAGES/SETTINGS/INDEX.HTML — Sistem & Pengaturan Dashboard -->
+<!-- PAGES/SETTINGS/INDEX.HTML — Setting & Preferensi (Modern vs Classic & Dark vs Light) -->
 
-<div style="display: flex; flex-direction: column; gap: 24px; padding-bottom: 30px;">
+<style>
+  .setting-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 40px;
+  }
 
-  <!-- HEADER TITLE & HERO STATUS -->
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Sistem &amp; Pengaturan</h2>
+  .setting-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .setting-title-group h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .setting-period-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .setting-period-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4f46e5;
+  }
+
+  /* TABS NAVIGATION (IDENTIK #YOY) */
+  .setting-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 2px;
+    margin-top: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .setting-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .setting-tab-btn:hover {
+    color: var(--text-main);
+  }
+
+  .setting-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* SETTING CARD BOX */
+  .setting-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .setting-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .setting-card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .theme-toggle-group {
+    display: inline-flex;
+    background: var(--surface-bg);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--surface-border);
+    gap: 4px;
+  }
+
+  .theme-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .theme-toggle-btn:hover {
+    color: var(--text-main);
+  }
+
+  .theme-toggle-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  }
+
+  .btn-system-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    color: var(--text-main);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-system-refresh:hover {
+    background: var(--table-hover);
+  }
+
+  .freshness-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .freshness-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  .freshness-card.astaga::before {
+    background: #2563eb;
+  }
+
+  .freshness-card.okipay::before {
+    background: #0891b2;
+  }
+</style>
+
+<div class="setting-container">
+
+  <!-- TOP HEADER -->
+  <div class="setting-header">
+    <div class="setting-title-group">
+      <h1>Setting &amp; Preferensi</h1>
+      <div class="setting-period-pill">
+        <span class="setting-period-dot"></span>
+        <span>Konfigurasi Gaya Tampilan &amp; Status Sistem</span>
       </div>
-      <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 2px;">
-        Monitoring data freshness cut-off, audit integritas master data, dan preferensi tampilan aplikasi
-      </p>
     </div>
 
-    <!-- QUICK ACTIONS -->
+    <!-- Quick Refresh -->
     <div style="display: flex; align-items: center; gap: 10px;">
-      <button type="button" onclick="refreshSystemData(this)" class="btn-system-refresh" title="Muat ulang status sinkronisasi sistem dan cache RAM">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <button type="button" onclick="refreshSystemData(this)" class="btn-system-refresh"
+        title="Muat ulang status sinkronisasi sistem dan cache RAM">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"></polyline>
           <polyline points="1 20 1 14 7 14"></polyline>
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -26,242 +223,261 @@
     </div>
   </div>
 
-  <!-- SECTION 1: DATA FRESHNESS & TRANSACTION CUT-OFF CARDS -->
-  <div>
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-      <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-        Data Freshness &amp; Batas Cut-Off Transaksi
-      </h3>
-      <span style="font-size: 12px; color: var(--text-muted);">Tahun Berjalan: <strong>2026</strong></span>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;" id="freshness-cards-container">
-      <!-- Loading Skeleton -->
-      <div class="card-box" style="padding: 24px; text-align: center; color: var(--text-muted);">
-        Memuat status cut-off transaksi...
-      </div>
-    </div>
+  <!-- TABS NAVIGATION (IDENTIK #YOY) -->
+  <div class="setting-tabs">
+    <button type="button" class="setting-tab-btn active" id="tab-setting-tampilan"
+      onclick="switchSettingTab('tampilan')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+        </path>
+      </svg>
+      <span>Preferensi &amp; Tampilan</span>
+    </button>
+    <button type="button" class="setting-tab-btn" id="tab-setting-system" onclick="switchSettingTab('system')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span>Data Freshness &amp; Audit Master</span>
+    </button>
   </div>
 
-  <!-- SECTION 2: MASTER DATA AUDIT & HEALTH STATUS -->
-  <div class="card-box" style="padding: 0; overflow: hidden;">
-    <div style="padding: 18px 20px; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-      <div>
-        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+  <!-- CONTENT TAB 1: PREFERENSI & TAMPILAN -->
+  <div id="content-setting-tampilan" style="display: flex; flex-direction: column; gap: 18px;">
+
+    <!-- KARTU PREFERENSI TAMPILAN 2-DIMENSI -->
+    <div class="setting-card">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+        <div style="flex: 1; min-width: 280px;">
+          <h2 class="setting-card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+            Preferensi Tampilan Antarmuka
+          </h2>
+          <p class="setting-card-desc" style="margin-top: 4px;">
+            Atur kombinasi gaya layout (Modern/Classic) dan mode pencahayaan (Gelap/Terang)
+          </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 12px; color: var(--text-muted);">Status Aktif:</span>
+          <span id="active-theme-preview-pill" class="badge"
+            style="background: var(--surface-bg); border: 1px solid var(--surface-border); color: var(--text-main); font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 12px;">
+            Modern &bull; Gelap
+          </span>
+        </div>
+      </div>
+
+      <!-- KONTROL 1: GAYA ANTARMUKA (MODERN VS CLASSIC) -->
+      <div
+        style="border-top: 1px solid var(--surface-border); padding-top: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">1. Gaya Desain (Architecture Style)
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            <strong>Modern</strong> (Font Inter, sudut lengkung halus) vs <strong>Classic</strong> (Font Tahoma 11px
+            rapat ala OtomaX desktop)
+          </div>
+        </div>
+
+        <div class="theme-toggle-group">
+          <button type="button" id="style-modern-btn" onclick="setAppStyle('modern')" class="theme-toggle-btn active">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="4"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+            Modern Enterprise
+          </button>
+          <button type="button" id="style-classic-btn" onclick="setAppStyle('classic')" class="theme-toggle-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            Classic
+          </button>
+        </div>
+      </div>
+
+      <!-- KONTROL 2: MODE PENCAHAYAAN (TERANG VS GELAP) -->
+      <div
+        style="border-top: 1px solid var(--surface-border); padding-top: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">2. Mode Warna (Color Theme)</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            Pilih kecerahan warna: <strong>Mode Terang (Light)</strong> atau <strong>Mode Gelap (Dark)</strong>
+          </div>
+        </div>
+
+        <div class="theme-toggle-group">
+          <button type="button" id="mode-light-btn" onclick="setAppMode('light')" class="theme-toggle-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            Terang (Light)
+          </button>
+          <button type="button" id="mode-dark-btn" onclick="setAppMode('dark')" class="theme-toggle-btn active">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            Gelap (Dark)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFORMASI STATUS APLIKASI -->
+    <div class="setting-card">
+      <h3 class="setting-card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+          <line x1="6" y1="6" x2="6.01" y2="6"></line>
+          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+        </svg>
+        Status Lingkungan &amp; Arsitektur Web Report
+      </h3>
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 4px;">
+        <div
+          style="padding: 12px 14px; background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 6px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Engine
+            Backend</div>
+          <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-top: 3px;">Starlette /
+            Uvicorn + Parquet</div>
+        </div>
+        <div
+          style="padding: 12px 14px; background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 6px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Port
+            Layanan</div>
+          <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-top: 3px;">Port 8000
+            (localhost:8000)</div>
+        </div>
+        <div
+          style="padding: 12px 14px; background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 6px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">
+            Penyimpanan Master</div>
+          <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-top: 3px;">SQLite
+            (MASTER/master_data.db)</div>
+        </div>
+        <div
+          style="padding: 12px 14px; background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 6px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Target
+            Tahun Berjalan</div>
+          <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-top: 3px;">Tahun 2026 (Aktif)
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CONTENT TAB 2: DATA FRESHNESS & AUDIT MASTER -->
+  <div id="content-setting-system" style="display: none; flex-direction: column; gap: 18px;">
+
+    <!-- DATA FRESHNESS & TRANSACTION CUT-OFF CARDS -->
+    <div>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h3
+          style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
-          Audit Kesehatan Master Data (Integrity Check)
+          Data Freshness &amp; Batas Cut-Off Transaksi
         </h3>
-        <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
-          Verifikasi file master Excel di folder MASTER/ dan sinkronisasi cache Parquet
-        </p>
+        <span style="font-size: 12px; color: var(--text-muted);">Tahun Berjalan: <strong>2026</strong></span>
       </div>
 
-      <span class="badge" id="master-audit-badge" style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 700;">
-        100% Selaras (0 Anomali)
-      </span>
-    </div>
-
-    <div style="overflow-x: auto;">
-      <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-        <thead>
-          <tr style="background: var(--table-header); border-bottom: 1px solid var(--surface-border);">
-            <th style="padding: 10px 16px; text-align: left; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">File Master</th>
-            <th style="padding: 10px 16px; text-align: left; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">Kategori &amp; Peran</th>
-            <th style="padding: 10px 16px; text-align: right; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">Ukuran</th>
-            <th style="padding: 10px 16px; text-align: left; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">Update Terakhir</th>
-            <th style="padding: 10px 16px; text-align: center; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">Status Cache</th>
-          </tr>
-        </thead>
-        <tbody id="master-files-tbody">
-          <tr>
-            <td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">Memeriksa file master...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- SECTION 3 & 4: DUA KOLOM (PREFERENSI & TENTANG SISTEM) -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px;">
-
-    <!-- KOLOM KIRI: PREFERENSI TAMPILAN -->
-    <div class="card-box" style="padding: 20px;">
-      <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-        Preferensi Pengguna
-      </h3>
-      <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px;">
-        Pengaturan lokal browser yang tersimpan otomatis di perangkat Anda
-      </p>
-
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <!-- Theme Toggle -->
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Mode Tampilan (Tema)</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Pilih tema terang atau mode gelap hemat daya</div>
-          </div>
-          <div style="display: inline-flex; background: var(--table-header); padding: 3px; border-radius: 8px; border: 1px solid var(--surface-border);">
-            <button type="button" id="theme-light-btn" onclick="setAppTheme('light')" class="theme-toggle-btn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-              </svg>
-              Terang
-            </button>
-            <button type="button" id="theme-dark-btn" onclick="setAppTheme('dark')" class="theme-toggle-btn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-              </svg>
-              Gelap
-            </button>
-          </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;"
+        id="freshness-cards-container">
+        <!-- Loading Skeleton -->
+        <div class="setting-card" style="padding: 24px; text-align: center; color: var(--text-muted);">
+          Memuat status cut-off transaksi...
         </div>
       </div>
     </div>
 
-    <!-- KOLOM KANAN: INFORMASI PLATFORM & LISENSI -->
-    <div class="card-box" style="padding: 20px;">
-      <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-        Tentang Web Report BI
-      </h3>
-      <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">
-        Arsitektur High-Speed Vectorized In-Memory Reporting
-      </p>
+    <!-- MASTER DATA AUDIT & HEALTH STATUS -->
+    <div class="setting-card" style="padding: 0; overflow: hidden;">
+      <div
+        style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3
+            style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            Audit Kesehatan Master Data (Integrity Check)
+          </h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px; margin-bottom: 0;">
+            Verifikasi file master Excel di folder MASTER/ dan sinkronisasi cache Parquet
+          </p>
+        </div>
 
-      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--surface-border);">
-          <span style="color: var(--text-muted);">Versi Aplikasi</span>
-          <span style="font-weight: 700; font-family: var(--font-mono); color: var(--primary);">Web Report BI v2.4 (2026)</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--surface-border);">
-          <span style="color: var(--text-muted);">Engine Pemrosesan</span>
-          <span style="font-weight: 600; color: var(--text-main);">Parquet + RAM Cache Engine</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--surface-border);">
-          <span style="color: var(--text-muted);">Standar UI &amp; Tipografi</span>
-          <span style="font-weight: 600; color: var(--text-main);">Google Aesthetics (Roboto &amp; Jakarta Sans)</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--surface-border);">
-          <span style="color: var(--text-muted);">Total Transaksi Terindex</span>
-          <span style="font-weight: 700; font-family: var(--font-mono); color: #16a34a;" id="info-total-trx">-</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: var(--text-muted);">Hak Cipta / Organisasi</span>
-          <span style="font-weight: 600; color: var(--text-main);">&copy; 2026 Depo Cell BI Suite</span>
-        </div>
+        <span class="badge" id="master-audit-badge"
+          style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 12px;">
+          100% Selaras (0 Anomali)
+        </span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead>
+            <tr style="background: var(--table-header); border-bottom: 1px solid var(--surface-border);">
+              <th
+                style="padding: 9px 16px; text-align: left; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">
+                File Master</th>
+              <th
+                style="padding: 9px 16px; text-align: left; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">
+                Kategori &amp; Peran</th>
+              <th
+                style="padding: 9px 16px; text-align: right; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">
+                Ukuran</th>
+              <th
+                style="padding: 9px 16px; text-align: left; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">
+                Update Terakhir</th>
+              <th
+                style="padding: 9px 16px; text-align: center; font-weight: 600; font-size: 11.5px; text-transform: uppercase;">
+                Status Cache</th>
+            </tr>
+          </thead>
+          <tbody id="master-files-tbody">
+            <tr>
+              <td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">Memeriksa file
+                master...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
   </div>
 
 </div>
-
-<!-- INLINE STYLES FOR SETTINGS SPECIFIC WIDGETS -->
-<style>
-.card-box {
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-}
-
-.btn-system-refresh {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  color: var(--text-main);
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.btn-system-refresh:hover {
-  background: var(--table-header);
-  border-color: #cbd5e1;
-}
-
-.theme-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.theme-toggle-btn.active {
-  background: var(--primary);
-  color: #ffffff;
-  box-shadow: 0 1px 3px rgba(37,99,235,0.25);
-}
-
-.freshness-card {
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-  position: relative;
-  overflow: hidden;
-}
-.freshness-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-}
-.freshness-card.astaga::before {
-  background: #2563eb;
-}
-.freshness-card.okipay::before {
-  background: #0891b2;
-}
-
-.period-pill {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--table-header);
-  border: 1px solid var(--surface-border);
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--text-main);
-}
-</style>

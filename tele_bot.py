@@ -86,7 +86,7 @@ def format_to_telegram_html(text: str) -> str:
     """Mengubah format teks markdown Gemini menjadi HTML Telegram yang aman & bersih tanpa bintang (**) atau simbol liar."""
     if not text:
         return ""
-    t = text.replace('\r\n', '\n')
+    t = text.replace('\n', '\n')
     # Lindungi tag HTML yang sah jika sudah ada (b, i, code, s, u, pre, a)
     placeholders = {}
     def repl(m):
@@ -225,40 +225,52 @@ PRINSIP KOMUNIKASI & PERSONALITAS:
      - Speed Telemetry = Rata-rata durasi detik (tgl_stat - tgl_entry) HANYA untuk status Sukses.
      - Net Profit Server = (Harga Jual - Markup) - Harga Beli. Markup adalah komisi upline, bukan laba server.
      - Akun Internal: AR00037, AR00009, AR20408 sudah di-exclude total dari ASTAGA.
+      - Laporan Kinerja SCO / Sales: DILARANG menampilkan persentase pertumbuhan (/-x.x%). Cukup tampilkan angka harian saat ini, periode lalu, dan selisih pertumbuhannya (misal: "912.7/hari (Lalu: 976.5 | -63.8)").
    • LEVEL 3 - EKSEKUSI DATA SNAPSHOT RESMI:
      - Gunakan fakta angka dari snapshot resmi di bawah untuk menjawab pertanyaan Bossque secara presisi.
 
-8. PROTOKOL ESKALASI TIKET KE DATA CENTER (SISTEM TIKETING OTOMATIS):
-   - Jika Bossque menanyakan analisa data mendalam, produk/operator baru, atau rentang waktu historis yang BENAR-BENAR BELUM TERSEDIA di ringkasan snapshot resmi:
-     * DILARANG KERAS mengarang angka fiktif!
-     * Responlah dengan santun, solutif, dan profesional:
-       "Mohon maaf Bossque, untuk analisa ini datanya kami tampung dulu ya, dan tiketnya sudah kami eskalasikan ke DATA CENTER untuk ditarikkan dari database transaksi mentah. Begitu datanya selesai diracik, kami kabari segera, Bossque!"
-     * Wajib sertakan penanda tiket resmi di baris paling akhir:
-       [[ESKALASI_TIKET: <ringkasan singkat kebutuhan data/analisa yang diminta>]]
+8. PROTOKOL KLARIFIKASI & KONFIRMASI SEBELUM ESKALASI TIKET (KEMAMPUAN KONFIRMASI WAJIB):
+   - HUKUM KALENDER REAL-TIME (WAKTU SERVER SAAT INI):
+     * Waktu server saat ini adalah BULAN NOVEMBER 2026 (2026-11 MTD).
+     * Jika Bossque menyebut "bulan ini", "saat ini", atau "berjalan", itu artinya NOVEMBER 2026 MTD (BUKAN OKTOBER)!
+     * Bulan Oktober 2026 (2026-10) adalah "bulan lalu" / "periode sebelumnya". DILARANG KERAS berasumsi Oktober jika Bossque berkata "bulan ini"!
+   - ATURAN KONFIRMASI SEBELUM MEMBUAT TIKET:
+     * DILARANG LANGSUNG MEMBUAT TIKET sepihak tanpa konfirmasi jika parameter pertanyaan Bossque masih luas atau belum terkonfirmasi!
+     * Jika Bossque meminta data mentah/spesifik yang belum ada di ringkasan snapshot resmi (misalnya: "breakdown transaksi harian dan harga beli"):
+       1. WAJIB TANYAKAN & KONFIRMASI TERLEBIH DAHULU kepada Bossque secara sopan dan solutif:
+          - Tanyakan rentang waktu yang dimaksud:
+            "Siap Bossque, untuk penarikan rincian data transaksi harian dan harga beli OKIPAY, maksud Bossque untuk bulan berjalan sekarang (November 2026 MTD cut-off tgl 1-8) atau rekap bulan lalu (Oktober 2026)? Apakah ingin saya buatkan tiket eskalasi resmi ke Data Center?"
+          - Berikan ringkasan data umum terdekat yang sudah tersedia di snapshot jika ada.
+       2. DILARANG MENYERTAKAN TAG [[ESKALASI_TIKET: ...]] pada tahap konfirmasi pertama ini!
+       3. HANYA terbitkan tag [[ESKALASI_TIKET: <ringkasan spesifik dan periode yang pasti>]] di baris paling akhir JIKA:
+          a) Bossque sudah mengonfirmasi pilihannya (contoh balasan Bossque: "ya November", "buatkan tiketnya", "Oktober aja", "tolong tarikkan"), ATAU
+          b) Pertanyaan Bossque sejak awal sudah sangat tegas dan eksplisit: "buatkan tiket eskalasi untuk periode November 2026".
 """
 
 _RESELLER_BOT_CACHE = {}
 _RESELLER_BOT_CACHE_TIME = 0
 
-def get_cached_reseller_data(brand="ASTAGA"):
+def get_cached_reseller_data(brand="ASTAGA", month_code="2026-11", year="2026"):
     global _RESELLER_BOT_CACHE, _RESELLER_BOT_CACHE_TIME
+    brand = brand.upper()
+    cache_k = f"{brand}_{month_code}"
     now = time.time()
-    if brand in _RESELLER_BOT_CACHE and (now - _RESELLER_BOT_CACHE_TIME) < 300:
-        return _RESELLER_BOT_CACHE[brand]
+    if cache_k in _RESELLER_BOT_CACHE and (now - _RESELLER_BOT_CACHE_TIME) < 300:
+        return _RESELLER_BOT_CACHE[cache_k]
     try:
-        resp = requests.get(f"http://127.0.0.1:8000/api/reseller?brand={brand}&month=2026-10", timeout=2)
+        resp = requests.get(f"http://127.0.0.1:8000/api/reseller?brand={brand}&month={month_code}&cabang=ALL", timeout=2)
         if resp.status_code == 200:
             res_json = resp.json()
             if res_json.get("ok"):
-                _RESELLER_BOT_CACHE[brand] = res_json.get("data", {})
+                _RESELLER_BOT_CACHE[cache_k] = res_json.get("data", {})
                 _RESELLER_BOT_CACHE_TIME = now
-                return _RESELLER_BOT_CACHE[brand]
+                return _RESELLER_BOT_CACHE[cache_k]
     except Exception:
         pass
     try:
         import engines.reseller_engine as re_eng
-        data = re_eng.calculate_reseller_dashboard(brand=brand, month_code="2026-10", year="2026")
-        _RESELLER_BOT_CACHE[brand] = data
+        data = re_eng.calculate_reseller_dashboard(brand=brand, month_code=month_code, year=year, cabang="ALL")
+        _RESELLER_BOT_CACHE[cache_k] = data
         _RESELLER_BOT_CACHE_TIME = now
         return data
     except Exception as e:
@@ -293,8 +305,8 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     sukses = curr.get("sukses_pct", 0)
                     speed = curr.get("avg_dur_str", "00:00")
                     lines.append(f"[{brand}] Periode {curr_p} | Data Cut-off s/d {last_date} ({days} hari kalender MTD)")
-                    lines.append(f"  • Run-rate Harian: {daily_trx:,} trx/hari (Total Sukses MTD: {curr.get('trx_sukses', 0):,} trx)")
-                    lines.append(f"  • Member Aktif: {cust:,} reseller/hari | % Sukses: {sukses}% | Speed: {speed}")
+                    lines.append(f"  •• Run-rate Harian: {daily_trx:,} trx/hari (Total Sukses MTD: {curr.get('trx_sukses', 0):,} trx)")
+                    lines.append(f"  •• Member Aktif: {cust:,} reseller/hari | % Sukses: {sukses}% | Speed: {speed}")
                     # Breakdown Performa Cabang Resmi (Sesuai Visual Infografis /summary & /cabang)
                     branches_c = curr.get("branches", {})
                     if len(periods) > 1:
@@ -335,7 +347,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     ops_c = curr.get("operators_perf", {})
                     ops_p = bdata[prev_p].get("operators_perf", {}) if len(periods) > 1 else {}
                     if ops_c:
-                        lines.append(f"  • Sukses Rate & Speed Operator Utama {brand} (Oktober MTD vs September):")
+                        lines.append(f"  • Sukses Rate & Speed Operator Utama {brand} ({curr_p} vs {prev_p}):")
                         top_ops = ["TELKOMSEL", "INDOSAT", "XL - AXIS", "TRI", "SMARTFREN", "TOKEN PLN", "DANA"]
                         for op_name in top_ops:
                             if op_name in ops_c:
@@ -378,7 +390,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
             sales_rows = [x for x in idx_list if x.get("CABANG") and x.get("SCO") not in ["NON SCO", "ONLINE"]]
             if sales_rows:
                 sorted_sales = sorted(sales_rows, key=lambda x: x.get("%", 0), reverse=True)
-                lines.append(f"\n[PERFORMA TIM SALES CABANG (SCO) - CUTOFF: {cutoff_sco} (OKTOBER 2026 MTD VS SEPTEMBER)]:")
+                lines.append(f"\n[PERFORMA TIM SALES CABANG (SCO) - CUTOFF: {cutoff_sco}]:")
                 lines.append("CATATAN PENTING: BRAND OKIPAY TIDAK MEMILIKI TIM SALES SCO MAUPUN CABANG FISIK!")
                 lines.append("Peringkat Growth Harian 5 Sales SCO (Tertinggi ke Terendah):")
                 for rank, s in enumerate(sorted_sales, 1):
@@ -395,7 +407,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                         notes = " -> [GROWTH TERTINGGI / SATU-SATUNYA POSITIF]"
                     elif rank == len(sorted_sales):
                         notes = " -> [GROWTH TERENDAH / PENURUNAN TERDALAM]"
-                    lines.append(f"  {rank}. {s_name} ({s_cb}) | Sep: {s_prev:,.1f}/hari -> Oct: {s_curr:,.1f}/hari (Diff: {s_diff_str}/hari | {s_pct_str}){notes}")
+                    lines.append(f"  {rank}. {s_name} ({s_cb}) | Lalu: {s_prev:,.1f}/hari -> Skrg: {s_curr:,.1f}/hari (Diff: {s_diff_str}/hari){notes}")
 
             # Tren Riwayat Run-rate Bulanan 5 Sales SCO (Jan s/d Okt 2026)
             p_keys_all = sorted(list(sco_data.get("periods", {}).keys()))
@@ -425,7 +437,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                     c_diff_str = f"+{c_diff:.1f}" if c_diff > 0 else f"{c_diff:.1f}"
                     c_pct = c.get("%", 0) * 100
                     c_pct_str = f"+{c_pct:.1f}%" if c_pct > 0 else f"{c_pct:.1f}%"
-                    lines.append(f"  • {c_name}: {c_curr:,.1f}/hari (Sep: {c_prev:,.1f} | {c_diff_str} / {c_pct_str})")
+                    lines.append(f"  • {c_name}: {c_curr:,.1f}/hari (Lalu: {c_prev:,.1f} | {c_diff_str})")
 
             # Data Historis KPI SCO Resmi & Multi-Bulan (Sumber: KPI_SCO.xlsx)
             kpi_list = sco_data.get("kpi_sco", [])
@@ -462,7 +474,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
             # Top 10 Drop
             sorted_drop = sorted(tren, key=lambda x: x.get("diff", 0))
             if sorted_drop:
-                lines.append("\n[DAFTAR 10 AGEN DENGAN PENURUNAN / DROP HARIAN TERBESAR (OKTOBER 2026 VS SEPTEMBER)]:")
+                lines.append(f"\n[DAFTAR 10 AGEN DENGAN PENURUNAN / DROP HARIAN TERBESAR (NOVEMBER 2026 MTD s/d {cutoff_sco} VS OKTOBER 2026)]:")
                 for i, a in enumerate(sorted_drop[:10], 1):
                     aid = a.get("aid", "-")
                     name = a.get("name", "-")
@@ -476,7 +488,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
             # Top 10 Growth
             sorted_growth = sorted(tren, key=lambda x: x.get("diff", 0), reverse=True)
             if sorted_growth:
-                lines.append("\n[DAFTAR 10 AGEN DENGAN PERTUMBUHAN / KENAIKAN HARIAN TERTINGGI (OKTOBER 2026 VS SEPTEMBER)]:")
+                lines.append(f"\n[DAFTAR 10 AGEN DENGAN PERTUMBUHAN / KENAIKAN HARIAN TERTINGGI (NOVEMBER 2026 MTD s/d {cutoff_sco} VS OKTOBER 2026)]:")
                 for i, a in enumerate(sorted_growth[:10], 1):
                     aid = a.get("aid", "-")
                     name = a.get("name", "-")
@@ -534,7 +546,7 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                 fails = binfo.get("top_failed_modules", [])
                 if fails:
                     fail_str = ", ".join([f"{x['module']}: {x['failed']} gagal" for x in fails[:5]])
-                    lines.append(f"[{brand} AUDIT SUPPLIER] Modul Paling Banyak Gagal (MTD Oktober 2026): {fail_str}")
+                    lines.append(f"[{brand} AUDIT SUPPLIER] Modul Paling Banyak Gagal (MTD {curr_p}): {fail_str}")
                 tsel_audit = binfo.get("telkomsel_audit", {})
                 if tsel_audit:
                     lines.append(f"[{brand} AUDIT ROOT CAUSE TELKOMSEL GAGAL]:")
@@ -576,10 +588,10 @@ def get_live_context_snapshot(prompt: str = "") -> str:
                 churn_cnt = kpi.get("churned", len(churn_rows))
                 active_prev = kpi.get("retained", 0) + churn_cnt
                 churn_rate = (churn_cnt / active_prev * 100) if active_prev > 0 else 0
-                lines.append(f"\n[DATA RESELLER PASIF / CHURN MURNI & MITRA BARU {brand} (OKTOBER 2026 VS SEPTEMBER)]:")
+                lines.append(f"\n[DATA RESELLER PASIF / CHURN MURNI & MITRA BARU {brand} ({curr_p} VS {prev_p})]:")
                 lines.append(f"• Total Reseller Terdaftar di Master: {kpi.get('total_registered', 0):,} toko")
                 lines.append(f"• Mitra Aktif September 2026: {active_prev:,} toko")
-                lines.append(f"• Mitra Aktif Oktober 2026 (MTD): {kpi.get('active_current', 0):,} toko")
+                lines.append(f"• Mitra Aktif {curr_p} (MTD): {kpi.get('active_current', 0):,} toko")
                 lines.append(f"• Mitra Aktif Rutin (Retained): {kpi.get('retained', 0):,} toko")
                 lines.append(f"• Mitra Reaktivasi: {kpi.get('reactivated', 0):,} toko")
                 lines.append(f"• PENDAFTAR BARU BULAN INI: {kpi.get('new_registered', 0):,} toko terdaftar (Langsung Aktif Trx: {kpi.get('new_active', 0):,}, Belum Trx: {kpi.get('new_untransacted', 0):,})")
@@ -612,7 +624,7 @@ USER_SESSIONS = {}
 
 TICKETS_DIR = os.path.join(BASE_DIR, "pages", "analisa", "tickets")
 
-def create_escalation_ticket(chat_id: int, prompt: str, requirement: str, user_name: str = "Bossque") -> str:
+def create_escalation_ticket(chat_id: int, prompt: str, requirement: str, user_info: dict = None) -> str:
     """Menerbitkan tiket eskalasi resmi ke folder tickets/ untuk diracik Data Center."""
     try:
         os.makedirs(TICKETS_DIR, exist_ok=True)
@@ -621,11 +633,18 @@ def create_escalation_ticket(chat_id: int, prompt: str, requirement: str, user_n
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
         tkt_code = now.strftime("TKT-%Y%m%d-%H%M%S")
         
+        info = user_info or {}
+        u_name = info.get("name") or "Bossque"
+        u_handle = info.get("username") or ""
+        u_id = info.get("user_id") or chat_id
+
         tkt_data = {
             "ticket_id": tkt_code,
             "created_at": now_str,
             "chat_id": chat_id,
-            "user_name": user_name,
+            "user_id": u_id,
+            "user_name": u_name,
+            "username": u_handle,
             "prompt": prompt,
             "requirement": requirement,
             "status": "PENDING",
@@ -650,6 +669,10 @@ def create_escalation_ticket(chat_id: int, prompt: str, requirement: str, user_n
         index_data.insert(0, {
             "ticket_id": tkt_code,
             "created_at": now_str,
+            "chat_id": chat_id,
+            "user_id": u_id,
+            "user_name": u_name,
+            "username": u_handle,
             "prompt": prompt[:100],
             "requirement": requirement[:100],
             "status": "PENDING"
@@ -658,18 +681,27 @@ def create_escalation_ticket(chat_id: int, prompt: str, requirement: str, user_n
         with open(index_file, "w", encoding="utf-8") as f:
             json.dump(index_data[:50], f, ensure_ascii=False, indent=2)
             
-        logger.info(f"Tiket eskalasi baru diterbitkan: {tkt_code} | Kebutuhan: {requirement}")
+        logger.info(f"Tiket eskalasi baru diterbitkan: {tkt_code} dari [{u_name}|{u_handle}|{chat_id}] | Kebutuhan: {requirement}")
         return tkt_code
     except Exception as e:
         logger.error(f"Gagal menerbitkan tiket eskalasi: {e}")
         return "TKT-AUTO"
 
-def ask_gemini(prompt: str, chat_id: int = 0) -> str:
+def ask_gemini(prompt: str, chat_id: int = 0, user_info: dict = None) -> str:
     if not GEMINI_API_KEY:
         return "Mohon maaf Bossque, GEMINI_API_KEY belum dikonfigurasi di server."
 
+    import datetime
+    now_dt = datetime.datetime.now()
+    now_str = now_dt.strftime("%d %B %Y, %H:%M WIB")
+    
     live_context = get_live_context_snapshot(prompt)
     system_instruction_full = f"""{SYSTEM_INSTRUCTION}
+
+INFO WAKTU REAL-TIME SISTEM:
+- Tanggal & Waktu Sekarang: {now_str}
+- Bulan Berjalan Saat Ini ("Bulan Ini"): NOVEMBER 2026 (2026-11 MTD Cut-off 8 Hari)
+- Bulan Lalu ("Bulan Kemarin"): OKTOBER 2026 (2026-10 Full 31 Hari)
 
 KONTEKS DATA RESMI SERVER DEPAS SAAT INI (REAL-TIME SNAPSHOT):
 {live_context}
@@ -677,6 +709,7 @@ KONTEKS DATA RESMI SERVER DEPAS SAAT INI (REAL-TIME SNAPSHOT):
 PETUNJUK EKSEKUSI:
 - Gunakan data resmi di atas untuk menjawab pertanyaan dan memberikan analisa cerdas kepada Bossque.
 - Pahami riwayat percakapan sebelumnya agar obrolan mengalir luwes, nyambung, dan solutif.
+- TERAPKAN PROTOKOL KONFIRMASI: Jika ada permintaan data mendalam, konfirmasikan periodenya ke Bossque sebelum menerbitkan tiket Data Center!
 """
 
     models = [
@@ -712,7 +745,7 @@ PETUNJUK EKSEKUSI:
                         import re
                         m = re.search(r'\[\[ESKALASI_TIKET:\s*(.*?)\]\]', reply, re.DOTALL)
                         ticket_need = m.group(1).strip() if m else prompt
-                        tkt_id = create_escalation_ticket(chat_id=chat_id, prompt=prompt, requirement=ticket_need)
+                        tkt_id = create_escalation_ticket(chat_id=chat_id, prompt=prompt, requirement=ticket_need, user_info=user_info)
                         reply = re.sub(r'\[\[ESKALASI_TIKET:\s*.*?\]\]', '', reply).strip()
                         reply += f"\n\n<i>Tiket Eskalasi Resmi Diterbitkan: <code>{tkt_id}</code> (Status: PENDING di Data Center)</i>"
 
@@ -742,7 +775,7 @@ def register_telegram_commands():
     url = f"{TELEGRAM_API_URL}/setMyCommands"
     commands = [
         {"command": "overview", "description": "Executive Overview"},
-        {"command": "summary", "description": "Daily Astaga"},
+        {"command": "astaga", "description": "Astaga Reload"},
         {"command": "okipay", "description": "Daily Okipay"},
         {"command": "sco", "description": "Daily SCO"},
         {"command": "cabang", "description": "Branch Perform"},
@@ -764,7 +797,7 @@ def handle_command_start(chat_id: int, user_first_name: str):
         f"Saya <b>DepAs AI Reader</b> (@depas_ai_bot), asisten data transaksi resmi server Depo Cell (My Astaga! & OKIPAY).\n\n"
         f"<b>Menu Cepat (Klik Menu di kiri bawah keyboard):</b>\n"
         f"• /overview - Executive Overview (#overview)\n"
-        f"• /summary - Daily Astaga\n"
+        f"• /astaga - Astaga Reload\n"
         f"• /okipay - Daily Okipay\n"
         f"• /sco - Daily SCO\n"
         f"• /cabang - Branch Perform\n"
@@ -778,6 +811,22 @@ def handle_command_start(chat_id: int, user_first_name: str):
 
 
 
+MONTH_NAMES_ID = {
+    "01": "Januari", "02": "Februari", "03": "Maret", "04": "April",
+    "05": "Mei", "06": "Juni", "07": "Juli", "08": "Agustus",
+    "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+}
+
+def get_latest_brand_period(data: dict, brand: str) -> tuple:
+    """Mengambil periode data transaksi terbaru secara dinamis dari data.json."""
+    bdata = data.get(brand, {})
+    keys = sorted([k for k in bdata.keys() if len(k) == 7 and k[4] == '-'])
+    if not keys:
+        return "2026-11", {}
+    latest_k = keys[-1]
+    return latest_k, bdata.get(latest_k, {})
+
+
 def handle_command_overview(chat_id: int):
     """Menampilkan Executive Comparison Matrix (#overview: ASTAGA vs OKIPAY vs TOTAL)."""
     send_chat_action(chat_id, "typing")
@@ -788,14 +837,16 @@ def handle_command_overview(chat_id: int):
             send_telegram_message(chat_id, "Mohon maaf Bossque, data overview belum siap.")
             return
 
-        m_name = ov.get("month", "10")
-        active_days = ov.get("active_days", 26)
+        m_name = ov.get("month", "11")
+        m_title = MONTH_NAMES_ID.get(m_name, m_name).title()
+        active_days = ov.get("active_days", 6)
+        cutoff_date_str = f"{active_days:02d}-{m_name}-2026"
         a = ov.get("astaga", {})
         o = ov.get("okipay", {})
         t = ov.get("total", {})
 
         msg = f"""<b>EXECUTIVE OVERVIEW MATRIX (#overview)</b>
-• Periode: Bulan {m_name} 2026 (Cut-off {active_days} Hari Kalender)
+• Periode: {m_title} 2026 (Cut-off {active_days} Hari Kalender s/d {cutoff_date_str})
 
 <b>1. PERFORMA RUN-RATE HARIAN:</b>
 • ASTAGA: <b>{a.get('daily_trx', 0):,}</b> trx/hari
@@ -835,12 +886,12 @@ def handle_command_new_member(chat_id: int):
     send_chat_action(chat_id, "typing")
     try:
         lines = [
-            "<b>DAFTAR MEMBER BARU BULAN INI</b>\n"
+            "<b>DAFTAR MEMBER BARU BERTANSAKSI (NOVEMBER 2026 MTD s/d 06 Nov):</b>\n"
         ]
 
         total_new = 0
         for brand in ["ASTAGA", "OKIPAY"]:
-            r_data = get_cached_reseller_data(brand)
+            r_data = get_cached_reseller_data(brand, month_code="2026-11", year="2026")
             rows = r_data.get("rows", [])
             new_members = [r for r in rows if r.get("activity_status") == "Member Baru"]
             new_sorted = sorted(new_members, key=lambda x: x.get("total_trx", 0), reverse=True)
@@ -866,32 +917,54 @@ def handle_command_new_member(chat_id: int):
 
 
 def handle_command_summary(chat_id: int, text: str = ""):
-    img_path = os.path.join(BASE_DIR, "Daily_Report_ASTAGA_2026-10.png")
     data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
 
-    caption = "Laporan Visual Harian My Astaga! (MTD Oktober 2026)"
-    if os.path.exists(img_path):
-        send_chat_action(chat_id, "upload_photo")
-        send_telegram_photo(chat_id, img_path, caption=caption)
-
-    # Tambahkan rekap teks cepat
+    # Rekap teks cepat dinamis bulan terbaru
     if os.path.exists(data_json_path):
         try:
             with open(data_json_path, "r", encoding="utf-8") as f:
-                d = json.load(f).get("ASTAGA", {}).get("2026-10", {})
+                raw_json = json.load(f)
+            period_key, d = get_latest_brand_period(raw_json, "ASTAGA")
+            yr, mo = period_key.split("-") if "-" in period_key else ("2026", "11")
+            month_label = MONTH_NAMES_ID.get(mo, mo).upper()
             daily_trx = d.get("daily_trx", 0)
             total_sukses = d.get("trx_sukses", 0)
-            days = d.get("days_count", 26)
+            days = d.get("days_count", d.get("active_days", 1))
             speed = d.get("avg_dur_str", "00:00")
             sukses_pct = d.get("sukses_pct", 0)
             member = d.get("daily_customers", 0)
+
+            # Ambil data kesehatan basis reseller dari overview_engine
+            reseller_health_text = ""
+            try:
+                import engines.overview_engine as oe
+                ov = oe.get_latest_month_summary(yr)
+                if ov and ov.get("ok"):
+                    a_ov = ov.get("astaga", {})
+                    act_c = a_ov.get("active_cust", 0)
+                    new_c = a_ov.get("new_cust", 0)
+                    reac_c = a_ov.get("reactivated_cust", 0)
+                    churn_c = a_ov.get("churn_cust", 0)
+                    tpm_val = a_ov.get("tpm", 0.0)
+                    reseller_health_text = (
+                        f"\n\n<b>KESEHATAN BASIS RESELLER (#agen):</b>\n"
+                        f"• Reseller Aktif Trx: <b>{act_c:,}</b> mitra\n"
+                        f"• Member Baru (+): <b>+{new_c:,}</b> toko\n"
+                        f"• Reaktivasi (+): <b>+{reac_c:,}</b> toko\n"
+                        f"• Pasif / Churn (-): <b>-{churn_c:,}</b> toko\n"
+                        f"• Produktivitas: <b>{tpm_val:.2f}</b> trx/reseller/hari"
+                    )
+            except Exception as ex_ov:
+                logger.warning(f"Gagal mengambil reseller health astaga: {ex_ov}")
+
             msg = (
-                f"<b>RINGKASAN METRIK MY ASTAGA (OKTOBER 2026 MTD):</b>\n"
-                f"• Cut-off Data: s/d {days} Oktober 2026 ({days} hari kalender)\n"
+                f"<b>RINGKASAN MY ASTAGA ({month_label} {yr} MTD):</b>\n"
+                f"• Cut-off Data: s/d {days} {MONTH_NAMES_ID.get(mo, mo)} {yr} ({days} hari kalender)\n"
                 f"• Run-rate Harian: <b>{daily_trx:,}</b> trx/hari\n"
                 f"• Total Sukses MTD: <b>{total_sukses:,}</b> trx\n"
                 f"• Member Aktif: <b>{member:,}</b> reseller/hari\n"
                 f"• Success Rate: <b>{sukses_pct}%</b> | Avg Speed: <b>{speed}</b>"
+                f"{reseller_health_text}"
             )
             send_telegram_message(chat_id, msg)
         except Exception as e:
@@ -899,31 +972,53 @@ def handle_command_summary(chat_id: int, text: str = ""):
 
 
 def handle_command_okipay(chat_id: int):
-    img_path = os.path.join(BASE_DIR, "Daily_Report_OKIPAY_2026-10.png")
     data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
-
-    caption = "Laporan Visual Harian OKIPAY (MTD Oktober 2026)"
-    if os.path.exists(img_path):
-        send_chat_action(chat_id, "upload_photo")
-        send_telegram_photo(chat_id, img_path, caption=caption)
 
     if os.path.exists(data_json_path):
         try:
             with open(data_json_path, "r", encoding="utf-8") as f:
-                d = json.load(f).get("OKIPAY", {}).get("2026-10", {})
+                raw_json = json.load(f)
+            period_key, d = get_latest_brand_period(raw_json, "OKIPAY")
+            yr, mo = period_key.split("-") if "-" in period_key else ("2026", "11")
+            month_label = MONTH_NAMES_ID.get(mo, mo).upper()
             daily_trx = d.get("daily_trx", 0)
             total_sukses = d.get("trx_sukses", 0)
-            days = d.get("days_count", 26)
+            days = d.get("days_count", d.get("active_days", 1))
             speed = d.get("avg_dur_str", "00:00")
             sukses_pct = d.get("sukses_pct", 0)
             member = d.get("daily_customers", 0)
+
+            # Ambil data kesehatan basis reseller dari overview_engine
+            reseller_health_text = ""
+            try:
+                import engines.overview_engine as oe
+                ov = oe.get_latest_month_summary(yr)
+                if ov and ov.get("ok"):
+                    o_ov = ov.get("okipay", {})
+                    act_c = o_ov.get("active_cust", 0)
+                    new_c = o_ov.get("new_cust", 0)
+                    reac_c = o_ov.get("reactivated_cust", 0)
+                    churn_c = o_ov.get("churn_cust", 0)
+                    tpm_val = o_ov.get("tpm", 0.0)
+                    reseller_health_text = (
+                        f"\n\n<b>KESEHATAN BASIS RESELLER (#agen):</b>\n"
+                        f"• Reseller Aktif Trx: <b>{act_c:,}</b> mitra\n"
+                        f"• Member Baru (+): <b>+{new_c:,}</b> toko\n"
+                        f"• Reaktivasi (+): <b>+{reac_c:,}</b> toko\n"
+                        f"• Pasif / Churn (-): <b>-{churn_c:,}</b> toko\n"
+                        f"• Produktivitas: <b>{tpm_val:.2f}</b> trx/reseller/hari"
+                    )
+            except Exception as ex_ov:
+                logger.warning(f"Gagal mengambil reseller health okipay: {ex_ov}")
+
             msg = (
-                f"<b>RINGKASAN METRIK OKIPAY (OKTOBER 2026 MTD):</b>\n"
-                f"• Cut-off Data: s/d {days} Oktober 2026 ({days} hari kalender)\n"
+                f"<b>RINGKASAN OKIPAY ({month_label} {yr} MTD):</b>\n"
+                f"• Cut-off Data: s/d {days} {MONTH_NAMES_ID.get(mo, mo)} {yr} ({days} hari kalender)\n"
                 f"• Run-rate Harian: <b>{daily_trx:,}</b> trx/hari\n"
                 f"• Total Sukses MTD: <b>{total_sukses:,}</b> trx\n"
                 f"• Member Aktif: <b>{member:,}</b> reseller/hari\n"
                 f"• Success Rate: <b>{sukses_pct}%</b> | Avg Speed: <b>{speed}</b>"
+                f"{reseller_health_text}"
             )
             send_telegram_message(chat_id, msg)
         except Exception as e:
@@ -946,7 +1041,7 @@ def handle_command_sco(chat_id: int):
 
         lines = [
             f"REKAP EKSEKUTIF SALES CABANG (SCO)",
-            f"Cut-off Real-time: {cutoff}\n",
+            f"Cut-off : {cutoff}\n",
             "Ringkasan Kategori (Run-rate /hari):"
         ]
 
@@ -959,19 +1054,17 @@ def handle_command_sco(chat_id: int):
             prev = item.get("prev", 0)
             diff = item.get("Growth", 0)
             diff_sign = f"+{diff:.1f}" if diff > 0 else f"{diff:.1f}"
-            pct = item.get("%", 0) * 100
-            pct_sign = f"+{pct:.1f}%" if pct > 0 else f"{pct:.1f}%"
 
             if s_name in summary_keys:
                 badge = "[NAIK]" if diff >= 0 else "[TURUN]"
-                lines.append(f"- {s_name}: {curr:,.1f}/hari (Lalu: {prev:,.1f} | {diff_sign} / {pct_sign}) {badge}")
+                lines.append(f"- {s_name}: {curr:,.1f}/hari (Lalu: {prev:,.1f} | {diff_sign}) {badge}")
             elif s_name and s_name != "NON SCO":
-                sales_items.append((s_name, curr, prev, diff_sign, pct_sign))
+                sales_items.append((s_name, curr, prev, diff_sign))
 
         if sales_items:
             lines.append("\nRincian Performa Tiap SCO:")
-            for name, curr, prev, diff_sign, pct_sign in sales_items:
-                lines.append(f"- {name}: {curr:,.1f}/hari (Lalu: {prev:,.1f} | {diff_sign} / {pct_sign})")
+            for name, curr, prev, diff_sign in sales_items:
+                lines.append(f"- {name}: {curr:,.1f}/hari (Lalu: {prev:,.1f} | {diff_sign})")
 
         lines.append(f"\nCatatan: Seluruh data bersumber langsung dari snapshot cut-off {cutoff}.")
         send_telegram_message(chat_id, "\n".join(lines))
@@ -991,18 +1084,22 @@ def handle_command_cabang(chat_id: int):
         with open(data_json_path, "r", encoding="utf-8") as f:
             raw = json.load(f)
 
-        lines = ["<b>PERFORMA TRANSAKSI CABANG (MTD OKTOBER 2026):</b>\n"]
+        # Ambil periode dinamis terbaru
+            sample_key, _ = get_latest_brand_period(raw, "ASTAGA")
+            yr, mo = sample_key.split("-") if "-" in sample_key else ("2026", "11")
+            month_label = MONTH_NAMES_ID.get(mo, mo).upper()
+            lines = [f"<b>PERFORMA TRANSAKSI CABANG (MTD {month_label} {yr}):</b>\n"]
 
-        for brand in ["ASTAGA", "OKIPAY"]:
-            bdata = raw.get(brand, {}).get("2026-10", {})
-            branches = bdata.get("branches", {})
-            days = bdata.get("days_count", 20)
-            if branches:
-                lines.append(f"<b>[{brand}] (Cut-off {days} Hari):</b>")
-                for br, tot in sorted(branches.items(), key=lambda x: x[1], reverse=True):
-                    daily = round(tot / days) if days > 0 else 0
-                    lines.append(f"- {br}: {daily:,} trx/hari (Total: {tot:,} trx)")
-                lines.append("")
+            for brand in ["ASTAGA", "OKIPAY"]:
+                _, bdata = get_latest_brand_period(raw, brand)
+                branches = bdata.get("branches", {})
+                days = bdata.get("days_count", 6)
+                if branches:
+                    lines.append(f"<b>[{brand}] (Cut-off {days} Hari):</b>")
+                    for br, tot in sorted(branches.items(), key=lambda x: x[1], reverse=True):
+                        daily = round(tot / days) if days > 0 else 0
+                        lines.append(f"- {br}: {daily:,} trx/hari (Total: {tot:,} trx)")
+                    lines.append("")
 
         send_telegram_message(chat_id, "\n".join(lines).strip())
     except Exception as e:
@@ -1011,28 +1108,37 @@ def handle_command_cabang(chat_id: int):
 
 def handle_command_supplier(chat_id: int):
     send_chat_action(chat_id, "typing")
-    supp_path = os.path.join(BASE_DIR, "pages", "analisa", "supplier_modules.json")
-    if not os.path.exists(supp_path):
-        supp_path = os.path.join(BASE_DIR, "pages", "analisa", "top_bottom_agen.json")
-    if not os.path.exists(supp_path):
+    data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
+    if not os.path.exists(data_json_path):
         send_telegram_message(chat_id, "Mohon maaf Bossque, data modul supplier belum tersedia.")
         return
 
     try:
-        with open(supp_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        with open(data_json_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
 
-        lines = ["<b>AUDIT MODUL SUPPLIER PALING BANYAK GAGAL (MTD OKTOBER 2026):</b>\n"]
+        sample_key, _ = get_latest_brand_period(raw, "ASTAGA")
+        yr, mo = sample_key.split("-") if "-" in sample_key else ("2026", "11")
+        month_label = MONTH_NAMES_ID.get(mo, mo).upper()
+
+        lines = [f"<b>AUDIT MODUL SUPPLIER PALING BANYAK GAGAL (MTD {month_label} {yr}):</b>\n"]
         for brand in ["ASTAGA", "OKIPAY"]:
-            fails = data.get(brand, {}).get("top_failed_modules", [])
-            if fails:
-                lines.append(f"<b>Server {brand}:</b>")
-                for item in fails:
-                    lines.append(f"- {item['module']}: {item['failed']:,} transaksi gagal")
+            _, bdata = get_latest_brand_period(raw, brand)
+            modules = bdata.get("modules", [])
+            days = bdata.get("days_count", 6)
+            top_fails = sorted([m for m in modules if m.get("gagal", 0) > 0], key=lambda x: x.get("gagal", 0), reverse=True)[:5]
+            if top_fails:
+                lines.append(f"<b>Server {brand} (Cut-off {days} Hari):</b>")
+                for item in top_fails:
+                    m_name = item.get("nama_modul") or item.get("modul_id", "-")
+                    fg = item.get("gagal", 0)
+                    tx = item.get("trx", 0)
+                    pct = item.get("sukses_pct", 0)
+                    lines.append(f"- {m_name}: <b>{fg:,}</b> gagal (dari {tx:,} trx | sukses {pct}%)")
                 lines.append("")
 
         lines.append("<i>Catatan: Modul AMC menjadi sumber kegagalan transaksi nomor satu di kedua server.</i>")
-        send_telegram_message(chat_id, "\n".join(lines))
+        send_telegram_message(chat_id, "\n".join(lines).strip())
     except Exception as e:
         send_telegram_message(chat_id, f"Gagal membaca data supplier: {e}")
 
@@ -1056,7 +1162,7 @@ def handle_command_drop(chat_id: int):
             send_telegram_message(chat_id, "Data agen drop belum terdata.")
             return
 
-        lines = ["<b>10 AGEN DENGAN PENURUNAN HARIAN TERBESAR (OKTOBER 2026 VS SEPTEMBER):</b>\n"]
+        lines = [f"<b>10 AGEN DENGAN PENURUNAN HARIAN TERBESAR (NOVEMBER MTD s/d {sco_data.get('cutoff_date', '06-11-2026')} VS OKTOBER 2026):</b>\n"]
         for i, a in enumerate(top_drop, 1):
             name = a.get("name") or a.get("aid", "-")
             cb = a.get("cabang", "-")
@@ -1070,7 +1176,7 @@ def handle_command_drop(chat_id: int):
         send_telegram_message(chat_id, f"Gagal membaca data drop: {e}")
 
 
-def handle_user_chat(chat_id: int, user_text: str):
+def handle_user_chat(chat_id: int, user_text: str, user_info: dict = None):
     lower_text = user_text.lower()
     
     # Deteksi permintaan gambar / chart / foto
@@ -1088,7 +1194,7 @@ def handle_user_chat(chat_id: int, user_text: str):
             return
 
     send_chat_action(chat_id, "typing")
-    reply = ask_gemini(user_text, chat_id=chat_id)
+    reply = ask_gemini(user_text, chat_id=chat_id, user_info=user_info)
     send_telegram_message(chat_id, reply)
 
 
@@ -1113,7 +1219,11 @@ def handle_command_tiket(chat_id: int):
     for i, t in enumerate(tkts[:5], 1):
         st = t.get("status", "PENDING")
         st_icon = "[PENDING]" if st == "PENDING" else "[RESOLVED]"
+        u_name = t.get("user_name", "Bossque")
+        u_handle = t.get("username", "")
+        pemohon = f"{u_name} ({u_handle})" if u_handle else f"{u_name}"
         lines.append(f"{i}. <b>[{t.get('ticket_id')}]</b> {st_icon}")
+        lines.append(f"   - Pemohon: <b>{pemohon}</b>")
         lines.append(f"   - Waktu: <code>{t.get('created_at')}</code>")
         lines.append(f"   - Kebutuhan: <i>{t.get('requirement')}</i>")
         p_val = t.get("prompt", "")
@@ -1127,18 +1237,20 @@ def main():
     logger.info("Memulai DepAs AI Telegram Bot (@depas_ai_bot)...")
     offset = 0
 
-    # Pastikan koneksi ke Telegram API sukses
-    try:
-        r = requests.get(f"{TELEGRAM_API_URL}/getMe", timeout=10)
-        bot_info = r.json()
-        if not bot_info.get("ok"):
-            logger.error(f"Gagal login Telegram Bot: {bot_info}")
-            return
-        bot_name = bot_info["result"]["username"]
-        logger.info(f"Bot AKTIF & TERHUBUNG: @{bot_name}")
-    except Exception as e:
-        logger.error(f"Koneksi awal ke Telegram API gagal: {e}")
-        return
+    # Pastikan koneksi ke Telegram API sukses (otomatis retry jika jaringan terputus)
+    while True:
+        try:
+            r = requests.get(f"{TELEGRAM_API_URL}/getMe", timeout=15)
+            bot_info = r.json()
+            if bot_info.get("ok"):
+                bot_name = bot_info["result"]["username"]
+                logger.info(f"Bot AKTIF & TERHUBUNG: @{bot_name}")
+                break
+            logger.error(f"Gagal login Telegram Bot: {bot_info}. Coba lagi dalam 5 detik...")
+            time.sleep(5)
+        except Exception as e:
+            logger.warning(f"Koneksi ke Telegram API terganggu ({e}), mencoba lagi dalam 5 detik...")
+            time.sleep(5)
 
     logger.info("Mulai mendengarkan pesan masuk (Long Polling)...")
 
@@ -1166,13 +1278,28 @@ def main():
                 chat = msg.get("chat", {})
                 chat_id = chat.get("id")
                 from_user = msg.get("from", {})
-                first_name = from_user.get("first_name", "Bossque")
+                first_name = from_user.get("first_name", "")
+                last_name = from_user.get("last_name", "")
+                full_name = f"{first_name} {last_name}".strip() or "Bossque"
+                uname = from_user.get("username", "")
+                username_handle = f"@{uname}" if uname else ""
+                user_id = from_user.get("id", chat_id)
+
+                user_info = {
+                    "user_id": user_id,
+                    "chat_id": chat_id,
+                    "first_name": first_name or "Bossque",
+                    "last_name": last_name,
+                    "name": full_name,
+                    "username": username_handle
+                }
                 text = msg.get("text", "").strip()
 
                 if not text:
                     continue
 
-                logger.info(f"Pesan dari [{first_name} | {chat_id}]: {text}")
+                sender_tag = f"{full_name} ({username_handle})" if username_handle else f"{full_name} (ID: {chat_id})"
+                logger.info(f"Pesan dari [{sender_tag}]: {text}")
 
                 # Routing Command
                 cmd = text.split()[0].lower()
@@ -1181,7 +1308,7 @@ def main():
                     handle_command_start(chat_id, first_name)
                 elif cmd in ("/overview", "/matrix"):
                     handle_command_overview(chat_id)
-                elif cmd in ("/summary", "/astaga", "/laporan"):
+                elif cmd in ("/astaga", "/astaga_reload", "/summary", "/laporan") or clean_full.startswith("/astaga reload") or clean_full in ("astaga reload", "astaga"):
                     handle_command_summary(chat_id, text)
                 elif cmd in ("/okipay", "/oki"):
                     handle_command_okipay(chat_id)
@@ -1198,17 +1325,28 @@ def main():
                 elif cmd in ("/tiket", "/ticket", "/helpme"):
                     handle_command_tiket(chat_id)
                 else:
-                    handle_user_chat(chat_id, text)
+                    handle_user_chat(chat_id, text, user_info=user_info)
 
         except requests.exceptions.Timeout:
             continue
-        except requests.exceptions.ConnectionError:
-            logger.warning("Koneksi Telegram terputus sementara, mencoba kembali...")
+        except (requests.exceptions.RequestException, ConnectionResetError) as e:
+            logger.warning(f"Koneksi Telegram terputus sementara ({e}), mencoba kembali...")
             time.sleep(5)
         except Exception as e:
-            logger.error(f"Error di loop polling: {e}")
+            logger.error(f"Error di loop polling: {e}", exc_info=True)
             time.sleep(3)
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            logger.warning("KeyboardInterrupt terdeteksi. Mencoba me-restart bot dalam 3 detik...")
+            time.sleep(3)
+        except Exception as e:
+            logger.error(f"Fatal error pada loop utama: {e}. Merestart otomatis dalam 5 detik...", exc_info=True)
+            time.sleep(5)
+        except BaseException as be:
+            logger.error(f"BaseException pada loop utama: {be}. Merestart otomatis dalam 5 detik...", exc_info=True)
+            time.sleep(5)

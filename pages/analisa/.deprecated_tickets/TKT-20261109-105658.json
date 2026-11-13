@@ -1,0 +1,31 @@
+{
+  "ticket_id": "TKT-20261109-105658",
+  "created_at": "2026-11-09 10:56:58",
+  "chat_id": 6166710846,
+  "user_id": 6166710846,
+  "user_name": "OmPas",
+  "username": "@Pasha_Pamungkas",
+  "prompt": "pertanyaan ulang : tolong sajikan, data transaksi harian, cabang h2h okipay, dalam bentuk (metrik) total trx sukses dan harga beli",
+  "requirement": "Tarik data rincian transaksi harian, cabang H2H OKIPAY, dan harga beli periode November 2026 MTD (1-8 November 2026)",
+  "status": "RESOLVED",
+  "resolution_note": "Data transaksi harian OKIPAY cabang H2H (1-8 November 2026 MTD) telah selesai dieksekusi Data Center. Total 125.363 transaksi sukses dengan total harga beli Rp 2.864.681.316. Rincian per hari: 01/11: 7.763 trx (Rp 209.108.777), 02/11: 7.142 trx (Rp 204.184.199), 03/11: 12.146 trx (Rp 271.975.834), 04/11: 16.992 trx (Rp 359.245.995), 05/11: 18.122 trx (Rp 401.411.624), 06/11: 21.669 trx (Rp 475.825.757), 07/11: 21.020 trx (Rp 471.487.527), 08/11: 20.509 trx (Rp 471.441.603).",
+  "resolution_data": {
+    "brand": "OKIPAY",
+    "channel": "H2H & ONLINE",
+    "period": "2026-11 MTD",
+    "total_sukses": 125363,
+    "total_harga_beli": 2864681316,
+    "daily_breakdown": [
+      {"date": "2026-11-01", "label": "01/11/2026", "trx_sukses": 7763, "harga_beli": 209108777},
+      {"date": "2026-11-02", "label": "02/11/2026", "trx_sukses": 7142, "harga_beli": 204184199},
+      {"date": "2026-11-03", "label": "03/11/2026", "trx_sukses": 12146, "harga_beli": 271975834},
+      {"date": "2026-11-04", "label": "04/11/2026", "trx_sukses": 16992, "harga_beli": 359245995},
+      {"date": "2026-11-05", "label": "05/11/2026", "trx_sukses": 18122, "harga_beli": 401411624},
+      {"date": "2026-11-06", "label": "06/11/2026", "trx_sukses": 21669, "harga_beli": 475825757},
+      {"date": "2026-11-07", "label": "07/11/2026", "trx_sukses": 21020, "harga_beli": 471487527},
+      {"date": "2026-11-08", "label": "08/11/2026", "trx_sukses": 20509, "harga_beli": 471441603}
+    ]
+  },
+  "resolved_at": "2026-11-09 10:59:09",
+  "resolved_by": "Ompasha Agent (Local Data Center)"
+}

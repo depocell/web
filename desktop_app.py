@@ -52,19 +52,19 @@ def wait_for_server(host: str, port: int, timeout: float = 10.0) -> bool:
         time.sleep(0.15)
     return False
 
-def run_server(host: str, port: int):
+import subprocess
+
+def start_background_server():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    server_script = os.path.join(base_dir, "server.py")
+    creationflags = (0x00000008 | 0x00000200 | 0x08000000) if sys.platform == "win32" else 0
     try:
-        # Import FastAPI app dari server.py
-        from server import app
-        config = uvicorn.Config(
-            app=app,
-            host=host,
-            port=port,
-            log_level="warning",
-            access_log=False
+        subprocess.Popen(
+            [sys.executable, server_script],
+            cwd=base_dir,
+            creationflags=creationflags,
+            close_fds=True
         )
-        server = uvicorn.Server(config)
-        server.run()
     except Exception as e:
         print(f"[Desktop App] Gagal menjalankan server backend: {e}")
 
@@ -74,14 +74,20 @@ def main():
 
     if not server_already_running:
         print(f"[Desktop App] Memulai background server di http://{HOST}:{target_port} ...")
-        t = threading.Thread(target=run_server, args=(HOST, target_port), daemon=True)
-        t.start()
+        start_background_server()
         if not wait_for_server(HOST, target_port):
             print("[Desktop App] Timeout menunggu server siap!")
     else:
         print(f"[Desktop App] Server backend sudah aktif di http://{HOST}:{target_port}.")
 
-    url = f"http://{HOST}:{target_port}"
+    admin_mode = "--admin" in sys.argv
+    if admin_mode:
+        url = f"http://{HOST}:{target_port}/?mode=admin#admin"
+        app_title = "Depo Cell — Admin Station & Data Ingestion"
+    else:
+        url = f"http://{HOST}:{target_port}"
+        app_title = "Web Report - Depo Cell"
+
     print(f"[Desktop App] Membuka jendela aplikasi desktop ({url}) ...")
 
     # Icon path: Windows pywebview (.NET) WAJIB file .ico valid
@@ -92,7 +98,7 @@ def main():
 
     # Buat jendela pywebview
     window = webview.create_window(
-        title="Web Report - Depo Cell",
+        title=app_title,
         url=url,
         width=1400,
         height=850,

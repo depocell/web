@@ -24,6 +24,115 @@ CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 RAW_DATA_ROOT = r"C:\DMS RAW DATA"
 DB_PATH = os.path.join(MASTER_DIR, "master_data.db")
 
+_PRICE_STATS_CACHE = {}  # {brand: {"timestamp": float, "stats": dict, "start_date": str, "end_date": str, "total_tx": int}}
+_PRICE_CACHE_TTL = 600   # 10 menit TTL
+
+
+def clear_price_cache(brand: str = None):
+    """Membersihkan cache harga 15 hari terakhir."""
+    global _PRICE_STATS_CACHE
+    if brand:
+        _PRICE_STATS_CACHE.pop(brand.upper(), None)
+    else:
+        _PRICE_STATS_CACHE.clear()
+
+
+def get_product_price_stats(brand: str = "ASTAGA", days: int = 15) -> dict:
+    """
+    Menghitung statistik harga modal (beli) & harga jual (jual): min, max, avg, dan total transaksi
+    untuk seluruh produk pada 'days' hari terakhir (berdasarkan tgl_entry transaksi sukses).
+    Hasil di-cache dalam memori selama TTL agar pencarian dan pagination produk tetap instan (<0.01 detik).
+    """
+    brand = brand.upper()
+    now_ts = time.time()
+
+    cached = _PRICE_STATS_CACHE.get(brand)
+    if cached and (now_ts - cached.get("timestamp", 0) < _PRICE_CACHE_TTL):
+        return cached
+
+    # Cari file parquet tahun berjalan (2026)
+    parquet_path = os.path.join(CACHE_DIR, f"trx_{brand.lower()}_2026.parquet")
+    if not os.path.exists(parquet_path):
+        empty_res = {"timestamp": now_ts, "stats": {}, "start_date": None, "end_date": None, "total_tx": 0, "days": days}
+        _PRICE_STATS_CACHE[brand] = empty_res
+        return empty_res
+
+    try:
+        # Baca kolom yang dibutuhkan saja untuk efisiensi memori & kecepatan tinggi
+        cols = ["tgl_entry", "product_id", "status", "beli", "jual"]
+        if brand == "ASTAGA":
+            cols.append("ar_id")
+
+        df = pd.read_parquet(parquet_path, columns=cols)
+        if df.empty:
+            empty_res = {"timestamp": now_ts, "stats": {}, "start_date": None, "end_date": None, "total_tx": 0, "days": days}
+            _PRICE_STATS_CACHE[brand] = empty_res
+            return empty_res
+
+        # Filter transaksi sukses
+        df = df[df["status"].astype(str).str.lower() == "sukses"]
+
+        # Exclude akun internal operasional ASTAGA sesuai hukum GEMINI.md
+        if brand == "ASTAGA" and "ar_id" in df.columns:
+            df = df[~df["ar_id"].astype(str).str.strip().str.upper().isin(["AR00037", "AR00009", "AR20408"])]
+
+        # Filter harga tidak valid (zero/negative jual)
+        df = df[(df["jual"] > 0) & (df["beli"] >= 0)]
+
+        if df.empty:
+            empty_res = {"timestamp": now_ts, "stats": {}, "start_date": None, "end_date": None, "total_tx": 0, "days": days}
+            _PRICE_STATS_CACHE[brand] = empty_res
+            return empty_res
+
+        max_dt = df["tgl_entry"].max()
+        # Hitung cut-off days hari kalender penuh
+        start_dt = pd.Timestamp(max_dt.date()) - pd.Timedelta(days=days - 1)
+
+        df_15 = df[df["tgl_entry"] >= start_dt]
+        total_tx = len(df_15)
+
+        start_date_str = start_dt.strftime("%Y-%m-%d")
+        end_date_str = max_dt.strftime("%Y-%m-%d")
+
+        stats_map = {}
+        if not df_15.empty:
+            agg = df_15.groupby("product_id").agg(
+                modal_min=("beli", "min"),
+                modal_max=("beli", "max"),
+                modal_avg=("beli", "mean"),
+                jual_min=("jual", "min"),
+                jual_max=("jual", "max"),
+                jual_avg=("jual", "mean"),
+                trx_count=("jual", "count")
+            )
+            for pid, r in agg.iterrows():
+                p_code = str(pid).strip().upper()
+                stats_map[p_code] = {
+                    "modal_min": int(r["modal_min"]),
+                    "modal_max": int(r["modal_max"]),
+                    "modal_avg": int(round(r["modal_avg"])),
+                    "jual_min": int(r["jual_min"]),
+                    "jual_max": int(r["jual_max"]),
+                    "jual_avg": int(round(r["jual_avg"])),
+                    "trx_count": int(r["trx_count"])
+                }
+
+        res = {
+            "timestamp": now_ts,
+            "stats": stats_map,
+            "start_date": start_date_str,
+            "end_date": end_date_str,
+            "total_tx": total_tx,
+            "days": days
+        }
+        _PRICE_STATS_CACHE[brand] = res
+        return res
+
+    except Exception as e:
+        print(f"[WARN] Gagal menghitung harga 15 hari terakhir {brand}: {e}")
+        return {"timestamp": now_ts, "stats": {}, "start_date": None, "end_date": None, "total_tx": 0, "days": days}
+
+
 
 def get_connection():
     """Membuka koneksi ke SQLite database master."""
@@ -224,6 +333,14 @@ def get_filter_options(brand: str = "ASTAGA") -> dict:
         """, (brand,))
         pakets = [r[0] for r in cursor.fetchall()]
 
+        cursor.execute("""
+            SELECT DISTINCT nama_produk, operator, kategori 
+            FROM products 
+            WHERE brand = ? AND nama_produk IS NOT NULL AND nama_produk != ''
+            ORDER BY nama_produk
+        """, (brand,))
+        nama_providers = [{"nama": r[0], "operator": r[1], "kategori": r[2]} for r in cursor.fetchall()]
+
         cursor.execute("SELECT COUNT(*) FROM products WHERE brand = ?", (brand,))
         total_products = cursor.fetchone()[0]
 
@@ -237,21 +354,38 @@ def get_filter_options(brand: str = "ASTAGA") -> dict:
             "categories": categories,
             "operators": operators,
             "pakets": pakets,
+            "nama_providers": nama_providers,
             "stats": {
                 "total_products": total_products,
                 "total_categories": len(categories),
                 "total_operators": len(operators),
+                "total_nama_providers": len(nama_providers),
                 "unmapped_categories": unmapped_kat
             }
         }
 
 
-def query_products(brand: str = "ASTAGA", kategori: str = None, operator: str = None, paket: str = None, search: str = None, page: int = 1, page_size: int = 25) -> dict:
-    """Query daftar produk dengan filter, pencarian, dan pagination."""
+def query_products(
+    brand: str = "ASTAGA",
+    kategori: str = None,
+    operator: str = None,
+    nama_provider: str = None,
+    paket: str = None,
+    search: str = None,
+    sort_by: str = "kode_produk",
+    sort_dir: str = "ASC",
+    page: int = 1,
+    page_size: int = 25
+) -> dict:
+    """Query daftar produk dengan filter, pencarian, statistik harga 15 hari terakhir, dan pagination."""
     brand = brand.upper()
     page = max(1, page)
     page_size = max(1, min(100, page_size))
     offset = (page - 1) * page_size
+
+    # Ambil statistik harga 15 hari terakhir (dari cache RAM instan)
+    price_info = get_product_price_stats(brand=brand, days=15)
+    price_map = price_info.get("stats", {})
 
     where_clauses = ["brand = ?"]
     params = [brand]
@@ -264,6 +398,11 @@ def query_products(brand: str = "ASTAGA", kategori: str = None, operator: str = 
         where_clauses.append("operator = ?")
         params.append(operator)
 
+    if nama_provider and nama_provider != "ALL":
+        np = nama_provider.strip()
+        where_clauses.append("nama_produk = ?")
+        params.append(np)
+
     if paket and paket != "ALL":
         where_clauses.append("paket = ?")
         params.append(paket)
@@ -275,32 +414,99 @@ def query_products(brand: str = "ASTAGA", kategori: str = None, operator: str = 
 
     where_sql = " AND ".join(where_clauses)
 
+    sort_by_clean = (sort_by or "kode_produk").strip().lower()
+    sort_dir_clean = "DESC" if (sort_dir or "ASC").strip().upper() == "DESC" else "ASC"
+
+    # Kolom database yang bisa di-sort langsung di SQL
+    db_sortable = {
+        "kode_produk": "kode_produk",
+        "nama_produk": "nama_produk",
+        "kategori": "kategori",
+        "operator": "operator",
+        "paket": "paket"
+    }
+
     with get_connection() as conn:
         cursor = conn.cursor()
-        
+
         # Total matching
         cursor.execute(f"SELECT COUNT(*) FROM products WHERE {where_sql}", tuple(params))
         total_count = cursor.fetchone()[0]
 
-        # Query data rows
-        sql = f"""
-            SELECT kode_produk, nama_produk, kategori, operator, paket, is_active, updated_at
-            FROM products
-            WHERE {where_sql}
-            ORDER BY kode_produk ASC
-            LIMIT ? OFFSET ?
-        """
-        cursor.execute(sql, tuple(params + [page_size, offset]))
-        rows = []
-        for r in cursor.fetchall():
-            rows.append({
-                "kode_produk": r["kode_produk"],
-                "nama_produk": r["nama_produk"] or r["kode_produk"],
-                "kategori": r["kategori"] or "LAINNYA",
-                "operator": r["operator"] or "LAINNYA",
-                "paket": r["paket"] or "-",
-                "is_active": r["is_active"]
-            })
+        if sort_by_clean in db_sortable:
+            # Sort langsung di SQLite
+            sql_col = db_sortable[sort_by_clean]
+            sql = f"""
+                SELECT kode_produk, nama_produk, kategori, operator, paket, is_active, updated_at
+                FROM products
+                WHERE {where_sql}
+                ORDER BY {sql_col} {sort_dir_clean}, kode_produk ASC
+                LIMIT ? OFFSET ?
+            """
+            cursor.execute(sql, tuple(params + [page_size, offset]))
+            fetched_rows = cursor.fetchall()
+
+            rows = []
+            for r in fetched_rows:
+                k_code = str(r["kode_produk"]).strip().upper()
+                p_stat = price_map.get(k_code, {})
+                rows.append({
+                    "kode_produk": r["kode_produk"],
+                    "nama_produk": r["nama_produk"] or r["kode_produk"],
+                    "kategori": r["kategori"] or "LAINNYA",
+                    "operator": r["operator"] or "LAINNYA",
+                    "paket": r["paket"] or "-",
+                    "is_active": r["is_active"],
+                    "modal_min": p_stat.get("modal_min"),
+                    "modal_max": p_stat.get("modal_max"),
+                    "modal_avg": p_stat.get("modal_avg"),
+                    "jual_min": p_stat.get("jual_min"),
+                    "jual_max": p_stat.get("jual_max"),
+                    "jual_avg": p_stat.get("jual_avg"),
+                    "trx_count_15d": p_stat.get("trx_count", 0)
+                })
+        else:
+            # Sort berdasarkan metrik harga di Python
+            sql = f"""
+                SELECT kode_produk, nama_produk, kategori, operator, paket, is_active, updated_at
+                FROM products
+                WHERE {where_sql}
+            """
+            cursor.execute(sql, tuple(params))
+            all_rows = []
+            for r in cursor.fetchall():
+                k_code = str(r["kode_produk"]).strip().upper()
+                p_stat = price_map.get(k_code, {})
+                m_avg = p_stat.get("modal_avg")
+                j_avg = p_stat.get("jual_avg")
+                margin = (j_avg - m_avg) if (j_avg is not None and m_avg is not None) else None
+                all_rows.append({
+                    "kode_produk": r["kode_produk"],
+                    "nama_produk": r["nama_produk"] or r["kode_produk"],
+                    "kategori": r["kategori"] or "LAINNYA",
+                    "operator": r["operator"] or "LAINNYA",
+                    "paket": r["paket"] or "-",
+                    "is_active": r["is_active"],
+                    "modal_min": p_stat.get("modal_min"),
+                    "modal_max": p_stat.get("modal_max"),
+                    "modal_avg": m_avg,
+                    "jual_min": p_stat.get("jual_min"),
+                    "jual_max": p_stat.get("jual_max"),
+                    "jual_avg": j_avg,
+                    "margin": margin,
+                    "trx_count_15d": p_stat.get("trx_count", 0)
+                })
+
+            is_desc = (sort_dir_clean == "DESC")
+            # Sort key helper: None ditaruh di paling belakang
+            def sort_key(item):
+                val = item.get(sort_by_clean)
+                if val is None:
+                    return (1, 0)
+                return (0, -val if is_desc else val)
+
+            all_rows.sort(key=sort_key)
+            rows = all_rows[offset : offset + page_size]
 
         total_pages = (total_count + page_size - 1) // page_size
 
@@ -310,25 +516,72 @@ def query_products(brand: str = "ASTAGA", kategori: str = None, operator: str = 
             "page": page,
             "page_size": page_size,
             "total_pages": total_pages,
+            "sort_by": sort_by_clean,
+            "sort_dir": sort_dir_clean,
+            "date_range_15d": {
+                "start": price_info.get("start_date"),
+                "end": price_info.get("end_date"),
+                "days": price_info.get("days", 15),
+                "total_tx": price_info.get("total_tx", 0)
+            },
             "rows": rows
         }
 
 
+def suggest_product_meta(brand: str, kode_produk: str) -> dict:
+    """Mencari rekomendasi nama, kategori, operator, dan paket berdasarkan kemiripan prefix kode."""
+    brand = brand.upper()
+    code = (kode_produk or "").strip().upper()
+    if not code:
+        return None
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        for length in range(len(code), 1, -1):
+            prefix = code[:length]
+            cursor.execute("""
+                SELECT nama_produk, kategori, operator, paket 
+                FROM products 
+                WHERE brand = ? AND kode_produk LIKE ? 
+                ORDER BY LENGTH(kode_produk) ASC, kode_produk ASC LIMIT 1
+            """, (brand, f"{prefix}%"))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "nama_produk": row[0],
+                    "kategori": row[1],
+                    "operator": row[2],
+                    "paket": row[3],
+                    "matched_prefix": prefix
+                }
+    return None
+
+
 def get_product_detail(brand: str, kode_produk: str) -> dict:
-    """Mengambil profil lengkap produk berdasarkan kode."""
+    """Mengambil profil lengkap produk berdasarkan kode beserta harga 15 hari terakhir."""
     brand = brand.upper()
     kode_produk = kode_produk.strip().upper()
+
+    price_info = get_product_price_stats(brand=brand, days=15)
+    price_map = price_info.get("stats", {})
+    prod_price = price_map.get(kode_produk)
 
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM products WHERE brand = ? AND kode_produk = ?", (brand, kode_produk))
         prod = cursor.fetchone()
         if not prod:
-            return {"found": False}
+            suggestion = suggest_product_meta(brand, kode_produk)
+            return {"found": False, "suggestion": suggestion, "price_stats_15d": prod_price}
 
         return {
             "found": True,
-            "product": dict(prod)
+            "product": dict(prod),
+            "price_stats_15d": prod_price,
+            "date_range_15d": {
+                "start": price_info.get("start_date"),
+                "end": price_info.get("end_date"),
+                "days": 15
+            }
         }
 
 
@@ -371,10 +624,13 @@ def save_product(brand: str, kode_produk: str, data: dict) -> dict:
 
 
 def export_product_excel(brand: str) -> str:
-    """Meng-generate file Excel master produk dari database SQLite."""
+    """Meng-generate file Excel master produk dari database SQLite lengkap dengan statistik harga 15 hari terakhir."""
     brand = brand.upper()
     export_filename = f"MASTER_PRODUCT_{brand}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     export_path = os.path.join(MASTER_DIR, export_filename)
+
+    price_info = get_product_price_stats(brand=brand, days=15)
+    price_map = price_info.get("stats", {})
 
     with get_connection() as conn:
         df_prod = pd.read_sql_query("""
@@ -383,10 +639,19 @@ def export_product_excel(brand: str) -> str:
             FROM products WHERE brand = ? ORDER BY kode_produk
         """, conn, params=(brand,))
 
+    df_prod["Modal Min (15H)"] = df_prod["Kode Produk"].apply(lambda c: price_map.get(str(c).upper(), {}).get("modal_min"))
+    df_prod["Modal Max (15H)"] = df_prod["Kode Produk"].apply(lambda c: price_map.get(str(c).upper(), {}).get("modal_max"))
+    df_prod["Modal Avg (15H)"] = df_prod["Kode Produk"].apply(lambda c: price_map.get(str(c).upper(), {}).get("modal_avg"))
+    df_prod["Jual Min (15H)"] = df_prod["Kode Produk"].apply(lambda c: price_map.get(str(c).upper(), {}).get("jual_min"))
+    df_prod["Jual Max (15H)"] = df_prod["Kode Produk"].apply(lambda c: price_map.get(str(c).upper(), {}).get("jual_max"))
+    df_prod["Jual Avg (15H)"] = df_prod["Kode Produk"].apply(lambda c: price_map.get(str(c).upper(), {}).get("jual_avg"))
+    df_prod["Trx Sukses (15H)"] = df_prod["Kode Produk"].apply(lambda c: price_map.get(str(c).upper(), {}).get("trx_count", 0))
+
     with pd.ExcelWriter(export_path, engine="openpyxl") as writer:
         df_prod.to_excel(writer, sheet_name="Product", index=False)
 
     return export_path
+
 
 
 def get_module_type_map(brand: str = None) -> dict:

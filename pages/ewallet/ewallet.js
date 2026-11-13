@@ -10,7 +10,7 @@
 
   const state = {
     currentBrand: 'ASTAGA',
-    selectedMonth: '2026-10',
+    selectedMonth: null,
     currentTab: 'fraud',
     fraudRaw: null,
     filters: {
@@ -69,6 +69,35 @@
   }
   window.loadEwallet = loadEwallet;
 
+  // ── HELPER FORMAT PERIODE & SUBTITLE ──
+  function formatMonthName(ym) {
+    if (!ym) return '';
+    const parts = ym.split('-');
+    if (parts.length !== 2) return ym;
+    const year = parts[0];
+    const monthNum = parseInt(parts[1], 10);
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const name = months[monthNum - 1] || ym;
+    const now = new Date();
+    const curYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const suffix = (ym === curYM || ym === '2026-11') ? ' MTD' : '';
+    return `${name} ${year}${suffix}`;
+  }
+
+  function updateSubtitle() {
+    const subtitleEl = document.getElementById('ewallet-subtitle-desc');
+    if (!subtitleEl) return;
+    if (state.currentTab === 'fraud') {
+      const m = state.selectedMonth || (state.fraudRaw && state.fraudRaw.month) || '2026-11';
+      subtitleEl.textContent = `Monitoring Transaksi & Deteksi Fraud E-Wallet (Gestun) - ${formatMonthName(m)}`;
+    } else {
+      subtitleEl.textContent = 'Tren Porsi % EWALLET Toko Induk Agen (Limit & Non-Limit) Binaan SCO Tiap Bulan Selama 2026';
+    }
+  }
+
   // ── 2. BRAND & MONTH CONTROLLERS ──
   function updateBrandButtons() {
     const btnAstaga = document.getElementById('btn-brand-astaga');
@@ -90,16 +119,24 @@
   }
   window.setEwalletBrand = setEwalletBrand;
 
-  function updateMonthDropdown() {
+  function updateMonthDropdown(availableMonths) {
     const select = document.getElementById('ewallet-month-select');
-    if (select && state.selectedMonth) {
-      select.value = state.selectedMonth;
-    }
+    if (!select) return;
+    const months = Array.isArray(availableMonths) && availableMonths.length > 0
+      ? availableMonths
+      : (state.fraudRaw && state.fraudRaw.available_months ? state.fraudRaw.available_months : ['2026-11', '2026-10']);
+    const sorted = [...new Set(months)].sort().reverse();
+    const cur = state.selectedMonth || sorted[0];
+    select.innerHTML = sorted.map(m => {
+      const lbl = formatMonthName(m);
+      return `<option value="${m}" ${m === cur ? 'selected' : ''}>${lbl}</option>`;
+    }).join('');
   }
 
   function onEwalletMonthChange(val) {
     state.selectedMonth = val;
     state.filters.page = 1;
+    updateSubtitle();
     fetchFraudData();
   }
   window.onEwalletMonthChange = onEwalletMonthChange;
@@ -115,8 +152,8 @@
     }
 
     const brand = state.currentBrand;
-    const month = state.selectedMonth || '2026-10';
-    const url = `/api/reseller/fraud?brand=${encodeURIComponent(brand)}&month=${encodeURIComponent(month)}&t=${Date.now()}`;
+    const monthParam = state.selectedMonth ? `&month=${encodeURIComponent(state.selectedMonth)}` : '';
+    const url = `/api/reseller/fraud?brand=${encodeURIComponent(brand)}${monthParam}&t=${Date.now()}`;
 
     try {
       const res = await fetch(url);
@@ -126,6 +163,12 @@
       }
 
       state.fraudRaw = json;
+      if (json.month) {
+        state.selectedMonth = json.month;
+      }
+
+      updateSubtitle();
+      updateMonthDropdown(json.available_months);
       renderKPI();
       renderControls();
       applyFilters();
@@ -172,7 +215,7 @@
     const data = state.fraudRaw;
     if (!data || !data.rows) return;
 
-    // Month fixed to 2026-10 (MTD)
+    // Filter controls sync
 
     // Cabang dropdown
     const cabangSel = document.getElementById('ewallet-cabang-select');
@@ -411,7 +454,7 @@
     if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--text-muted);"><div class="loader">Mengambil rincian transaksi...</div></td></tr>`;
 
     const brand = state.currentBrand;
-    const month = state.selectedMonth || '2026-10';
+    const month = state.selectedMonth || '2026-11';
     const url = `/api/reseller/fraud/detail?brand=${encodeURIComponent(brand)}&kode_reseller=${encodeURIComponent(kodeReseller)}&month=${encodeURIComponent(month)}&t=${Date.now()}`;
 
     try {
@@ -530,6 +573,12 @@
 
     const latestEl = document.getElementById('tren-kpi-latest-pct');
     if (latestEl) latestEl.textContent = (s.latest_month_pct || 0).toFixed(1) + '%';
+
+    const latestLbl = document.getElementById('tren-kpi-latest-lbl');
+    if (latestLbl && Array.isArray(data.months) && data.months.length > 0) {
+      const lastM = data.months[data.months.length - 1];
+      latestLbl.textContent = `Porsi EWALLET ${lastM.label || 'Terbaru'}`;
+    }
 
     const totalEl = document.getElementById('tren-kpi-total-agen');
     if (totalEl) totalEl.textContent = Number(s.total_agen || 0).toLocaleString('id-ID');
@@ -785,13 +834,7 @@
       monthGroup.style.display = (tabName === 'fraud') ? 'inline-flex' : 'none';
     }
 
-    if (subtitleEl) {
-      if (tabName === 'fraud') {
-        subtitleEl.textContent = 'Monitoring Transaksi & Deteksi Fraud E-Wallet (Gestun) - Oktober 2026 MTD';
-      } else {
-        subtitleEl.textContent = 'Tren Porsi % EWALLET Toko Induk Agen (Limit & Non-Limit) Binaan SCO Tiap Bulan Selama 2026';
-      }
-    }
+    updateSubtitle();
 
     if (tabName === 'tren') {
       if (!state.trenRaw) {
@@ -821,7 +864,7 @@
         alert('Tidak ada data Analisa Fraud E-Wallet untuk diekspor.');
         return;
       }
-      const period = state.selectedMonth || '2026-10';
+      const period = state.selectedMonth || '2026-11';
       const cabang = state.filters.cabang === 'ALL' ? 'Semua_Cabang' : state.filters.cabang;
       const headers = [
         'No', 'Kode Reseller', 'Nama Reseller', 'Cabang', 'Tim SCO', 'Toko Induk',

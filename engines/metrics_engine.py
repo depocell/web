@@ -278,19 +278,21 @@ def classify_sla_status(
 
 
 def classify_astaga_agent_type(
-    limit_saldo: Union[float, int],
+    limit: Union[float, int] = None,
+    limit_saldo: Union[float, int] = None,
     cabang: str = "",
     grup: str = "",
     existing_type: str = ""
 ) -> str:
     """
-    Klasifikasi tipe agen resmi brand ASTAGA sesuai Hukum 8 GEMINI.md:
+    Klasifikasi tipe agen resmi brand ASTAGA sesuai Hukum 8 GEMINI.md (LIMIT != SALDO):
     Hanya ada 3 tipe resmi (DILARANG menggunakan 'Standard' atau nama lain):
-    1. 'Limit': limit_saldo != 0 (memiliki plafon kredit aktif)
-    2. 'Non Limit': limit_saldo == 0 pada cabang/toko fisik non-prima (ex-limit)
-    3. 'Prima': limit_saldo == 0 pada reseller grup 'P' (Prima reguler) atau cabang 'ONLINE'
+    1. 'Limit': limit != 0 (memiliki plafon kredit aktif)
+    2. 'Non Limit': limit == 0 pada cabang/toko fisik non-prima (ex-limit)
+    3. 'Prima': limit == 0 pada reseller grup 'P' (Prima reguler) atau cabang 'ONLINE'
     """
-    lim = float(limit_saldo or 0.0)
+    effective_limit = limit if limit is not None else limit_saldo
+    lim = float(effective_limit or 0.0)
     cab = str(cabang or "").strip().upper()
     grp = str(grup or "").strip().upper()
     ex_type = str(existing_type or "").strip()
@@ -325,14 +327,19 @@ def normalize_astaga_sco(cabang: str, current_sco: str = "") -> str:
     return sco
 
 
-def format_limit_saldo(limit_saldo: Union[float, int]) -> str:
+def format_limit(limit_val: Union[float, int]) -> str:
     """
-    Format limit saldo sesuai Hukum 8 GEMINI.md:
-    Di server OtomaX tersimpan negatif (misal -1.000.000), pada UI ditampilkan
-    sebagai nilai rupiah positif (misal 'Rp 1.000.000').
+    Format plafon limit kredit sesuai Hukum 8 GEMINI.md:
+    Di server OtomaX tersimpan negatif (misal -1.800.000), pada UI ditampilkan
+    sebagai nilai rupiah positif (misal 'Rp 1.800.000').
     """
-    val = abs(float(limit_saldo or 0.0))
+    val = abs(float(limit_val or 0.0))
     if val == 0:
         return "Rp 0"
     return f"Rp {int(round(val)):,}".replace(",", ".")
+
+
+def format_limit_saldo(limit_saldo: Union[float, int]) -> str:
+    """Alias backwards compatibility untuk format_limit."""
+    return format_limit(limit_saldo)
 

@@ -90,24 +90,32 @@ def get_survey_candidates(
         month_code = available_months[-1]
 
     idx = available_months.index(month_code)
+    prev_month = available_months[idx - 1] if idx > 0 else None
+    # Jendela 3 bulan historis (2 bulan sebelumnya + bulan lalu): misal [Ags, Sep, Okt] jika month_code=Nov
     prev_window_months = available_months[max(0, idx - window_months):idx]
 
-    # Reseller aktif di bulan berjalan
+    # Reseller aktif di bulan berjalan (November)
     df_curr = df_sukses[df_sukses["ym"] == month_code]
     curr_resellers = set(df_curr["ar_id"].dropna().unique())
 
-    # Reseller aktif di jendela 3 bulan sebelumnya
+    # Reseller aktif di bulan lalu (Oktober: M-1) - SAMA PERSIS dengan tab reseller (#agen?tab=reseller)
+    df_prev_m1 = df_sukses[df_sukses["ym"] == prev_month] if prev_month else pd.DataFrame()
+    prev_resellers = set(df_prev_m1["ar_id"].dropna().unique()) if not df_prev_m1.empty else set()
+
+    # Churn: Reseller yang di bulan lalu (Oktober) transaksi, tapi di bulan berjalan (November) = 0!
+    churn_ids = prev_resellers - curr_resellers
+
+    # Reseller data di jendela 3 bulan sebelumnya untuk menyajikan tren (2 bulan sebelumnya + bulan lalu)
     df_prev = df_sukses[df_sukses["ym"].isin(prev_window_months)]
     days_map = {m: me.get_active_days(df_sukses[df_sukses["ym"] == m]) for m in prev_window_months}
     if not df_prev.empty:
         agg_prev = df_prev.groupby(["ar_id", "ym"]).size().unstack(fill_value=0)
-        agg_prev["total_trx"] = agg_prev.sum(axis=1)
-        prev_resellers = set(agg_prev.index)
+        for m in prev_window_months:
+            if m not in agg_prev.columns:
+                agg_prev[m] = 0
+        agg_prev["total_trx"] = agg_prev[prev_window_months].sum(axis=1)
     else:
         agg_prev = pd.DataFrame()
-        prev_resellers = set()
-
-    churn_ids = prev_resellers - curr_resellers
 
     # Master meta reseller
     meta = reseller_engine.load_master_meta(brand)
@@ -120,7 +128,7 @@ def get_survey_candidates(
     cur.execute(
         """
         SELECT agen_id AS reseller_id, id AS log_id, status, no_wa, sent_at, reply_received, 
-               ai_category, ai_sentiment, ai_summary, need_sco_visit
+               ai_category, ai_sentiment, ai_summary, need_sco_visit, surveyor_username AS surveyor
         FROM survey_churn_logs
         WHERE brand = ? AND periode = ?
         ORDER BY id DESC
@@ -221,6 +229,7 @@ def get_survey_candidates(
             "ai_sentiment": log_info.get("ai_sentiment"),
             "ai_summary": log_info.get("ai_summary"),
             "need_sco_visit": log_info.get("need_sco_visit", 0),
+            "surveyor": log_info.get("surveyor"),
         }
         candidates.append(candidate_item)
 
@@ -282,14 +291,12 @@ def generate_survey_message(candidate: Dict[str, Any], brand: str = "ASTAGA") ->
         m_num = last_active[-2:]
         last_m_name = MONTH_NAMES.get(m_num, "")
 
-    if last_active.endswith("-09"):  # Bulan lalu persis (September)
-        if prev_trx > 50:
-            trx_phrase = f"bulan lalu (September) akun Kakak sangat aktif bertransaksi ({prev_trx:,} transaksi)"
-        elif prev_trx > 0:
-            trx_phrase = f"bulan lalu (September) akun Kakak tercatat aktif bertransaksi ({prev_trx:,} transaksi)"
-        else:
-            trx_phrase = "sebelumnya akun Kakak terdaftar aktif bersama kami"
-    elif last_m_name:  # Juli atau Agustus
+    last_month_trx = candidate.get("last_month_trx", prev_trx)
+    if last_m_name and last_month_trx > 50:
+        trx_phrase = f"bulan lalu ({last_m_name}) akun Kakak sangat aktif bertransaksi ({last_month_trx:,} transaksi)"
+    elif last_m_name and last_month_trx > 0:
+        trx_phrase = f"bulan lalu ({last_m_name}) akun Kakak tercatat aktif bertransaksi ({last_month_trx:,} transaksi)"
+    elif last_m_name:
         trx_phrase = f"sebelumnya di bulan {last_m_name} akun Kakak aktif bertransaksi (total {prev_trx:,} transaksi dalam 3 bulan terakhir)"
     elif prev_trx > 0:
         trx_phrase = f"sebelumnya akun Kakak tercatat aktif bertransaksi ({prev_trx:,} transaksi)"
@@ -319,6 +326,7 @@ def record_survey_send(
     is_test: bool = False,
     test_target_phone: Optional[str] = None,
     mode: str = "wa.me",
+    surveyor: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Mencatat pembukaan link survey reseller (wa.me) ke tabel survey_churn_logs.
@@ -334,10 +342,10 @@ def record_survey_send(
     cur.execute(
         """
         INSERT INTO survey_churn_logs 
-        (brand, periode, agen_id, agen_name, cabang, sco_name, no_wa, prev_trx, curr_trx, status, message_sent, sent_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+        (brand, periode, agen_id, agen_name, cabang, sco_name, no_wa, prev_trx, curr_trx, status, message_sent, sent_at, updated_at, surveyor_username)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
         """,
-        (brand, periode, agen_id, agen_name, cabang, sco_name, clean_target, prev_trx, status, message_text, now, now),
+        (brand, periode, agen_id, agen_name, cabang, sco_name, clean_target, prev_trx, status, message_text, now, now, surveyor),
     )
     conn.commit()
     log_id = cur.lastrowid
@@ -400,7 +408,7 @@ def analyze_reply_nlp(reply_text: str) -> Dict[str, Any]:
     }
 
 
-def record_survey_reply(log_id: int, reply_text: str) -> Dict[str, Any]:
+def record_survey_reply(log_id: int, reply_text: str, surveyor: Optional[str] = None) -> Dict[str, Any]:
     """Menyimpan balasan reseller dan memperbarui status log ke REPLIED."""
     conn = get_db_connection()
     cur = conn.cursor()
@@ -426,7 +434,8 @@ def record_survey_reply(log_id: int, reply_text: str) -> Dict[str, Any]:
             ai_sentiment = ?,
             ai_summary = ?,
             need_sco_visit = ?,
-            updated_at = ?
+            updated_at = ?,
+            surveyor_username = COALESCE(?, surveyor_username)
         WHERE id = ?
         """,
         (
@@ -437,6 +446,7 @@ def record_survey_reply(log_id: int, reply_text: str) -> Dict[str, Any]:
             analysis["ai_summary"],
             analysis["need_sco_visit"],
             now,
+            surveyor,
             log_id,
         ),
     )
@@ -533,7 +543,8 @@ def get_survey_history(brand: str = "ASTAGA", periode: Optional[str] = None) -> 
         SELECT id, brand, periode, agen_id AS reseller_id, agen_name AS reseller_name,
                cabang, sco_name, no_wa, prev_trx, curr_trx, status,
                message_sent, sent_at, reply_received, replied_at,
-               ai_category, ai_sentiment, ai_summary, need_sco_visit
+               ai_category, ai_sentiment, ai_summary, need_sco_visit,
+               surveyor_username AS surveyor
         FROM survey_churn_logs
         WHERE brand = ?
     """

@@ -162,19 +162,21 @@
       <h1>Survei Agen Churn</h1>
       <div class="survey-period-pill">
         <span class="survey-period-dot"></span>
-        <span id="survey-window-badge">Rentang: Juli - September 2026</span>
+        <span id="survey-window-badge">Evaluasi 3 Bulan Terakhir</span>
         <span style="color:var(--surface-border); margin: 0 2px;">|</span>
-        <span id="survey-period-badge">Periode 2026-10</span>
+        <span id="survey-period-badge">Periode Berjalan</span>
       </div>
     </div>
 
     <!-- Unified Brand Switcher (Identik #YoY) -->
     <div class="unified-brand-switcher" id="survey-brand-switcher">
-      <button type="button" id="survey-brand-astaga" class="unified-brand-btn active" data-brand="ASTAGA" onclick="setSurveyBrand('ASTAGA')">
+      <button type="button" id="survey-brand-astaga" class="unified-brand-btn active" data-brand="ASTAGA"
+        onclick="setSurveyBrand('ASTAGA')">
         <span class="brand-dot"></span>
         ASTAGA
       </button>
-      <button type="button" id="survey-brand-okipay" class="unified-brand-btn" data-brand="OKIPAY" onclick="setSurveyBrand('OKIPAY')">
+      <button type="button" id="survey-brand-okipay" class="unified-brand-btn" data-brand="OKIPAY"
+        onclick="setSurveyBrand('OKIPAY')">
         <span class="brand-dot" style="background:#dc2626;"></span>
         OKIPAY
       </button>
@@ -184,31 +186,34 @@
   <!-- NAVIGATION TABS (IDENTIK #YOY) -->
   <div class="survey-tabs">
     <button type="button" class="survey-tab-btn active" id="tab-btn-list" onclick="switchSurveyTab('list', this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
         <circle cx="9" cy="7" r="4"></circle>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
       </svg>
-      <span>Tab 1: Target Churn (<span id="survey-count-target">0</span>)</span>
+      <span>Target Survey (<span id="survey-count-target">0</span>)</span>
     </button>
     <button type="button" class="survey-tab-btn" id="tab-btn-logs" onclick="switchSurveyTab('logs', this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
         <polyline points="14 2 14 8 20 8"></polyline>
         <line x1="16" y1="13" x2="8" y2="13"></line>
         <line x1="16" y1="17" x2="8" y2="17"></line>
         <polyline points="10 9 9 9 8 9"></polyline>
       </svg>
-      <span>Tab 2: Log Percakapan (<span id="survey-count-logs">0</span>)</span>
+      <span>Hasil Survey (<span id="survey-count-logs">0</span>)</span>
     </button>
     <button type="button" class="survey-tab-btn" id="tab-btn-chart" onclick="switchSurveyTab('chart', this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"></line>
         <line x1="12" y1="20" x2="12" y2="4"></line>
         <line x1="6" y1="20" x2="6" y2="14"></line>
       </svg>
-      <span>Tab 3: Analitik &amp; Chart Hasil</span>
+      <span>Chart &amp; Hasil Survey</span>
     </button>
   </div>
 
@@ -224,7 +229,7 @@
           <span>Daftar Outlet Pasif &amp; Churn Siap Disurvei</span>
         </div>
         <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
-          Mode Aman: Direct Personal WhatsApp (wa.me)
+          Mode: WhatsApp (wa.me)
         </div>
       </div>
 
@@ -233,7 +238,7 @@
         <div style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 280px; flex-wrap: wrap;">
           <!-- Filter Target Volume -->
           <div style="min-width: 195px;">
-            <select id="survey-filter-trx" onchange="applySurveyFilters()" 
+            <select id="survey-filter-trx" onchange="applySurveyFilters()"
               style="height: 38px; width: 100%; padding: 0 12px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 13px; font-weight: 600; outline: none; cursor: pointer; box-sizing: border-box; transition: all 0.15s ease;">
               <option value="GT5" selected>Target Utama (&gt; 5 Trx)</option>
               <option value="ALL">Semua Churn (≥ 1 Trx)</option>
@@ -241,14 +246,14 @@
           </div>
           <!-- Filter Cabang -->
           <div style="min-width: 150px;">
-            <select id="survey-filter-cabang" onchange="applySurveyFilters()" 
+            <select id="survey-filter-cabang" onchange="applySurveyFilters()"
               style="height: 38px; width: 100%; padding: 0 12px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 13px; font-weight: 600; outline: none; cursor: pointer; box-sizing: border-box; transition: all 0.15s ease;">
               <option value="ALL">Semua Cabang</option>
             </select>
           </div>
           <!-- Filter Status Kirim (Belum / Terkirim) -->
           <div style="min-width: 175px;">
-            <select id="survey-filter-status" onchange="applySurveyFilters()" 
+            <select id="survey-filter-status" onchange="applySurveyFilters()"
               style="height: 38px; width: 100%; padding: 0 12px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 13px; font-weight: 600; outline: none; cursor: pointer; box-sizing: border-box; transition: all 0.15s ease;">
               <option value="ALL">Semua Status</option>
               <option value="UNSENT">Belum Dihubungi</option>
@@ -259,9 +264,10 @@
           <!-- Search Box -->
           <div style="flex: 1; min-width: 220px; position: relative; display: flex; align-items: center;">
             <input type="text" id="survey-search-input" oninput="applySurveyFilters()"
-              placeholder="Cari Reseller, Agen Induk, SCO, No WA..." 
+              placeholder="Cari Reseller, Agen Induk, SCO, No WA..."
               style="height: 38px; width: 100%; padding: 0 14px 0 36px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 13px; outline: none; box-sizing: border-box; transition: all 0.15s ease;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"
               style="position: absolute; left: 12px; color: var(--text-muted); pointer-events: none;">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -273,7 +279,8 @@
       <!-- Candidate Table -->
       <div style="overflow-x: auto; border: 1px solid var(--surface-border); border-radius: 8px;">
         <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
-          <thead style="background: var(--table-header); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
+          <thead
+            style="background: var(--table-header); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
             <tr>
               <th style="padding: 10px 14px; width: 40px; text-align: center;">#</th>
               <th style="padding: 10px 14px;">RESELLER OUTLET</th>
@@ -286,7 +293,10 @@
             </tr>
           </thead>
           <tbody id="survey-candidate-tbody">
-            <tr><td colspan="8" style="padding: 30px; text-align: center; color: var(--text-muted);">Memuat data kandidat survei...</td></tr>
+            <tr>
+              <td colspan="8" style="padding: 30px; text-align: center; color: var(--text-muted);">Memuat data kandidat
+                survei...</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -305,16 +315,20 @@
           <span>Riwayat Komunikasi &amp; Log Survei</span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <button type="button" onclick="loadSurveyLogs()" class="modern-btn" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" onclick="loadSurveyLogs()" class="modern-btn"
+            style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <polyline points="1 4 1 10 7 10"></polyline>
               <polyline points="23 20 23 14 17 14"></polyline>
               <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
             </svg>
             <span>Refresh Log</span>
           </button>
-          <button type="button" onclick="clearAllSurveyLogsAction()" class="modern-btn" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #fecaca; background: #fff1f2; color: #dc2626; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" onclick="clearAllSurveyLogsAction()" class="modern-btn"
+            style="padding: 6px 12px; border-radius: 6px; border: 1px solid #fecaca; background: #fff1f2; color: #dc2626; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
@@ -325,19 +339,34 @@
 
       <!-- Controls & Subtoggle Filter -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div class="chart-subtoggle">
-          <button type="button" class="chart-subtoggle-btn active" onclick="filterLogsByStatus('ALL', this)">Semua</button>
-          <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('REPLIED', this)">Sudah Balas</button>
-          <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('SENT', this)">Menunggu</button>
-          <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('NOT_ON_WA', this)">Tidak Ada WA</button>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div class="chart-subtoggle">
+            <button type="button" class="chart-subtoggle-btn active"
+              onclick="filterLogsByStatus('ALL', this)">Semua</button>
+            <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('REPLIED', this)">Sudah
+              Balas</button>
+            <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('SENT', this)">Menunggu</button>
+            <button type="button" class="chart-subtoggle-btn" onclick="filterLogsByStatus('NOT_ON_WA', this)">Tidak Ada
+              WA</button>
+          </div>
+
+          <!-- Filter Dropdown Petugas -->
+          <div style="min-width: 155px;">
+            <select id="survey-logs-filter-surveyor" onchange="applyLogsFilterAndSearch()"
+              style="height: 32px; width: 100%; padding: 0 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 12px; font-weight: 600; outline: none; cursor: pointer; box-sizing: border-box;">
+              <option value="ALL">Semua Petugas</option>
+            </select>
+          </div>
         </div>
 
         <!-- Search Box Log -->
-        <div style="flex: 1; min-width: 240px; max-width: 380px; position: relative; display: flex; align-items: center;">
+        <div
+          style="flex: 1; min-width: 240px; max-width: 380px; position: relative; display: flex; align-items: center;">
           <input type="text" id="survey-logs-search-input" oninput="applyLogsFilterAndSearch()"
-            placeholder="Cari Toko, ID Reseller, No WA..." 
+            placeholder="Cari Toko, ID Reseller, No WA..."
             style="height: 34px; width: 100%; padding: 0 14px 0 32px; border-radius: 7px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 12.5px; outline: none; box-sizing: border-box; transition: all 0.15s ease;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"
             style="position: absolute; left: 10px; color: var(--text-muted); pointer-events: none;">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -348,10 +377,12 @@
       <!-- Logs Table -->
       <div style="overflow-x: auto; border: 1px solid var(--surface-border); border-radius: 8px;">
         <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-          <thead style="background: var(--table-header); color: var(--text-muted); font-size: 11px; text-transform: uppercase;">
+          <thead
+            style="background: var(--table-header); color: var(--text-muted); font-size: 11px; text-transform: uppercase;">
             <tr>
               <th style="padding: 8px 12px; width: 45px; text-align: center;">ID</th>
               <th style="padding: 8px 12px;">WAKTU KIRIM</th>
+              <th style="padding: 8px 12px; text-align: center;">DIPROSES OLEH</th>
               <th style="padding: 8px 12px;">RESELLER / TOKO</th>
               <th style="padding: 8px 12px;">NO TUJUAN</th>
               <th style="padding: 8px 12px; text-align: center;">STATUS</th>
@@ -362,7 +393,10 @@
             </tr>
           </thead>
           <tbody id="survey-logs-tbody">
-            <tr><td colspan="9" style="padding: 30px; text-align: center; color: var(--text-muted);">Memuat riwayat log...</td></tr>
+            <tr>
+              <td colspan="10" style="padding: 30px; text-align: center; color: var(--text-muted);">Memuat riwayat
+                log...</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -376,23 +410,36 @@
     <!-- Metric Summary Cards (Border-first) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
       <div class="chart-panel" style="padding: 16px;">
-        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Total Survei Terkirim</div>
-        <div id="chart-metric-total" style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
+        <div
+          style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">
+          Total Survei Terkirim</div>
+        <div id="chart-metric-total"
+          style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Akun reseller pasif/churn</div>
       </div>
       <div class="chart-panel" style="padding: 16px;">
-        <div style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Reseller Merespon</div>
-        <div id="chart-metric-replied" style="font-size: 24px; font-weight: 800; color: #15803d; margin-top: 4px;">0</div>
-        <div id="chart-metric-rate" style="font-size: 11px; color: #16a34a; font-weight: 600; margin-top: 2px;">Response Rate: 0%</div>
+        <div
+          style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">
+          Reseller Merespon</div>
+        <div id="chart-metric-replied" style="font-size: 24px; font-weight: 800; color: #15803d; margin-top: 4px;">0
+        </div>
+        <div id="chart-metric-rate" style="font-size: 11px; color: #16a34a; font-weight: 600; margin-top: 2px;">Response
+          Rate: 0%</div>
       </div>
       <div class="chart-panel" style="padding: 16px;">
-        <div style="font-size: 11px; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Kendala Terbanyak</div>
-        <div id="chart-metric-top-issue" style="font-size: 18px; font-weight: 800; color: #d97706; margin-top: 4px;">-</div>
+        <div
+          style="font-size: 11px; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">
+          Kendala Terbanyak</div>
+        <div id="chart-metric-top-issue" style="font-size: 18px; font-weight: 800; color: #d97706; margin-top: 4px;">-
+        </div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Klasifikasi otomatis AI</div>
       </div>
       <div class="chart-panel" style="padding: 16px;">
-        <div style="font-size: 11px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Perlu Kunjungan SCO</div>
-        <div id="chart-metric-sco-visit" style="font-size: 24px; font-weight: 800; color: #2563eb; margin-top: 4px;">0 Toko</div>
+        <div
+          style="font-size: 11px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">
+          Perlu Kunjungan SCO</div>
+        <div id="chart-metric-sco-visit" style="font-size: 24px; font-weight: 800; color: #2563eb; margin-top: 4px;">0
+          Toko</div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Butuh spanduk / follow-up</div>
       </div>
     </div>
@@ -425,6 +472,35 @@
         </div>
       </div>
     </div>
+
+    <!-- Panel 3: Rekap Performa Petugas Survei (Sesuai Akun Login) -->
+    <div class="chart-panel" style="padding: 18px;">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-panel-title-dot" style="background:#8b5cf6;"></span>
+          <span>Rekap Performa Petugas Survei (Sesuai Akun Login)</span>
+        </div>
+      </div>
+      <div style="overflow-x: auto; border: 1px solid var(--surface-border); border-radius: 8px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+          <thead style="background: var(--table-header); color: var(--text-muted); font-size: 11px; text-transform: uppercase;">
+            <tr>
+              <th style="padding: 8px 12px; text-align: center; width: 40px;">#</th>
+              <th style="padding: 8px 12px;">PETUGAS (USER LOGIN)</th>
+              <th style="padding: 8px 12px; text-align: center;">TOTAL SURVEI</th>
+              <th style="padding: 8px 12px; text-align: center;">SUDAH DIBALAS</th>
+              <th style="padding: 8px 12px; text-align: center;">MENUNGGU</th>
+              <th style="padding: 8px 12px; text-align: center;">RESPONSE RATE</th>
+            </tr>
+          </thead>
+          <tbody id="survey-petugas-rekap-tbody">
+            <tr>
+              <td colspan="6" style="padding: 20px; text-align: center; color: var(--text-muted);">Memuat performa petugas...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -437,10 +513,13 @@
   <div class="card"
     style="width: 90%; max-width: 680px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); animation: modalFadeIn 0.2s ease;">
     <!-- Modal Header -->
-    <div style="padding: 16px 24px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
+    <div
+      style="padding: 16px 24px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <div style="width: 36px; height: 36px; border-radius: 8px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div
+          style="width: 36px; height: 36px; border-radius: 8px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
         </div>
@@ -448,13 +527,15 @@
           <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-main);">SURVEI AGEN CHURN</h3>
         </div>
       </div>
-      <button type="button" onclick="closeSurveyModal()" style="background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
+      <button type="button" onclick="closeSurveyModal()"
+        style="background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
     </div>
 
     <!-- Modal Body -->
     <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 18px;">
       <!-- Profil Reseller Info -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; background: var(--table-header); border-radius: 8px; padding: 12px 16px;">
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; background: var(--table-header); border-radius: 8px; padding: 12px 16px;">
         <div>
           <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">NAMA RESELLER</div>
           <div id="survey-modal-toko" style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">-</div>
@@ -468,39 +549,58 @@
         <div>
           <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TOTAL TRX (3 BULAN)</div>
           <div id="survey-modal-prev-trx" style="font-size: 14px; font-weight: 800; color: #0284c7;">0</div>
-          <div id="survey-modal-last-active" style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">Terakhir: -</div>
+          <div id="survey-modal-last-active" style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">
+            Terakhir: -</div>
           <div style="font-size: 10.5px; color: #ef4444; font-weight: 600;">Bulan ini: 0 (Churn)</div>
         </div>
         <div>
           <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">NO. WHATSAPP</div>
-          <div id="survey-modal-phone" style="font-size: 13px; font-weight: 700; color: #16a34a; font-family: monospace;">-</div>
+          <div id="survey-modal-phone"
+            style="font-size: 13px; font-weight: 700; color: #16a34a; font-family: monospace;">-</div>
           <div id="survey-modal-source" style="font-size: 10px; color: var(--text-muted);">Terverifikasi</div>
+        </div>
+        <div>
+          <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">DIPROSES OLEH</div>
+          <div id="survey-modal-petugas" style="font-size: 13px; font-weight: 700; color: #1d4ed8; display: flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span id="survey-modal-petugas-name">admin</span>
+          </div>
+          <div id="survey-modal-petugas-role" style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Akun Login</div>
         </div>
       </div>
 
       <!-- Preview Pesan WhatsApp -->
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">Pesan Sapaan Personal AI (Dapat Diedit):</label>
+          <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">Pesan Sapaan Personal AI (Dapat
+            Diedit):</label>
           <span style="font-size: 11px; color: var(--text-muted);">Format WhatsApp: *tebal*, _miring_</span>
         </div>
         <textarea id="survey-message-text" rows="7"
           style="width: 100%; box-sizing: border-box; border: 1px solid var(--surface-border); border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.5; font-family: inherit; resize: vertical; background: var(--surface); color: var(--text-main); outline: none;"></textarea>
       </div>
 
-      <div id="survey-result-box" style="display: none; padding: 12px 16px; border-radius: 8px; font-size: 12.5px;"></div>
+      <div id="survey-result-box" style="display: none; padding: 12px 16px; border-radius: 8px; font-size: 12.5px;">
+      </div>
     </div>
 
     <!-- Modal Footer -->
-    <div style="padding: 14px 24px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; gap: 10px; background: var(--surface);">
+    <div
+      style="padding: 14px 24px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; gap: 10px; background: var(--surface);">
       <button type="button" onclick="closeSurveyModal()"
         style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-main);">
         Batal
       </button>
       <button id="btn-submit-survey" type="button" onclick="submitSurveyAction()"
         style="padding: 9px 22px; border-radius: 6px; border: none; background: #16a34a; color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+          </path>
         </svg>
         <span>Buka di WhatsApp (wa.me)</span>
       </button>
@@ -516,44 +616,77 @@
   <div class="card"
     style="width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); animation: modalFadeIn 0.2s ease;">
     <!-- Modal Header -->
-    <div style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
+    <div
+      style="padding: 16px 20px; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: center; background: var(--surface);">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; justify-content: center;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div
+          style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
         </div>
         <div>
-          <h3 id="reply-modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-main);">Catat Balasan Toko</h3>
-          <div id="reply-modal-sub" style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Log #0 &bull; Toko</div>
+          <h3 id="reply-modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-main);">
+            Catat Balasan Toko</h3>
+          <div id="reply-modal-sub" style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Log #0 &bull;
+            Toko</div>
         </div>
       </div>
-      <button type="button" onclick="closeReplyModal()" style="background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
+      <button type="button" onclick="closeReplyModal()"
+        style="background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
     </div>
 
     <!-- Modal Body -->
     <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; background: var(--table-header); padding: 8px 12px; border-radius: 6px; font-size: 11.5px;">
+        <div style="display: flex; align-items: center; gap: 6px; color: var(--text-muted);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Petugas Pencatat:</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <strong id="reply-modal-petugas-name" style="color: var(--text-main);">admin</strong>
+          <span id="reply-modal-petugas-badge" class="badge" style="background:#eff6ff; color:#2563eb; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;">ADMIN</span>
+        </div>
+      </div>
+
       <label style="font-size: 12px; font-weight: 700; color: var(--text-main);">
         Salin / Ketik Balasan atau Keluhan Toko:
       </label>
-      <textarea id="reply-input-text" rows="4" placeholder="Contoh: katanya aplikasi sering error pas jam sibuk, atau kalah harga di produk telkomsel..."
+      <textarea id="reply-input-text" rows="4"
+        placeholder="Contoh: katanya aplikasi sering error pas jam sibuk, atau kalah harga di produk telkomsel..."
         style="width: 100%; box-sizing: border-box; border: 1px solid var(--surface-border); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.45; font-family: inherit; resize: vertical; background: var(--surface); color: var(--text-main); outline: none;"></textarea>
 
       <!-- Quick Template Chips -->
       <div>
-        <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Template Cepat (Klik untuk menyalin):</div>
+        <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Template Cepat
+          (Klik untuk menyalin):</div>
         <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-          <button type="button" onclick="setReplyTemplate('Kalah harga dengan kompetitor / server sebelah')" style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Kalah Harga</button>
-          <button type="button" onclick="setReplyTemplate('Aplikasi sering error, timeout, atau lemot saat transaksi')" style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Aplikasi Error/Lemot</button>
-          <button type="button" onclick="setReplyTemplate('Kendala modal usaha / saldo sedang menipis')" style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Kendala Modal/Saldo</button>
-          <button type="button" onclick="setReplyTemplate('Toko sedang tutup / pemilik beralih profesi')" style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Toko Tutup/Pindah</button>
-          <button type="button" onclick="setReplyTemplate('Minta dikunjungi sales / butuh brosur dan spanduk baru')" style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Minta Dikunjungi SCO</button>
+          <button type="button" onclick="setReplyTemplate('Kalah harga dengan kompetitor / server sebelah')"
+            style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Kalah
+            Harga</button>
+          <button type="button" onclick="setReplyTemplate('Aplikasi sering error, timeout, atau lemot saat transaksi')"
+            style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Aplikasi
+            Error/Lemot</button>
+          <button type="button" onclick="setReplyTemplate('Kendala modal usaha / saldo sedang menipis')"
+            style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Kendala
+            Modal/Saldo</button>
+          <button type="button" onclick="setReplyTemplate('Toko sedang tutup / pemilik beralih profesi')"
+            style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Toko
+            Tutup/Pindah</button>
+          <button type="button" onclick="setReplyTemplate('Minta dikunjungi sales / butuh brosur dan spanduk baru')"
+            style="padding: 4px 9px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--table-header); color: var(--text-main); cursor: pointer;">Minta
+            Dikunjungi SCO</button>
         </div>
       </div>
     </div>
 
     <!-- Modal Footer -->
-    <div style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; gap: 10px; background: var(--surface);">
+    <div
+      style="padding: 12px 20px; border-top: 1px solid var(--surface-border); display: flex; justify-content: flex-end; gap: 10px; background: var(--surface);">
       <button type="button" onclick="closeReplyModal()"
         style="padding: 7px 14px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-main);">
         Batal

@@ -281,6 +281,11 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
 
                 branches = suk["cabang_clean"].value_counts().to_dict()
                 categories = suk["kat_clean"].value_counts().to_dict()
+                try:
+                    br_mem_df = suk.groupby(["cabang_clean", "date"])["ar_clean"].nunique().groupby("cabang_clean").sum() / days_count if days_count > 0 else pd.Series(dtype=float)
+                    branch_daily_members = {str(k): round(float(v), 1) for k, v in br_mem_df.items()}
+                except Exception:
+                    branch_daily_members = {}
 
                 # Agregasi metrik per modul untuk bulan ini (Vectorized Fast Aggregation)
                 mod_stats = []
@@ -525,6 +530,7 @@ def _build_2026_from_parquet() -> Dict[str, Dict[str, Any]]:
                     "is_mtd": is_mtd,
                     "active_days": days_count,
                     "branches": branches,
+                    "branch_daily_members": branch_daily_members,
                     "categories": categories,
                     "modules": mod_stats,
                     "categories_perf": kat_perf,
@@ -1490,11 +1496,15 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
     if brand_upper not in ["ASTAGA", "OKIPAY", "ALL", "GABUNGAN"]:
         target_brands = ["ASTAGA"]
 
-    if year != "ALL" and month != "ALL":
+    brand_upper = str(brand).strip().upper()
+    year_upper = str(year).strip().upper()
+    month_upper = str(month).strip().upper()
+
+    if year_upper != "ALL" and month_upper != "ALL":
         granularity = "daily"
-    elif year != "ALL" and month == "ALL":
+    elif year_upper != "ALL" and month_upper == "ALL":
         granularity = "monthly"
-    elif year == "ALL" and month == "ALL":
+    elif year_upper == "ALL" and month_upper == "ALL":
         granularity = "yearly"
     else:
         granularity = "monthly"
@@ -1503,7 +1513,7 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
     
     # ── CASE 1: GRANULARITAS HARIAN (DAILY: 1 s/d 30/31) ──
     if granularity == "daily":
-        target_ym = f"{year}-{month.zfill(2)}"
+        target_ym = f"{year_upper}-{month_upper.zfill(2)}"
         modules_data = _aggregate_modules_scorecard(target_brands, [target_ym], data_all, filter_tipe=tipe, filter_kategori=kategori, filter_operator=operator)
         timeline = []
         tot_trx = 0
@@ -1581,6 +1591,7 @@ def query_analisa_data(brand: str = "ALL", year: str = "ALL", month: str = "ALL"
                 "date": d_obj.get("date", f"{target_ym}-{str(day_num).zfill(2)}"),
                 "label": d_label,
                 "trx": day_trx,
+                "trx_sukses": day_trx_sukses,
                 "daily_trx": day_trx_sukses, # Daily Trx = HANYA transaksi sukses
                 "customers": day_cust,
                 "tpm": tpm,

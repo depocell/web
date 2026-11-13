@@ -232,15 +232,23 @@ def clear_reseller_dashboard_cache():
     _RESELLER_DASHBOARD_CACHE.clear()
 
 
-def calculate_reseller_dashboard(brand: str = "ASTAGA", month_code: str = None, year: str = "2026") -> Dict[str, Any]:
+def calculate_reseller_dashboard(brand: str = "ASTAGA", month_code: str = None, year: str = "2026", cabang: str = None, kpi_only: bool = False) -> Dict[str, Any]:
     """
     Hitung statistik terpadu Customer & Reseller ASTAGA / OKIPAY:
     - Metrik Keaktifan (Total, Aktif, Baru, Pasif/Churn)
     - Tabel Reseller dengan pencarian, filter status & cabang, serta % EWALLET
+    - kpi_only=True: Langsung mengembalikan ringkasan KPI (<0.1s) tanpa iterasi baris tabel.
     """
     global _RESELLER_DASHBOARD_CACHE
     brand = (brand or "ASTAGA").strip().upper()
-    cache_key = (brand, str(year), str(month_code or ""))
+    cabang_filter = cabang.strip().upper() if cabang and cabang.strip().upper() not in ["ALL", "SEMUA"] else None
+    
+    # Khusus OKIPAY: jika cabang tidak dispesifikasikan (None), default ke "ONLINE" agar murni reseller toko
+    # Jika ingin seluruh cabang OKIPAY termasuk H2H, pemanggil bisa mengirim cabang="ALL"
+    if brand == "OKIPAY" and cabang is None:
+        cabang_filter = "ONLINE"
+
+    cache_key = (brand, str(year), str(month_code or ""), str(cabang_filter or "ALL"), bool(kpi_only))
     if cache_key in _RESELLER_DASHBOARD_CACHE:
         return _RESELLER_DASHBOARD_CACHE[cache_key]
 
@@ -249,6 +257,15 @@ def calculate_reseller_dashboard(brand: str = "ASTAGA", month_code: str = None, 
         df = me.filter_astaga_internal(df)
     reseller_meta, _ = load_master_meta(brand)
     prod_map = pe.get_product_map(brand)
+
+    # Filter cabang jika diminta
+    if cabang_filter:
+        reseller_meta = {
+            rid: m for rid, m in reseller_meta.items()
+            if m.get("cabang", "").upper() == cabang_filter
+        }
+        target_rids = set(reseller_meta.keys())
+        df = df[df["ar_id"].astype(str).str.strip().str.upper().isin(target_rids)]
 
     # Sukses only & month tagging (cached on df)
     if "is_sukses" not in df.columns:
@@ -327,9 +344,36 @@ def calculate_reseller_dashboard(brand: str = "ASTAGA", month_code: str = None, 
     days_prev = me.get_active_days(df_prev) if not df_prev.empty else 1
     df_prev_counts = df_prev["ar_id"].value_counts().to_dict() if not df_prev.empty else {}
 
-    # Gabungkan dengan data master
+    tot_trx_sum = int(agg_reseller["total_trx"].sum()) if not agg_reseller.empty else 0
+    ew_trx_sum = int(agg_reseller["ewallet_trx"].sum()) if not agg_reseller.empty else 0
+
+    kpi_dict = {
+        "total_registered": int(len(reseller_meta)),
+        "active_current": int(len(curr_resellers)),
+        "retained": int(len(retained_set)),
+        "new_registered": int(len(new_reg_month_all)),
+        "new_active": int(len(new_active_set)),
+        "new_untransacted": int(len(new_untransacted_set)),
+        "new_reactivated": int(len(new_active_set) + len(reactivated_set)),
+        "reactivated": int(len(reactivated_set)),
+        "churned": int(len(churn_set)),
+        "total_trx": tot_trx_sum,
+        "daily_rate_total": me.calculate_daily_rate(tot_trx_sum, days_curr),
+        "days_curr": days_curr,
+        "days_prev": days_prev,
+        "total_ewallet": ew_trx_sum,
+        "avg_pct_ewallet": float(round((ew_trx_sum / tot_trx_sum * 100), 1)) if tot_trx_sum > 0 else 0.0
+    }
+
+    if kpi_only:
+        res = {"ok": True, "kpi": kpi_dict}
+        _RESELLER_DASHBOARD_CACHE[cache_key] = res
+        return res
+
+    # Gabungkan dengan data master (fast to_dict records)
     rows = []
-    for _, r in agg_reseller.iterrows():
+    records = agg_reseller.to_dict("records")
+    for r in records:
         rid = r["ar_id"]
         meta = reseller_meta.get(rid, {
             "name": rid,
@@ -475,5 +519,5 @@ def calculate_reseller_dashboard(brand: str = "ASTAGA", month_code: str = None, 
 
     _RESELLER_DASHBOARD_CACHE[cache_key] = result
     if not month_code:
-        _RESELLER_DASHBOARD_CACHE[(str(year), str(result["selected_month"]))] = result
+        _RESELLER_DASHBOARD_CACHE[(brand, str(year), str(result["selected_month"]), str(cabang_filter or "ALL"))] = result
     return result

@@ -249,6 +249,12 @@ def get_prepared_trx(brand: str, year: str = "2026") -> pd.DataFrame:
     df["bulan"] = df["ym"]
     df["ar_id_clean"] = df["ar_id"].astype(str).str.strip().str.upper()
     df["product_id_clean"] = df["product_id"].astype(str).str.strip().str.upper()
+    df["ar_id"] = df["ar_id_clean"]
+    df["product_id"] = df["product_id_clean"]
+    if "modul_id" in df.columns:
+        df["modul_id"] = df["modul_id"].fillna("UNKNOWN").astype(str).str.strip()
+    else:
+        df["modul_id"] = "UNKNOWN"
 
     markup_map = pe_profit.get_reseller_markup_map(brand)
     df["markup"] = df["ar_id_clean"].map(markup_map).fillna(0.0)
@@ -265,7 +271,19 @@ def get_prepared_trx(brand: str, year: str = "2026") -> pd.DataFrame:
     return df
 
 
-OPERATIONAL_METRICS_IDS = {"trx_count", "daily_trx", "sukses_pct"}
+PROFIT_METRICS_IDS = {"margin_sum", "daily_margin", "margin_pct", "beli_sum"}
+
+OPERATIONAL_METRICS_IDS = {
+    "trx_count",
+    "daily_trx",
+    "jual_sum",
+    "daily_jual",
+    "base_price_sum",
+    "base_price_avg",
+    "net_arpu",
+    "qty_sum",
+    "sukses_pct"
+}
 
 def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "channel", mode: str = "operational") -> Dict[str, Any]:
     """Kembalikan opsi dropdown dimensi, metrik, dan filter yang tersedia."""
@@ -313,21 +331,12 @@ def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "ch
             {"id": "cabang", "label": "Cabang / Channel"},
             {"id": "agen_name", "label": "Induk / Agen (Group ID)"},
             {"id": "reseller_name", "label": "Nama Reseller"},
-            {"id": "tipe", "label": "Tipe Reseller"},
+            {"id": "ar_id", "label": "Kode Reseller (AR_ID)"},
             {"id": "group", "label": "Group Reseller"},
+            {"id": "tipe", "label": "Tipe Reseller"},
             {"id": "status", "label": "Status Transaksi"},
             {"id": "bulan", "label": "Bulan (YYYY-MM)"},
             {"id": "tanggal", "label": "Tanggal (YYYY-MM-DD)"}
-        ]
-        column_dimensions = [
-            {"id": "none", "label": "-- Tanpa Kolom (1 Dimensi) --"},
-            {"id": "kategori", "label": "Kategori Produk"},
-            {"id": "operator", "label": "Operator / Provider"},
-            {"id": "cabang", "label": "Cabang / Channel"},
-            {"id": "tipe", "label": "Tipe Reseller"},
-            {"id": "status", "label": "Status Transaksi"},
-            {"id": "bulan", "label": "Bulan"},
-            {"id": "modul_id", "label": "Modul Suplier"}
         ]
     else:
         dimensions = [
@@ -339,22 +348,20 @@ def get_options(brand: str = "ASTAGA", year: str = "2026", pivot_type: str = "ch
             {"id": "tipe", "label": "Tipe Reseller"},
             {"id": "kategori", "label": "Kategori Produk"},
             {"id": "operator", "label": "Operator / Provider"},
+            {"id": "paket", "label": "Paket / Jenis Produk"},
+            {"id": "product_name", "label": "Nama Produk"},
+            {"id": "product_id", "label": "Kode Produk (ID)"},
             {"id": "modul_id", "label": "Modul Suplier"},
             {"id": "status", "label": "Status Transaksi"},
             {"id": "bulan", "label": "Bulan (YYYY-MM)"},
             {"id": "tanggal", "label": "Tanggal (YYYY-MM-DD)"}
         ]
-        column_dimensions = [
-            {"id": "none", "label": "-- Tanpa Kolom (1 Dimensi) --"},
-            {"id": "status", "label": "Status Transaksi"},
-            {"id": "kategori", "label": "Kategori Produk"},
-            {"id": "operator", "label": "Operator / Provider"},
-            {"id": "bulan", "label": "Bulan"},
-            {"id": "cabang", "label": "Cabang"},
-            {"id": "tipe", "label": "Tipe Reseller"},
-            {"id": "group", "label": "Group Reseller"},
-            {"id": "modul_id", "label": "Modul Suplier"}
-        ]
+
+    column_dimensions = [
+        {"id": "none", "label": "-- Tanpa Kolom (1 Dimensi) --"}
+    ] + [
+        {"id": d["id"], "label": d["label"]} for d in dimensions
+    ]
 
     return {
         "brand": brand,
@@ -404,13 +411,14 @@ def execute_pivot(
         df = df[df["status"] == status_filter]
 
     # 2. Merge dengan Customer Master jika dimensi membutuhkan customer data
-    cust_dims = {"cabang", "agen_name", "reseller_name", "group", "tipe"}
+    cust_dims = {"cabang", "agen_name", "reseller_name", "group", "tipe", "ar_id"}
     needs_cust = (row_dim in cust_dims) or (col_dim in cust_dims) or (cabang_filter != "ALL")
     
     if needs_cust:
         cust_df = get_customer_df(brand)
         if not cust_df.empty:
-            df = df.merge(cust_df, left_on="ar_id_clean", right_on="ar_id", how="left")
+            cust_cols = [c for c in cust_df.columns if c != "ar_id"]
+            df = df.merge(cust_df[["ar_id"] + cust_cols], left_on="ar_id_clean", right_on="ar_id", how="left", suffixes=("", "_cust"))
         for c in ["cabang", "agen_name", "reseller_name", "group", "tipe"]:
             if c in df.columns:
                 df[c] = df[c].fillna("UNKNOWN").astype(str)
@@ -460,11 +468,12 @@ def execute_pivot(
 
     is_financial = str(mode).strip().lower() in ("financial", "management", "admin", "full")
 
+    total_jual = float(df["jual"].sum()) if "jual" in df.columns else 0.0
+    total_base_price = float(df["base_price"].sum()) if "base_price" in df.columns else 0.0
+    overall_net_arpu = me.calculate_net_arpu(total_base_price, sukses_cnt)
+
     if is_financial:
-        total_jual = float(df["jual"].sum())
-        total_base_price = float(df["base_price"].sum())
-        total_margin = float(df["margin"].sum())
-        overall_net_arpu = me.calculate_net_arpu(total_base_price, sukses_cnt)
+        total_margin = float(df["margin"].sum()) if "margin" in df.columns else 0.0
         overall_margin_pct = me.calculate_margin_pct(total_margin, total_base_price)
 
         summary = {
@@ -485,7 +494,11 @@ def execute_pivot(
             "active_days": active_days,
             "total_trx": total_trx,
             "daily_trx": me.calculate_daily_rate(total_trx, active_days),
-            "sukses_rate": overall_sukses_rate
+            "total_jual": round(total_jual, 0),
+            "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
+            "total_base_price": round(total_base_price, 0),
+            "sukses_rate": overall_sukses_rate,
+            "net_arpu": overall_net_arpu
         }
 
     # Metric configuration
@@ -598,9 +611,12 @@ def execute_pivot(
                 piv_data = piv_data.sort_values(by=piv.columns[0], ascending=False).head(top_limit)
 
         col_headers = [str(c) for c in piv_data.columns]
-        if col_dim in ("bulan", "tanggal") and "TOTAL" in col_headers:
+        if "TOTAL" in col_headers:
             data_cols = [c for c in col_headers if c != "TOTAL"]
-            data_cols.sort()
+            if col_dim in ("bulan", "tanggal"):
+                data_cols.sort()
+            elif len(data_cols) > 50:
+                data_cols = sorted(data_cols, key=lambda c: total_row_s.get(c, 0.0), reverse=True)[:50]
             col_headers = data_cols + ["TOTAL"]
             piv_data = piv_data[col_headers]
         rows_data = []
@@ -631,39 +647,39 @@ def execute_pivot(
         agg_kwargs = {
             "trx_count": ("trx_id", "count"),
             "qty_sum": ("qty", "sum"),
-            "sukses_count": ("is_sukses_num", "sum")
+            "sukses_count": ("is_sukses_num", "sum"),
+            "jual_sum": ("jual", "sum"),
+            "base_price_sum": ("base_price", "sum"),
         }
         if is_financial:
             agg_kwargs.update({
-                "jual_sum": ("jual", "sum"),
-                "base_price_sum": ("base_price", "sum"),
                 "beli_sum": ("beli", "sum"),
                 "margin_sum": ("margin", "sum"),
             })
 
         grp = df.groupby(row_dim).agg(**agg_kwargs)
         grp["sukses_pct"] = np.where(grp["trx_count"] > 0, (grp["sukses_count"] / grp["trx_count"] * 100.0), 0.0)
+        grp["base_price_avg"] = np.where(grp["trx_count"] > 0, grp["base_price_sum"] / grp["trx_count"], 0.0)
+        grp["net_arpu"] = np.where(grp["sukses_count"] > 0, grp["base_price_sum"] / grp["sukses_count"], 0.0)
 
         if is_financial:
-            grp["base_price_avg"] = np.where(grp["trx_count"] > 0, grp["base_price_sum"] / grp["trx_count"], 0.0)
-            grp["net_arpu"] = np.where(grp["sukses_count"] > 0, grp["base_price_sum"] / grp["sukses_count"], 0.0)
             grp["margin_pct"] = np.where(grp["base_price_sum"] > 0, (grp["margin_sum"] / grp["base_price_sum"] * 100.0), 0.0)
 
         if row_dim == "bulan":
             divisor_s = grp.index.map(lambda ym: float(days_per_month.get(str(ym), active_days)))
             grp["daily_trx"] = grp["trx_count"] / divisor_s
+            grp["daily_jual"] = grp["jual_sum"] / divisor_s
             if is_financial:
-                grp["daily_jual"] = grp["jual_sum"] / divisor_s
                 grp["daily_margin"] = grp["margin_sum"] / divisor_s
         elif row_dim == "tanggal":
             grp["daily_trx"] = grp["trx_count"].astype(float)
+            grp["daily_jual"] = grp["jual_sum"].astype(float)
             if is_financial:
-                grp["daily_jual"] = grp["jual_sum"].astype(float)
                 grp["daily_margin"] = grp["margin_sum"].astype(float)
         else:
             grp["daily_trx"] = grp["trx_count"] / float(active_days)
+            grp["daily_jual"] = grp["jual_sum"] / float(active_days)
             if is_financial:
-                grp["daily_jual"] = grp["jual_sum"] / float(active_days)
                 grp["daily_margin"] = grp["margin_sum"] / float(active_days)
 
         if row_dim in ("bulan", "tanggal"):
@@ -724,6 +740,12 @@ def execute_pivot(
                     "_row_label": str(idx_val),
                     "trx_count": int(r_s["trx_count"]),
                     "daily_trx": round(float(r_s["daily_trx"]), 1),
+                    "jual_sum": round(float(r_s["jual_sum"]), 0),
+                    "daily_jual": round(float(r_s["daily_jual"]), 0),
+                    "base_price_sum": round(float(r_s["base_price_sum"]), 0),
+                    "base_price_avg": round(float(r_s["base_price_avg"]), 0),
+                    "net_arpu": round(float(r_s["net_arpu"]), 0),
+                    "qty_sum": round(float(r_s["qty_sum"]), 0),
                     "sukses_pct": round(float(r_s["sukses_pct"]), 2)
                 })
 
@@ -731,13 +753,19 @@ def execute_pivot(
                 "_row_label": "TOTAL",
                 "trx_count": total_trx,
                 "daily_trx": me.calculate_daily_rate(total_trx, active_days),
+                "jual_sum": round(total_jual, 0),
+                "daily_jual": round(me.calculate_daily_rate(total_jual, active_days), 0),
+                "base_price_sum": round(total_base_price, 0),
+                "base_price_avg": round(total_base_price / total_trx, 0) if total_trx > 0 else 0.0,
+                "net_arpu": overall_net_arpu,
+                "qty_sum": round(float(df["qty"].sum()), 0) if "qty" in df.columns else 0,
                 "sukses_pct": overall_sukses_rate
             }
 
             return {
                 "is_2d": False,
                 "row_dim": row_dim,
-                "columns": ["trx_count", "daily_trx", "sukses_pct"],
+                "columns": ["trx_count", "daily_trx", "jual_sum", "daily_jual", "base_price_sum", "base_price_avg", "net_arpu", "qty_sum", "sukses_pct"],
                 "rows": rows_data,
                 "total_row": total_dict,
                 "summary": summary,

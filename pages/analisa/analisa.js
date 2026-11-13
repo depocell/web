@@ -339,7 +339,7 @@ function switchAnalisaTab(tabName) {
   }
 
   // Update tab buttons
-  ["distribusi", "service", "supplier"].forEach(t => {
+  ["distribusi", "service", "supplier", "skema"].forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const sec = document.getElementById(`section-analisa-${t}`);
     if (btn) {
@@ -352,7 +352,11 @@ function switchAnalisaTab(tabName) {
   });
 
   // Re-fetch dan render data agar filter tab langsung teraplikasi
-  fetchAndRenderAnalisa();
+  if (tabName === "skema") {
+    fetchAndRenderSkemaLimit();
+  } else {
+    fetchAndRenderAnalisa();
+  }
 }
 
 // ── PROFIT & REVENUE ANALYTICS FETCHER ──
@@ -616,6 +620,10 @@ function renderProfitDataUI(data) {
 async function fetchAndRenderAnalisa() {
   if (currentAnalisaTab === "profit") {
     currentAnalisaTab = "distribusi";
+  }
+  if (currentAnalisaTab === "skema") {
+    fetchAndRenderSkemaLimit();
+    return;
   }
 
   const activeSection = document.getElementById(`section-analisa-${currentAnalisaTab}`);
@@ -1649,6 +1657,8 @@ function renderCurrentTabCharts(data) {
     renderServiceTab(data);
   } else if (currentAnalisaTab === "supplier") {
     renderSupplierTab(data);
+  } else if (currentAnalisaTab === "skema") {
+    fetchAndRenderSkemaLimit();
   }
 }
 
@@ -1660,6 +1670,8 @@ function loadAnalisa() {
     switchAnalisaTab("service");
   } else if (hash.includes("tab=supplier") || hash === "#analisa-supplier") {
     switchAnalisaTab("supplier");
+  } else if (hash.includes("tab=skema") || hash === "#analisa-skema") {
+    switchAnalisaTab("skema");
   } else {
     switchAnalisaTab("distribusi");
   }
@@ -1703,11 +1715,13 @@ function renderDistribusiTab(data) {
   const elSubTrx = document.getElementById("dist-stat-trx-sub");
   if (elSubTrx) {
     if (isDaily) {
-      elSubTrx.textContent = "Total Sebulan (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total)";
+      const totSuk = (summary.total_sukses || summary.total_trx || 0).toLocaleString("id-ID");
+      const pts = summary.total_points || timeline.length || 28;
+      elSubTrx.textContent = `${totSuk} Sukses (${pts} Hari)`;
     } else if (isYearly) {
-      elSubTrx.textContent = "Total Semua (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total)";
+      elSubTrx.textContent = "Total Sukses (" + (summary.total_sukses || summary.total_trx || 0).toLocaleString("id-ID") + " Trx)";
     } else {
-      elSubTrx.textContent = "Total Setahun (" + (summary.total_trx || 0).toLocaleString("id-ID") + " Total Trx)";
+      elSubTrx.textContent = "Total Sukses (" + (summary.total_sukses || summary.total_trx || 0).toLocaleString("id-ID") + " Trx)";
     }
   }
 
@@ -1764,13 +1778,13 @@ function renderDistTrendChart(timeline, brandColor, isDaily) {
   destroyChart("distTrend");
 
   const labels = timeline.map(t => t.label);
-  // Gunakan daily_trx (Total Trx / Hari Cut-off) agar tren per bulan adil & Oktober 2026 tidak anjlok
-  const trxData = timeline.map(t => isDaily ? t.trx : t.daily_trx);
+  // Sesuai GEMINI.md Rule #1: Selalu gunakan Transaksi SUKSES (daily_trx / trx_sukses)
+  const trxData = timeline.map(t => (t.daily_trx !== undefined && t.daily_trx !== null) ? t.daily_trx : (t.trx_sukses != null ? t.trx_sukses : t.trx));
   const custData = timeline.map(t => t.customers);
 
   const barLabel = isDaily
-    ? "Transaksi Harian (Trx)"
-    : "Daily Trx (Total Trx / Hari Cut-off)";
+    ? "Transaksi Sukses Harian (Trx)"
+    : "Daily Trx Sukses (Run-Rate / Hari)";
 
   chartInstances["distTrend"] = new Chart(ctx, {
     type: "bar",
@@ -1806,8 +1820,8 @@ function renderDistTrendChart(timeline, brandColor, isDaily) {
         if (!meta || meta.hidden) return;
         ctx.save();
         ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        const dark = typeof window.isDarkMode === "function" ? window.isDarkMode() : (document.documentElement.getAttribute("data-theme-mode") === "dark" || (document.documentElement.getAttribute("data-theme") || "").includes("dark"));
+        ctx.fillStyle = dark ? "#f8fafc" : "#0f172a";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
         meta.data.forEach((bar, index) => {
@@ -1830,11 +1844,19 @@ function renderDistTrendChart(timeline, brandColor, isDaily) {
           callbacks: {
             label: context => {
               const val = Math.round(context.parsed.y).toLocaleString("id-ID");
-              if (context.datasetIndex === 0 && !isDaily) {
+              if (context.datasetIndex === 0) {
                 const item = timeline[context.dataIndex];
-                const rawTotal = (item && item.trx) ? item.trx.toLocaleString("id-ID") : val;
-                const days = (item && item.days_count) ? item.days_count : 30;
-                return ` Daily Trx: ${val} trx/hari (Total: ${rawTotal} trx / ${days} hari)`;
+                if (!isDaily) {
+                  const suksesTotal = (item && (item.trx_sukses != null ? item.trx_sukses : item.trx)) ? Number(item.trx_sukses != null ? item.trx_sukses : item.trx).toLocaleString("id-ID") : val;
+                  const days = (item && item.days_count) ? item.days_count : 30;
+                  return ` Daily Trx Sukses: ${val} trx/hari (${suksesTotal} sukses / ${days} hari cut-off)`;
+                } else {
+                  const grossTotal = (item && item.trx) ? Number(item.trx).toLocaleString("id-ID") : null;
+                  if (grossTotal && grossTotal !== val) {
+                    return ` Trx Sukses: ${val} trx (dari ${grossTotal} total masuk)`;
+                  }
+                  return ` Trx Sukses: ${val} trx`;
+                }
               }
               return ` ${context.dataset.label}: ${val}`;
             }
@@ -1846,7 +1868,7 @@ function renderDistTrendChart(timeline, brandColor, isDaily) {
         y: {
           type: "linear",
           position: "left",
-          title: { display: true, text: isDaily ? "Jumlah Transaksi" : "Daily Trx (Trx / Hari)" },
+          title: { display: true, text: isDaily ? "Jumlah Transaksi Sukses" : "Daily Trx Sukses (Trx / Hari)" },
           ticks: { callback: v => Number(v).toLocaleString("id-ID") }
         },
         y1: {
@@ -1935,8 +1957,8 @@ function renderDistTpmChart(timeline, isDaily) {
         if (!meta || meta.hidden) return;
         ctx.save();
         ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        const dark = typeof window.isDarkMode === "function" ? window.isDarkMode() : (document.documentElement.getAttribute("data-theme-mode") === "dark" || (document.documentElement.getAttribute("data-theme") || "").includes("dark"));
+        ctx.fillStyle = dark ? "#f8fafc" : "#0f172a";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
         meta.data.forEach((point, index) => {
@@ -2214,8 +2236,8 @@ function renderServSuksesRateChart(timeline) {
         if (!meta || meta.hidden) return;
         ctx.save();
         ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        const dark = typeof window.isDarkMode === "function" ? window.isDarkMode() : (document.documentElement.getAttribute("data-theme-mode") === "dark" || (document.documentElement.getAttribute("data-theme") || "").includes("dark"));
+        ctx.fillStyle = dark ? "#f8fafc" : "#0f172a";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
         meta.data.forEach((point, index) => {
@@ -2298,8 +2320,8 @@ function renderServDurasiChart(timeline) {
         if (!meta || meta.hidden) return;
         ctx.save();
         ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
-        const theme = document.documentElement.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        ctx.fillStyle = theme === 'dark' ? "#ffffff" : "#0f172a";
+        const dark = typeof window.isDarkMode === "function" ? window.isDarkMode() : (document.documentElement.getAttribute("data-theme-mode") === "dark" || (document.documentElement.getAttribute("data-theme") || "").includes("dark"));
+        ctx.fillStyle = dark ? "#f8fafc" : "#0f172a";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
         meta.data.forEach((point, index) => {
@@ -2862,3 +2884,259 @@ window.filterModuleTable = window.filterModuleTable;
 window.onSearchModule = window.onSearchModule;
 window.sortModuleTable = sortModuleTable;
 window.onSelectModuleSort = onSelectModuleSort;
+
+
+// =============================================================================
+// TAB 4: ANALISA SKEMA HARGA (PRICELIST GROUP) & LIMIT SALDO
+// =============================================================================
+const _FRONTEND_SKEMA_CACHE = {};
+
+async function fetchAndRenderSkemaLimit() {
+  const brand = activeFilters.brand === "ALL" ? "ASTAGA" : (activeFilters.brand === "OKIPAY" ? "OKIPAY" : "ASTAGA");
+  const year = activeFilters.year === "ALL" ? "2026" : activeFilters.year;
+  const month = activeFilters.month === "ALL" ? "10" : activeFilters.month;
+  const cacheKey = `${brand}_${year}_${month}`;
+
+  // 1. Tampilkan loading skeleton jika belum ada cache
+  if (_FRONTEND_SKEMA_CACHE[cacheKey]) {
+    renderSkemaLimitUI(_FRONTEND_SKEMA_CACHE[cacheKey]);
+    return;
+  }
+
+  const tbodyRekap = document.getElementById("table-skema-rekap-body");
+  if (tbodyRekap) {
+    tbodyRekap.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: var(--text-muted);">Memuat data analisa skema & limit ${brand} (${month}/${year})...</td></tr>`;
+  }
+
+  try {
+    const res = await fetch(`/api/analisa/skema-limit?brand=${encodeURIComponent(brand)}&year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`);
+    const json = await res.json();
+    if (json.ok && json.data) {
+      _FRONTEND_SKEMA_CACHE[cacheKey] = json.data;
+      renderSkemaLimitUI(json.data);
+    } else {
+      showSkemaLimitError(json.error || "Gagal memuat data skema & limit.");
+    }
+  } catch (err) {
+    console.error("fetchAndRenderSkemaLimit error:", err);
+    showSkemaLimitError(err.message);
+  }
+}
+
+function showSkemaLimitError(msg) {
+  const tbodyRekap = document.getElementById("table-skema-rekap-body");
+  if (tbodyRekap) {
+    tbodyRekap.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 24px; color: #dc2626;">Error: ${escapeHtml(msg)}</td></tr>`;
+  }
+}
+
+function renderSkemaLimitUI(data) {
+  if (!data) return;
+
+  const summary = data.summary || {};
+  const subLimit = data.subtotal_limit || {};
+  const subNonLimit = data.subtotal_non_limit || {};
+  const subPrima = data.subtotal_prima || {};
+  const grandTotal = data.grand_total || {};
+  const days = data.active_days || 28;
+
+  // 1. Update Mini KPI Cards
+  const elTotalLimit = document.getElementById("skema-kpi-total-limit");
+  if (elTotalLimit) {
+    elTotalLimit.textContent = summary.total_limit_str || summary.total_limit_saldo_str || `Rp ${Number(summary.total_limit || summary.total_limit_saldo || 0).toLocaleString("id-ID")}`;
+  }
+
+  const elLimitDaily = document.getElementById("skema-kpi-limit-daily");
+  if (elLimitDaily) {
+    elLimitDaily.textContent = `${Number(summary.limit_daily_trx || 0).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} /hari`;
+  }
+  const elLimitDailySub = document.getElementById("skema-kpi-limit-daily-sub");
+  if (elLimitDailySub) {
+    elLimitDailySub.textContent = `Porsi Volume: ${summary.limit_porsi_trx || 0}% Total Server`;
+  }
+
+  const elPrimaDaily = document.getElementById("skema-kpi-prima-daily");
+  if (elPrimaDaily) {
+    elPrimaDaily.textContent = `${Number(summary.prima_daily_trx || 0).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} /hari`;
+  }
+  const elPrimaDailySub = document.getElementById("skema-kpi-prima-daily-sub");
+  if (elPrimaDailySub) {
+    elPrimaDailySub.textContent = `Porsi Volume: ${summary.prima_porsi_trx || 0}% (Rp 0 Modal Plafon)`;
+  }
+
+  const elTotalAgen = document.getElementById("skema-kpi-total-agen");
+  if (elTotalAgen) {
+    elTotalAgen.textContent = `${Number(summary.total_agen_aktif || 0).toLocaleString("id-ID")} Toko`;
+  }
+  const elTotalAgenSub = document.getElementById("skema-kpi-total-agen-sub");
+  if (elTotalAgenSub) {
+    elTotalAgenSub.textContent = `Aktif bertransaksi (${days} hari cut-off)`;
+  }
+
+  // 2. Render Tabel Rekapitulasi Tingkat Server (Grand Summary)
+  const tbodyRekap = document.getElementById("table-skema-rekap-body");
+  if (tbodyRekap) {
+    const rekapList = data.rekap || [subPrima, subLimit, subNonLimit];
+    let rekapHtml = "";
+
+    const typeMeta = {
+      "Prima": { color: "#10b981", badgeBg: "rgba(16, 185, 129, 0.1)", label: "Prima (Reguler / Tanpa Plafon)" },
+      "Limit": { color: "#0284c7", badgeBg: "rgba(2, 132, 199, 0.1)", label: "Limit (Plafon Kredit Aktif)" },
+      "Non Limit": { color: "#d97706", badgeBg: "rgba(217, 119, 6, 0.1)", label: "Non Limit (Eks-Limit Fisik)" }
+    };
+
+    rekapList.forEach(r => {
+      const meta = typeMeta[r.type] || { color: "var(--text-main)", badgeBg: "var(--surface-border)", label: r.type };
+      const limitStr = r.total_limit > 0 ? `Rp ${Number(r.total_limit).toLocaleString("id-ID")}` : "Rp 0";
+      const avgLimitStr = r.avg_limit > 0 ? `Rp ${Number(r.avg_limit).toLocaleString("id-ID")}` : "Rp 0";
+      const yieldStr = r.yield_prod > 0 ? `${r.yield_prod.toFixed(2)} trx/Jt` : "-";
+
+      rekapHtml += `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 10px 14px; font-weight: 700;">
+            <span class="badge" style="background: ${meta.badgeBg}; color: ${meta.color}; font-size: 11px;">
+              ${r.type}
+            </span>
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); font-weight: 600;">
+            ${Number(r.agen_aktif).toLocaleString("id-ID")}
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">
+            ${r.porsi_agen_pct}%
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono);">
+            ${Number(r.total_trx).toLocaleString("id-ID")}
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${meta.color};">
+            ${Number(r.daily_trx).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); font-weight: 700;">
+            ${r.porsi_trx_pct}%
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); font-weight: 600; color: ${r.total_limit > 0 ? '#0284c7' : 'var(--text-muted)'};">
+            ${limitStr}
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">
+            ${avgLimitStr}
+          </td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: #059669;">
+            ${yieldStr}
+          </td>
+        </tr>
+      `;
+    });
+
+    // Grand Total Row
+    rekapHtml += `
+      <tr style="background: var(--surface-card); font-weight: 800; border-top: 2px solid var(--border);">
+        <td style="padding: 12px 14px;">TOTAL SERVER</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono);">${Number(grandTotal.agen_aktif || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono);">100%</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono);">${Number(grandTotal.total_trx || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono); color: var(--primary);">${Number(grandTotal.daily_trx || 0).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono);">100%</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono); color: #0284c7;">Rp ${Number(grandTotal.total_limit || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono);">-</td>
+        <td style="padding: 12px 14px; text-align: right; font-family: var(--font-mono);">-</td>
+      </tr>
+    `;
+
+    tbodyRekap.innerHTML = rekapHtml;
+  }
+
+  // Helper render tabel tier
+  function renderTierRows(rows, subtotal, tbodyId, badgeId, isLimit) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    if (badgeId) {
+      const elBadge = document.getElementById(badgeId);
+      if (elBadge) {
+        elBadge.textContent = `${Number(subtotal.agen_aktif || 0).toLocaleString("id-ID")} Toko Aktif`;
+      }
+    }
+
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${isLimit ? 10 : 8}" style="text-align: center; padding: 20px; color: var(--text-muted);">Tidak ada data pada periode ini.</td></tr>`;
+      return;
+    }
+
+    let html = "";
+    rows.forEach(r => {
+      const limStr = r.total_limit > 0 ? `Rp ${Number(r.total_limit).toLocaleString("id-ID")}` : "Rp 0";
+      const avgLimStr = r.avg_limit > 0 ? `Rp ${Number(r.avg_limit).toLocaleString("id-ID")}` : "Rp 0";
+      const yieldStr = r.yield_prod > 0 ? `${r.yield_prod.toFixed(2)}` : "-";
+
+      html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 8px 12px; text-align: center;">
+            <span class="badge" style="font-family: var(--font-mono); font-weight: 700; background: var(--surface-border); color: var(--text-main);">
+              ${escapeHtml(r.grup)}
+            </span>
+          </td>
+          <td style="padding: 8px 14px; font-weight: 600;">
+            ${escapeHtml(r.nama_grup)}
+          </td>
+          <td style="padding: 8px 12px; text-align: right; font-family: var(--font-mono); font-weight: 700;">
+            ${Number(r.agen_aktif).toLocaleString("id-ID")}
+          </td>
+          <td style="padding: 8px 12px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">
+            ${Number(r.agen_master).toLocaleString("id-ID")}
+          </td>
+          <td style="padding: 8px 12px; text-align: right; font-family: var(--font-mono); color: ${r.keaktifan_pct >= 50 ? '#059669' : 'var(--text-muted)'}; font-weight: 600;">
+            ${r.keaktifan_pct}%
+          </td>
+          <td style="padding: 8px 14px; text-align: right; font-family: var(--font-mono);">
+            ${Number(r.total_trx).toLocaleString("id-ID")}
+          </td>
+          <td style="padding: 8px 14px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--text-main);">
+            ${Number(r.daily_trx).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+          </td>
+          <td style="padding: 8px 14px; text-align: right; font-family: var(--font-mono); font-weight: 600; color: ${r.total_limit > 0 ? '#0284c7' : 'var(--text-muted)'};">
+            ${limStr}
+          </td>
+          ${isLimit ? `
+            <td style="padding: 8px 14px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">
+              ${avgLimStr}
+            </td>
+            <td style="padding: 8px 14px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: #059669;">
+              ${yieldStr}
+            </td>
+          ` : ""}
+        </tr>
+      `;
+    });
+
+    // Subtotal Row
+    const subLimStr = subtotal.total_limit > 0 ? `Rp ${Number(subtotal.total_limit).toLocaleString("id-ID")}` : "Rp 0";
+    const subAvgLimStr = subtotal.avg_limit > 0 ? `Rp ${Number(subtotal.avg_limit).toLocaleString("id-ID")}` : "Rp 0";
+    const subYieldStr = subtotal.yield_prod > 0 ? `${subtotal.yield_prod.toFixed(2)}` : "-";
+
+    html += `
+      <tr style="background: var(--surface-card); font-weight: 800; border-top: 2px solid var(--border);">
+        <td colspan="2" style="padding: 10px 14px;">SUBTOTAL ${escapeHtml(subtotal.type).toUpperCase()}</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono);">${Number(subtotal.agen_aktif || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono);">${Number(subtotal.agen_master || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono);">${subtotal.keaktifan_pct || 0}%</td>
+        <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono);">${Number(subtotal.total_trx || 0).toLocaleString("id-ID")}</td>
+        <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); color: var(--primary);">${Number(subtotal.daily_trx || 0).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
+        <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); color: #0284c7;">${subLimStr}</td>
+        ${isLimit ? `
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono);">${subAvgLimStr}</td>
+          <td style="padding: 10px 14px; text-align: right; font-family: var(--font-mono); color: #059669;">${subYieldStr}</td>
+        ` : ""}
+      </tr>
+    `;
+
+    tbody.innerHTML = html;
+  }
+
+  // 3. Render Tabel Limit
+  renderTierRows(data.groups_limit, subLimit, "table-skema-limit-body", "badge-skema-limit-total", true);
+
+  // 4. Render Tabel Non Limit
+  renderTierRows(data.groups_non_limit, subNonLimit, "table-skema-non-limit-body", "badge-skema-non-limit-total", false);
+
+  // 5. Render Tabel Prima
+  renderTierRows(data.groups_prima, subPrima, "table-skema-prima-body", "badge-skema-prima-total", false);
+}

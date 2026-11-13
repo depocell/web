@@ -530,7 +530,7 @@ async function loadAdminFinancialPivotOptions() {
     }
 
     adminFinState.optionsLoaded = true;
-    runAdminFinancialPivot();
+    // runAdminFinancialPivot() di-hold: hanya berjalan saat user klik "Hitung Pivot Finansial"
   } catch (err) {
     console.error("Error loading admin pivot options:", err);
   }
