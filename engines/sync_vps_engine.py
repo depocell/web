@@ -34,24 +34,27 @@ def get_ssh_client():
             client.connect(HOST, port=PORT, username=USER, pkey=pkey, timeout=8)
             return client
         except Exception:
-            pass
+            try:
+                client.close()
+            except Exception:
+                pass
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(HOST, port=PORT, username=USER, password=PASS, timeout=8)
     return client
 
 
+def get_sftp_client():
+    """Membuat koneksi SFTP Paramiko secara stabil melalui SSH Client."""
+    ssh = get_ssh_client()
+    sftp = ssh.open_sftp()
+    return ssh, sftp
+
+
 def get_sftp_transport():
-    """Membuat koneksi SFTP Paramiko."""
-    transport = paramiko.Transport((HOST, PORT))
-    key_path = os.path.expanduser("~/.ssh/id_ed25519")
-    if os.path.exists(key_path):
-        try:
-            pkey = paramiko.Ed25519Key.from_private_key_file(key_path)
-            transport.connect(username=USER, pkey=pkey)
-            return transport
-        except Exception:
-            pass
-    transport.connect(username=USER, password=PASS)
-    return transport
+    """Membuat koneksi SFTP transport Paramiko (kompatibilitas legacy)."""
+    ssh = get_ssh_client()
+    return ssh.get_transport()
 
 
 def get_vps_status():
@@ -185,8 +188,7 @@ def sync_to_vps_stream():
 
     try:
         yield {"type": "log", "level": "info", "message": f"Menghubungkan SFTP ke {HOST}:{PORT} sebagai user '{USER}'..."}
-        transport = get_sftp_transport()
-        sftp = paramiko.SFTPClient.from_transport(transport)
+        ssh_sftp, sftp = get_sftp_client()
         yield {"type": "log", "level": "success", "message": "Koneksi SFTP berhasil terjalin."}
 
         # 1. Pastikan remote direktori ada
@@ -258,7 +260,7 @@ def sync_to_vps_stream():
                 }
 
         sftp.close()
-        transport.close()
+        ssh_sftp.close()
         yield {"type": "log", "level": "success", "message": f"Selesai transfer file. ({uploaded_count} file diunggah)."}
 
         # 4. Pull Git di VPS
