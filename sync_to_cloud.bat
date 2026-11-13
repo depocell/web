@@ -1,5 +1,5 @@
 @echo off
-title Update & Sync Web Report ke depas.my.id
+title Update ^& Sync Web Report ke depas.my.id
 color 0b
 
 echo =======================================================

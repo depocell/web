@@ -317,25 +317,17 @@ async function switchAdminTab(tabName) {
   const viewFinancial = document.getElementById("view-admin-financial");
 
   const viewUsers = document.getElementById("view-admin-users");
-
+  const viewVps = document.getElementById("view-admin-vps");
   const viewTickets = document.getElementById("view-admin-tickets");
 
-
-
   const btnIngestion = document.getElementById("tab-btn-ingestion");
-
   const btnMaster = document.getElementById("tab-btn-master");
-
   const btnProducts = document.getElementById("tab-btn-products");
-
   const btnPivot = document.getElementById("tab-btn-pivot");
-
   const btnSystem = document.getElementById("tab-btn-system");
-
   const btnFinancial = document.getElementById("tab-btn-financial");
-
   const btnUsers = document.getElementById("tab-btn-users");
-
+  const btnVps = document.getElementById("tab-btn-vps");
   const btnTickets = document.getElementById("tab-btn-tickets");
 
 
@@ -377,35 +369,26 @@ async function switchAdminTab(tabName) {
   if (viewFinancial) viewFinancial.style.display = "none";
 
   if (viewUsers) viewUsers.style.display = "none";
-
+  if (viewVps) viewVps.style.display = "none";
   if (viewTickets) viewTickets.style.display = "none";
 
-
-
   if (btnIngestion) btnIngestion.classList.remove("active");
-
   if (btnMaster) btnMaster.classList.remove("active");
-
   if (btnProducts) btnProducts.classList.remove("active");
-
   if (btnPivot) btnPivot.classList.remove("active");
-
   if (btnSystem) btnSystem.classList.remove("active");
-
   if (btnFinancial) btnFinancial.classList.remove("active");
-
   if (btnUsers) btnUsers.classList.remove("active");
-
+  if (btnVps) btnVps.classList.remove("active");
   if (btnTickets) btnTickets.classList.remove("active");
 
-
-
   if (tabName === "financial" || tabName === "pivot") {
-
     window.location.replace("#pivot-admin");
-
     return;
-
+  } else if (tabName === "vps") {
+    if (viewVps) viewVps.style.display = "flex";
+    if (btnVps) btnVps.classList.add("active");
+    await loadAdminVpsStatus();
   } else if (tabName === "tickets") {
 
     if (viewTickets) viewTickets.style.display = "flex";
@@ -7628,4 +7611,301 @@ async function resolveAdminTicket(ticketId) {
   }
 
 }
+
+
+// ─── TAB SYNC & STATUS CLOUD VPS (depas.my.id) ──────────────────────────────
+
+let vpsSyncEventSource = null;
+
+async function loadAdminVpsStatus() {
+  const btnRefresh = document.getElementById("btn-vps-refresh");
+  if (btnRefresh) {
+    btnRefresh.disabled = true;
+    btnRefresh.innerHTML = `<svg class="spin-animate" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Memeriksa...`;
+  }
+
+  const badgeHttp = document.getElementById("vps-http-badge");
+  const elLatency = document.getElementById("vps-http-latency");
+  const elRole = document.getElementById("vps-http-role");
+  const badgePm2 = document.getElementById("vps-pm2-badge");
+  const elPm2Web = document.getElementById("pm2-webreport-mem");
+  const elPm2Serpul = document.getElementById("pm2-serpul-mem");
+  const badgeRam = document.getElementById("vps-ram-pct");
+  const elRamUsed = document.getElementById("vps-ram-used");
+  const elRamTotal = document.getElementById("vps-ram-total");
+  const elRamBar = document.getElementById("vps-ram-bar");
+  const elSwap = document.getElementById("vps-swap-used");
+  const elUptime = document.getElementById("vps-uptime-label");
+  const elAstaga = document.getElementById("vps-astaga-mtime");
+  const elOkipay = document.getElementById("vps-okipay-mtime");
+  const elGold = document.getElementById("vps-gold-mtime");
+  const tableBody = document.getElementById("table-vps-files-body");
+  const elFilesCount = document.getElementById("vps-files-count");
+
+  try {
+    const res = await fetch("/api/admin/vps/status");
+    const json = await res.json();
+
+    if (!json.ok) {
+      if (badgeHttp) {
+        badgeHttp.textContent = "OFFLINE / ERROR";
+        badgeHttp.style.background = "rgba(239, 68, 68, 0.1)";
+        badgeHttp.style.color = "#ef4444";
+        badgeHttp.style.borderColor = "rgba(239, 68, 68, 0.3)";
+      }
+      return;
+    }
+
+    // 1. HTTP Card
+    if (badgeHttp) {
+      if (json.http && json.http.online) {
+        badgeHttp.textContent = "ONLINE (200 OK)";
+        badgeHttp.style.background = "rgba(16, 185, 129, 0.1)";
+        badgeHttp.style.color = "#059669";
+        badgeHttp.style.borderColor = "rgba(16, 185, 129, 0.3)";
+      } else {
+        badgeHttp.textContent = "UNREACHABLE";
+        badgeHttp.style.background = "rgba(239, 68, 68, 0.1)";
+        badgeHttp.style.color = "#ef4444";
+        badgeHttp.style.borderColor = "rgba(239, 68, 68, 0.3)";
+      }
+    }
+    if (elLatency) elLatency.textContent = (json.http?.latency_ms || 0) + " ms";
+    if (elRole) elRole.textContent = json.http?.role ? `${json.http.role.toUpperCase()} (Viewer)` : "Tamu (Viewer)";
+
+    // 2. PM2 Card
+    if (badgePm2) {
+      const pm2Online = (json.pm2 || []).filter(p => p.status === "online").length;
+      badgePm2.textContent = `${pm2Online} / ${json.pm2?.length || 0} Online`;
+    }
+    if (json.pm2) {
+      const pWeb = json.pm2.find(p => p.name === "webreport");
+      const pSerpul = json.pm2.find(p => p.name === "serpul");
+      if (elPm2Web && pWeb) {
+        elPm2Web.textContent = `${pWeb.memory} (CPU ${pWeb.cpu})`;
+        elPm2Web.style.color = pWeb.status === "online" ? "var(--primary)" : "#ef4444";
+      }
+      if (elPm2Serpul && pSerpul) {
+        elPm2Serpul.textContent = `${pSerpul.memory} (CPU ${pSerpul.cpu})`;
+        elPm2Serpul.style.color = pSerpul.status === "online" ? "var(--primary)" : "#ef4444";
+      }
+    }
+
+    // 3. Resource Card (RAM & Swap)
+    if (json.system) {
+      const sys = json.system;
+      if (badgeRam) {
+        badgeRam.textContent = `${sys.ram_pct}%`;
+        if (sys.ram_pct > 90) {
+          badgeRam.style.color = "#dc2626";
+          badgeRam.style.background = "rgba(239, 68, 68, 0.1)";
+          badgeRam.style.borderColor = "rgba(239, 68, 68, 0.3)";
+        } else {
+          badgeRam.style.color = "#d97706";
+          badgeRam.style.background = "rgba(245, 158, 11, 0.1)";
+          badgeRam.style.borderColor = "rgba(245, 158, 11, 0.3)";
+        }
+      }
+      if (elRamUsed) elRamUsed.textContent = `${sys.ram_used_mb} MB`;
+      if (elRamTotal) elRamTotal.textContent = `/ ${sys.ram_total_mb} MB`;
+      if (elRamBar) elRamBar.style.width = `${Math.min(sys.ram_pct, 100)}%`;
+      if (elSwap) elSwap.textContent = `${sys.swap_used_mb} MB (${sys.swap_pct}%)`;
+      if (elUptime) elUptime.textContent = sys.uptime || "-";
+    }
+
+    // 4. Freshness Card
+    if (json.cache_files) {
+      const fAstaga = json.cache_files.find(f => f.name === "trx_astaga_2026.parquet");
+      const fOkipay = json.cache_files.find(f => f.name === "trx_okipay_2026.parquet");
+      const fGold = json.cache_files.find(f => f.name === "analisa_gold_2026.json");
+
+      if (elAstaga) elAstaga.textContent = fAstaga ? `${fAstaga.size} • ${fAstaga.mtime}` : "-";
+      if (elOkipay) elOkipay.textContent = fOkipay ? `${fOkipay.size} • ${fOkipay.mtime}` : "-";
+      if (elGold) elGold.textContent = fGold ? `${fGold.size} • ${fGold.mtime}` : "-";
+
+      // Populate Table
+      if (tableBody) {
+        if (json.cache_files.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted);">Tidak ada file cache di VPS</td></tr>`;
+        } else {
+          tableBody.innerHTML = json.cache_files.map((f, idx) => {
+            const is2026 = f.name.includes("2026");
+            const highlightStyle = is2026 ? "background: rgba(2, 132, 199, 0.04); font-weight: 600;" : "";
+            const badgeType = f.name.endsWith(".parquet") ? "Parquet" : "JSON";
+            return `
+              <tr style="border-bottom: 1px solid var(--surface-border); ${highlightStyle}">
+                <td style="padding: 9px 16px; color: var(--text-muted); font-size: 11.5px;">${idx + 1}</td>
+                <td style="padding: 9px 16px; font-family: var(--font-mono); font-size: 12px; color: ${is2026 ? 'var(--primary)' : 'var(--text-main)'};">
+                  ${f.name}
+                </td>
+                <td style="padding: 9px 16px; font-family: var(--font-mono); font-weight: 700;">${f.size}</td>
+                <td style="padding: 9px 16px; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">${f.mtime}</td>
+                <td style="padding: 9px 16px; text-align: center;">
+                  <span class="badge" style="font-size: 10.5px; padding: 2px 8px; background: ${is2026 ? 'rgba(16, 185, 129, 0.1)' : 'var(--surface-bg)'}; color: ${is2026 ? '#059669' : 'var(--text-muted)'}; border: 1px solid ${is2026 ? 'rgba(16, 185, 129, 0.3)' : 'var(--surface-border)'};">
+                    ${is2026 ? 'LIVE 2026' : badgeType}
+                  </span>
+                </td>
+              </tr>
+            `;
+          }).join("");
+        }
+      }
+      if (elFilesCount) elFilesCount.textContent = `${json.cache_files.length} File`;
+    }
+
+  } catch (err) {
+    console.error("Gagal load status VPS:", err);
+  } finally {
+    if (btnRefresh) {
+      btnRefresh.disabled = false;
+      btnRefresh.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Cek Status VPS`;
+    }
+  }
+}
+
+function appendVpsTerminalLine(text, level = "info") {
+  const terminal = document.getElementById("vps-terminal-body");
+  if (!terminal) return;
+
+  const row = document.createElement("div");
+  row.style.marginBottom = "3px";
+  row.style.wordBreak = "break-all";
+
+  const timeStr = new Date().toLocaleTimeString("id-ID", { hour12: false });
+  const timePrefix = `<span style="color: #475569; margin-right: 8px;">[${timeStr}]</span>`;
+
+  if (level === "upload") {
+    row.innerHTML = `${timePrefix}<span style="color: #38bdf8; font-weight: 700;">&gt;&gt;</span> <span style="color: #fde047;">${escapeHtml(text)}</span>`;
+  } else if (level === "success") {
+    row.innerHTML = `${timePrefix}<span style="color: #22c55e; font-weight: 700;">[OK]</span> <span style="color: #4ade80; font-weight: 600;">${escapeHtml(text)}</span>`;
+  } else if (level === "warning") {
+    row.innerHTML = `${timePrefix}<span style="color: #f59e0b; font-weight: 700;">[WARN]</span> <span style="color: #fbbf24;">${escapeHtml(text)}</span>`;
+  } else if (level === "error") {
+    row.innerHTML = `${timePrefix}<span style="color: #ef4444; font-weight: 700;">[FAIL]</span> <span style="color: #f87171; font-weight: 700;">${escapeHtml(text)}</span>`;
+  } else if (level === "skip") {
+    row.innerHTML = `${timePrefix}<span style="color: #64748b;">${escapeHtml(text)}</span>`;
+  } else if (level === "git" || level === "restart") {
+    row.innerHTML = `${timePrefix}<span style="color: #c084fc; font-weight: 700;">#</span> <span style="color: #e2e8f0; font-weight: 600;">${escapeHtml(text)}</span>`;
+  } else {
+    row.innerHTML = `${timePrefix}<span style="color: #94a3b8;">${escapeHtml(text)}</span>`;
+  }
+
+  terminal.appendChild(row);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function clearVpsTerminal() {
+  const terminal = document.getElementById("vps-terminal-body");
+  if (terminal) {
+    terminal.innerHTML = `<div style="color: #64748b; font-style: italic;">[Terminal Cleared] Siap menjalankan sinkronisasi berikutnya...</div>`;
+  }
+}
+
+function copyVpsTerminal() {
+  const terminal = document.getElementById("vps-terminal-body");
+  if (!terminal) return;
+  const text = terminal.innerText || "";
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Log terminal berhasil disalin ke clipboard!");
+    }).catch(() => {});
+  }
+}
+
+function startVpsSyncStream() {
+  const btnSync = document.getElementById("btn-vps-start-sync");
+  const btnRefresh = document.getElementById("btn-vps-refresh");
+  const badgeStatus = document.getElementById("terminal-status-indicator");
+  const terminal = document.getElementById("vps-terminal-body");
+
+  if (vpsSyncEventSource) {
+    vpsSyncEventSource.close();
+    vpsSyncEventSource = null;
+  }
+
+  if (btnSync) {
+    btnSync.disabled = true;
+    btnSync.innerHTML = `<svg class="spin-animate" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Sedang Sinkronisasi...`;
+  }
+  if (btnRefresh) btnRefresh.disabled = true;
+
+  if (badgeStatus) {
+    badgeStatus.textContent = "SYNCING...";
+    badgeStatus.style.background = "rgba(245, 158, 11, 0.15)";
+    badgeStatus.style.color = "#f59e0b";
+    badgeStatus.style.borderColor = "rgba(245, 158, 11, 0.3)";
+  }
+
+  // Clear & Print Header in Terminal
+  if (terminal) {
+    terminal.innerHTML = "";
+    appendVpsTerminalLine("==================================================================", "info");
+    appendVpsTerminalLine("   DEPAS CLOUD SYNC STREAM — TARGET: 185.205.222.170 (depas.my.id)", "info");
+    appendVpsTerminalLine("==================================================================", "info");
+  }
+
+  vpsSyncEventSource = new EventSource("/api/admin/vps/sync-stream");
+
+  vpsSyncEventSource.onmessage = function (event) {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === "start" || data.type === "init") {
+        appendVpsTerminalLine(data.message, "info");
+      } else if (data.type === "log") {
+        appendVpsTerminalLine(data.message, data.level || "info");
+      } else if (data.type === "done") {
+        appendVpsTerminalLine(data.message, "success");
+        if (badgeStatus) {
+          badgeStatus.textContent = "COMPLETED";
+          badgeStatus.style.background = "rgba(16, 185, 129, 0.15)";
+          badgeStatus.style.color = "#10b981";
+          badgeStatus.style.borderColor = "rgba(16, 185, 129, 0.3)";
+        }
+        finishSyncUI();
+        // Refresh telemetry status
+        setTimeout(loadAdminVpsStatus, 1500);
+      } else if (data.type === "error") {
+        appendVpsTerminalLine(data.message || data.error, "error");
+        if (badgeStatus) {
+          badgeStatus.textContent = "FAILED";
+          badgeStatus.style.background = "rgba(239, 68, 68, 0.15)";
+          badgeStatus.style.color = "#ef4444";
+          badgeStatus.style.borderColor = "rgba(239, 68, 68, 0.3)";
+        }
+        finishSyncUI();
+      }
+    } catch (err) {
+      appendVpsTerminalLine("Error parse stream: " + err.message, "error");
+    }
+  };
+
+  vpsSyncEventSource.onerror = function (err) {
+    appendVpsTerminalLine("Koneksi event stream selesai / tertutup.", "skip");
+    finishSyncUI();
+  };
+
+  function finishSyncUI() {
+    if (vpsSyncEventSource) {
+      vpsSyncEventSource.close();
+      vpsSyncEventSource = null;
+    }
+    if (btnSync) {
+      btnSync.disabled = false;
+      btnSync.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> Mulai Sinkronisasi Sekarang`;
+    }
+    if (btnRefresh) btnRefresh.disabled = false;
+  }
+}
+
+// Bind to window
+window.loadAdminVpsStatus = loadAdminVpsStatus;
+window.startVpsSyncStream = startVpsSyncStream;
+window.clearVpsTerminal = clearVpsTerminal;
+window.copyVpsTerminal = copyVpsTerminal;
+
 

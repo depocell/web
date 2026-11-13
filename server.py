@@ -2036,24 +2036,62 @@ async def api_admin_job_status(request):
 
 
 async def api_admin_sync_vps(request):
-
     """Sinkronisasi seluruh database SQLite dan cache transaksi Parquet ke VPS Helipod depas.my.id."""
-
     try:
-
         import engines.sync_vps_engine as sync_vps
-
         res = await asyncio.to_thread(sync_vps.sync_to_vps)
-
         return JSONResponse(res)
-
     except Exception as e:
-
         import traceback
-
         traceback.print_exc()
-
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_admin_vps_status(request):
+    """Mengambil status telemetri VPS: health check HTTP, PM2 cluster, RAM & CPU, dan file data Parquet."""
+    try:
+        import engines.sync_vps_engine as sync_vps
+        res = await asyncio.to_thread(sync_vps.get_vps_status)
+        return JSONResponse(res)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_admin_vps_sync_stream(request):
+    """Server-Sent Events (SSE) streaming progress upload dan log sinkronisasi VPS ke Web Terminal."""
+    import engines.sync_vps_engine as sync_vps
+    import threading
+
+    async def event_generator():
+        loop = asyncio.get_event_loop()
+        queue = asyncio.Queue()
+
+        def background_worker():
+            try:
+                for ev in sync_vps.sync_to_vps_stream():
+                    loop.call_soon_threadsafe(queue.put_nowait, ev)
+            except Exception as e:
+                loop.call_soon_threadsafe(queue.put_nowait, {"type": "error", "ok": False, "message": str(e)})
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+        threading.Thread(target=background_worker, daemon=True).start()
+
+        while True:
+            ev = await queue.get()
+            if ev is None:
+                break
+            yield f"data: {json.dumps(ev)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 
@@ -3476,6 +3514,8 @@ routes = [
     Route("/api/admin/job-status",      api_admin_job_status),
 
     Route("/api/admin/sync-vps",        api_admin_sync_vps, methods=["GET", "POST"]),
+    Route("/api/admin/vps/status",      api_admin_vps_status, methods=["GET"]),
+    Route("/api/admin/vps/sync-stream", api_admin_vps_sync_stream, methods=["GET"]),
 
     Route("/api/admin/upload-tsv",       api_admin_upload_tsv, methods=["POST"]),
 
