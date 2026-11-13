@@ -2578,8 +2578,29 @@ html[data-theme-style="classic"][data-theme-mode="dark"] .unified-brand-btn.acti
 }
 
 /* ==========================================================================
-   ADMIN STATION WORKSPACE MODE (DEDICATED ADMIN DESKTOP)
+   ADMIN & DAPUR WORKSPACE MODE (DEDICATED LOCAL DESKTOP WORKSTATION)
    ========================================================================== */
+
+/* Sembunyikan seluruh menu Dapur & Admin secara default (Zero-Flash di Cloud / VPS) */
+.nav-label-admin,
+.nav-item-admin,
+#nav-admin-data,
+#nav-pivot-admin {
+  display: none !important;
+}
+
+/* Hanya tampil jika workstation lokal (html.is-local) atau admin desktop (html.admin-station-mode) */
+html.is-local .nav-label-admin,
+html.is-local .nav-item-admin,
+html.is-local #nav-admin-data,
+html.is-local #nav-pivot-admin,
+html.admin-station-mode .nav-label-admin,
+html.admin-station-mode .nav-item-admin,
+html.admin-station-mode #nav-admin-data,
+html.admin-station-mode #nav-pivot-admin {
+  display: block !important;
+}
+
 html.admin-station-mode .nav-menu > li:not(.nav-item-admin):not(.nav-label-admin) {
   display: none !important;
 }

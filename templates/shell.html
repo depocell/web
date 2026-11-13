@@ -11,7 +11,7 @@
   <noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </noscript>
-  <link rel="stylesheet" href="/static/css/app.css?v=40">
+  <link rel="stylesheet" href="/static/css/app.css?v=41">
   <script>
     (function() {
       var savedTheme = localStorage.getItem('theme_preference');
@@ -26,9 +26,13 @@
         document.documentElement.classList.add('sidebar-collapsed');
       }
 
-      // Deteksi Admin Station Mode (Dedicated Desktop EXE / Workstation)
+      // Deteksi Admin Station Mode (HANYA Dedicated Desktop EXE / Workstation Lokal)
+      var isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocalHost) {
+        document.documentElement.classList.add('is-local');
+      }
       var urlParams = new URLSearchParams(window.location.search);
-      var isAdmin = urlParams.get('mode') === 'admin' || window.location.hash.indexOf('mode=admin') !== -1;
+      var isAdmin = isLocalHost && (urlParams.get('mode') === 'admin' || window.location.hash.indexOf('mode=admin') !== -1);
       if (isAdmin) {
         document.documentElement.classList.add('admin-station-mode');
         window.addEventListener('DOMContentLoaded', function() {
@@ -279,8 +283,8 @@
         </a>
       </li>
 
-      <li class="nav-label nav-label-admin" style="margin-top: 22px;">Admin &amp; Setting</li>
-      <li class="nav-item nav-item-admin">
+      <li class="nav-label" style="margin-top: 22px;">Manajemen &amp; Sales</li>
+      <li class="nav-item">
         <a href="#daily" class="nav-link" id="nav-daily" title="Daily Report" data-tooltip="Daily Report">
           <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
             <defs>
@@ -307,7 +311,7 @@
           <span class="nav-text">Daily Report</span>
         </a>
       </li>
-      <li class="nav-item nav-item-admin">
+      <li class="nav-item">
         <a href="#sco" class="nav-link" id="nav-sco" title="SCO Suite" data-tooltip="SCO Suite">
           <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
             <defs>
@@ -328,7 +332,10 @@
           <span class="nav-text">SCO Suite</span>
         </a>
       </li>
-      <li class="nav-item nav-item-admin">
+
+      <!-- KHUSUS WORKSTATION LOKAL: DAPUR OLAH DATA & ADMIN (SEMBUNYI TOTAL DI CLOUD) -->
+      <li class="nav-label nav-label-admin" style="display: none; margin-top: 22px;">Dapur &amp; Admin</li>
+      <li class="nav-item nav-item-admin" style="display: none;">
         <a href="#admin" class="nav-link" id="nav-admin-data" title="Admin & Olah Data" data-tooltip="Admin & Olah Data">
           <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
             <defs>
@@ -355,7 +362,7 @@
           <span class="nav-text">Admin &amp; Olah Data</span>
         </a>
       </li>
-      <li class="nav-item nav-item-admin">
+      <li class="nav-item nav-item-admin" style="display: none;">
         <a href="#pivot-admin" class="nav-link" id="nav-pivot-admin" title="Pivot Admin" data-tooltip="Pivot Admin">
           <svg class="fluent-color-icon" viewBox="0 0 24 24" fill="none">
             <defs>
@@ -469,7 +476,7 @@
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
-        <span id="sidebar-username" style="font-weight: 600; color: var(--text-main, #f8fafc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">admin</span>
+        <span id="sidebar-username" style="font-weight: 600; color: var(--text-main, #f8fafc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tamu</span>
       </div>
       <a href="/api/auth/logout" title="Keluar / Logout" style="color: #ef4444; text-decoration: none; display: flex; align-items: center; gap: 5px; font-weight: 600; font-size: 11.5px; padding: 4px 8px; border-radius: 6px; background: rgba(239, 68, 68, 0.12); flex-shrink: 0;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -528,6 +535,6 @@
 
   </div>
 
-  <script src="/static/js/app.js?v=48"></script>
+  <script src="/static/js/app.js?v=49"></script>
 </body>
 </html>

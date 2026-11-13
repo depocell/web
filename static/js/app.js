@@ -105,34 +105,27 @@ async function checkAuthStatus(force = false) {
 
 function applyAuthUI() {
   const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-  const isAdmin = isLocal || currentAuthUser.role === "admin";
 
-  // Sembunyikan / Tampilkan seluruh item di bawah Admin & Setting jika bukan admin
+  // Tag root html
+  if (isLocal) {
+    document.documentElement.classList.add("is-local");
+  } else {
+    document.documentElement.classList.remove("is-local");
+    document.documentElement.classList.remove("admin-station-mode");
+  }
+
+  // Dapur Olah Data (#admin & #pivot-admin) EKSKLUSIF HANYA untuk Workstation Lokal (Dapur)
   document.querySelectorAll(".nav-label-admin, .nav-item-admin").forEach(el => {
-    el.style.display = isAdmin ? "block" : "none";
-  });
-
-  document.querySelectorAll(".nav-label").forEach(el => {
-    if (el.textContent.includes("Admin & Setting") || el.textContent.includes("Dapur") || el.textContent.includes("Administrasi")) {
-      el.style.display = isAdmin ? "block" : "none";
-    }
+    el.style.display = isLocal ? "block" : "none";
   });
 
   const adminNav = document.getElementById("nav-admin-data");
   if (adminNav && adminNav.closest("li")) {
-    adminNav.closest("li").style.display = isAdmin ? "block" : "none";
+    adminNav.closest("li").style.display = isLocal ? "block" : "none";
   }
   const pivotAdminNav = document.getElementById("nav-pivot-admin");
   if (pivotAdminNav && pivotAdminNav.closest("li")) {
-    pivotAdminNav.closest("li").style.display = isAdmin ? "block" : "none";
-  }
-  const dailyNav = document.getElementById("nav-daily");
-  if (dailyNav && dailyNav.closest("li")) {
-    dailyNav.closest("li").style.display = "block";
-  }
-  const scoNav = document.getElementById("nav-sco");
-  if (scoNav && scoNav.closest("li")) {
-    scoNav.closest("li").style.display = "block";
+    pivotAdminNav.closest("li").style.display = isLocal ? "block" : "none";
   }
 
   // User Section di Sidebar
@@ -141,13 +134,13 @@ function applyAuthUI() {
   const roleBadgeEl = document.getElementById("sidebar-user-role");
 
   if (userSec) {
-    userSec.style.display = "flex";
+    userSec.style.display = isLocal ? "none" : "flex";
   }
   if (usernameEl) {
-    usernameEl.textContent = currentAuthUser.username || (isAdmin ? "Admin (Lokal)" : "Tamu");
+    usernameEl.textContent = isLocal ? "Admin (Lokal)" : (currentAuthUser.username || "Tamu");
   }
   if (roleBadgeEl) {
-    if (isAdmin) {
+    if (isLocal) {
       roleBadgeEl.textContent = "Admin";
       roleBadgeEl.style.background = "#eff6ff";
       roleBadgeEl.style.color = "#2563eb";
@@ -345,13 +338,12 @@ async function navigate() {
     return;
   }
 
-  // Proteksi Menu Dapur Olah Data: Hanya dapat diakses oleh Administrator di Web EXE lokal
+  // Proteksi Menu Dapur Olah Data: Hanya dapat diakses di Workstation Lokal
   const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-  const isAdmin = isLocal || currentAuthUser.role === "admin";
   const adminOnlyRoutes = ["#admin", "#pivot-admin"];
   const isTargetAdminOnly = adminOnlyRoutes.some(r => hash === r || hash.startsWith(r + "?") || hash.startsWith(r + "/"));
-  if (isTargetAdminOnly && !isAdmin) {
-    alert("Akses ditolak: Menu Dapur Olah Data khusus dijalankan di Web EXE lokal.");
+  if (isTargetAdminOnly && !isLocal) {
+    console.warn("Akses ditolak: Menu Dapur Olah Data khusus dijalankan di Workstation Lokal.");
     window.location.replace("#overview");
     return;
   }
