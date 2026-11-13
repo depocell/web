@@ -370,5 +370,35 @@ $$\text{D} > \text{M} > \text{R} > \text{P} > \text{O}$$
 * **Jika Tidak Butuh Limit / Datang Langsung ke Kantor Cabang untuk Deposit Tunai**: Akun didaftarkan ke group **`P`** *(Prima)*.
 
 ---
+
+## 12. HUKUM ARSITEKTUR HYBRID: DAPUR LOKAL VS ETALASE CLOUD (NON-NEGOTIABLE)
+> **Filosofi Sistem:**
+> Web Report beroperasi dengan arsitektur **Hybrid Two-Tier**:
+> 1. **DAPUR (Laptop Workstation Lokal)**: Tempat memasak, meramu data TSV dari OtomaX, menghasilkan Parquet, dan mengontrol server.
+> 2. **ETALASE (Cloud VPS depas.my.id)**: Tempat memajang laporan keuangan & operasional untuk dilihat oleh manajemen, owner, dan tim lapangan secara 24/7.
+
+* **ATURAN WAJIB SISTEM:**
+  1. **Laptop Workstation Lokal (`WebReportAdmin.exe` / `localhost:8000`)**:
+     - **Memegang Hak Akses Dapur Penuh**: Membaca folder `C:\DMS RAW DATA\`, memproses `astaga.tsv` & `okipay.tsv`, mengelola `MASTER/master_data.db`, dan menghasilkan file Parquet/JSON.
+     - **Menu Eksklusif Dapur**: Menu `#admin` *(Admin & Olah Data, Tab Sync & Telemetri VPS, User Management)* dan `#pivot-admin` *(Pivot Admin)* **HANYA BOLEH TERSEDIA DI WORKSTATION LOKAL**.
+     - Terhubung ke VPS via SFTP & SSH untuk mengunggah file Parquet hasil olahan secara berkala.
+  2. **Cloud VPS (`185.205.222.170` / `depas.my.id`)**:
+     - Berjalan di Ubuntu Linux port `8000` di bawah PM2 (`webreport`), berdampingan dengan Depot Pulsa port `3000` (`serpul`), dan diproxy oleh Nginx dengan SSL Let's Encrypt serta DNS Cloudflare (Proxied).
+     - **Bebas Login (Default Mode Tamu/Viewer)**: Siapa pun yang membuka `https://depas.my.id` otomatis masuk sebagai role `tamu` tanpa form login atau password, langsung diarahkan ke `#overview`.
+     - **Isolasi Mutlak Menu Dapur**:
+       - Seluruh menu `#admin`, `#pivot-admin`, dan label `Dapur & Admin` **HARAM HUKUMNYA** muncul atau dirender di `depas.my.id` (sudah dilindungi dengan `display: none !important` di CSS dan route guard JS).
+       - Seluruh endpoint `/api/admin/*` dan `/pages/admin/*` wajib menolak akses non-lokal dengan status `403 Forbidden`.
+  3. **Struktur Menu Sidebar Bersih**:
+     - Menu `Daily Report` (`#daily`) dan `SCO Suite` (`#sco`) berdiri sendiri di bawah label **`Manajemen & Sales`** (BUKAN di bawah Admin).
+     - Label **`Dapur & Admin`** hanya menampung `#admin` dan `#pivot-admin` yang eksklusif untuk laptop lokal.
+  4. **Protokol Koneksi SFTP / SSH Paramiko (Anti RuntimeError)**:
+     - DILARANG KERAS menginisialisasi ulang atau memanggil `transport.connect()` berulang kali pada instance `paramiko.Transport` yang sama saat retry autentikasi, karena `Transport` adalah turunan `threading.Thread` yang akan melempar fatal error:
+       $$\text{RuntimeError: threads can only be started once}$$
+     - **Standar Baku**: Wajib selalu menggunakan `paramiko.SSHClient()` dengan `client.open_sftp()`. Jika koneksi SSH key gagal, tutup instance lama (`client.close()`) dan buat instance baru sebelum mencoba login password.
+  5. **Sintaks Batch File Windows (`.bat`)**:
+     - Karakter `&` di command prompt Windows adalah operator pemisah perintah (*command chaining*).
+     - Seluruh judul jendela (*title*) atau pesan echo yang memuat `&` **WAJIB di-escape** menggunakan tanda topi `^` (contoh resmi: `title Update ^& Sync Web Report ke depas.my.id`).
+
+---
 *Pedoman ini dibuat agar seluruh AI Agent di thread/chat mana pun memiliki output angka yang 100% konsisten, adil, dan valid, serta tampilan antarmuka yang modern, presisi, dan berstandar enterprise.*
 
