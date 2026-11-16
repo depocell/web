@@ -65,7 +65,9 @@ def parse_date_str(d_str):
 
 def get_active_transacting_ar_ids(months=("2026-10", "2026-11"), force_refresh=False):
     """
-    Mengambil set AR ID yang bertransaksi sukses pada bulan lalu dan bulan ini.
+    Mengambil set agen_id induk (Store ID) yang memiliki transaksi sukses
+    (baik dari terminal direct agen_id maupun dari ID downline/reseller-nya)
+    pada bulan lalu dan/atau bulan ini.
     Toko yang 0 transaksi di kedua bulan berturut-turut (dorman/mati) dikeluarkan dari target kunjungan.
     Hasil di-cache di file .cache/active_target_agents.json.
     """
@@ -92,13 +94,21 @@ def get_active_transacting_ar_ids(months=("2026-10", "2026-11"), force_refresh=F
         )
         df_p = table.to_pandas()
         df_p['m'] = df_p['tgl_entry'].astype(str).str[:7]
-        active_set = set(df_p[df_p['m'].isin(months)]['ar_id'].dropna().unique())
+        active_terminal_ars = set(df_p[df_p['m'].isin(months)]['ar_id'].dropna().unique())
+
+        # Map terminal/downline ar_id to parent agen_id using cust_full_astaga.parquet
+        active_parent_agens = set(active_terminal_ars)
+        cust_path = os.path.join(CACHE_DIR, "cust_full_astaga.parquet")
+        if os.path.exists(cust_path):
+            cust = pd.read_parquet(cust_path, columns=['ar_id', 'agen_id'])
+            cust_active = cust[cust['ar_id'].isin(active_terminal_ars)]
+            active_parent_agens.update(cust_active['agen_id'].dropna().unique())
 
         os.makedirs(CACHE_DIR, exist_ok=True)
         with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump({"months": list(months), "active_ars": list(active_set)}, f)
+            json.dump({"months": list(months), "active_ars": list(active_parent_agens)}, f)
 
-        return active_set
+        return active_parent_agens
     except Exception as e:
         print(f"Warning reading active trx: {e}")
         return None
