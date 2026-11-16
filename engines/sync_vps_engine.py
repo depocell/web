@@ -176,6 +176,27 @@ def get_vps_status():
     return res
 
 
+def ensure_remote_dir(sftp, rem_dir):
+    """Memastikan pohon direktori remote ada di SFTP secara rekursif."""
+    p = rem_dir.replace("\\", "/")
+    dirs = []
+    head, tail = os.path.split(p)
+    while tail:
+        dirs.append(tail)
+        head, tail = os.path.split(head)
+    dirs.reverse()
+    curr = "/" if p.startswith("/") else ""
+    for d in dirs:
+        curr = (curr.rstrip("/") + "/" + d) if curr else d
+        try:
+            sftp.stat(curr)
+        except IOError:
+            try:
+                sftp.mkdir(curr)
+            except IOError:
+                pass
+
+
 def sync_to_vps_stream():
     """Generator yang menghasilkan log secara streaming real-time untuk ditampilkan di Web Terminal."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -278,6 +299,7 @@ def sync_to_vps_stream():
                     "file": f,
                     "size_mb": round(size_mb, 2)
                 }
+                ensure_remote_dir(sftp, os.path.dirname(rem_path))
                 sftp.put(local_path, rem_path)
                 try:
                     loc_stat = os.stat(local_path)
@@ -296,12 +318,12 @@ def sync_to_vps_stream():
         ssh_sftp.close()
         yield {"type": "log", "level": "success", "message": f"Selesai transfer file. ({uploaded_count} file diunggah)."}
 
-        # 4. Pull Git di VPS
+        # 4. Pull Git di VPS (Gunakan fetch & reset hard agar sinkron sempurna dengan origin/main)
         yield {"type": "log", "level": "info", "message": "Menarik update kode terbaru dari GitHub di VPS..."}
         ssh = get_ssh_client()
-        stdin, stdout, stderr = ssh.exec_command("git -C /var/www/webreport pull origin main")
+        stdin, stdout, stderr = ssh.exec_command("git -C /var/www/webreport fetch origin main && git -C /var/www/webreport reset --hard origin/main")
         git_out = stdout.read().decode("utf-8").strip()
-        yield {"type": "log", "level": "git", "message": f"Git pull output: {git_out}"}
+        yield {"type": "log", "level": "git", "message": f"Git sync output: {git_out}"}
 
         # 5. Restart PM2 webreport
         yield {"type": "log", "level": "restart", "message": "Merestart service PM2 webreport di VPS..."}
