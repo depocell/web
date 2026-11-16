@@ -1036,6 +1036,82 @@ async def api_sco_check(request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+# ==========================================
+# VISIT API: TARGET KUNJUNGAN SCO VS REALISASI
+# ==========================================
+async def api_visit_summary(request):
+    """Mengambil ringkasan target kunjungan vs realisasi SCO, leaderboard, daily matrix, dan kepatuhan."""
+    try:
+        import engines.visit_engine as visit_engine
+        import importlib
+        force = request.query_params.get("refresh", "0") in ("1", "true") or request.query_params.get("force", "0") in ("1", "true")
+        if force:
+            importlib.reload(visit_engine)
+        res = await asyncio.to_thread(visit_engine.build_visit_analysis, force_refresh=force)
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_visit_detail(request):
+    """Mengambil detail baris target vs realisasi kunjungan dengan filter."""
+    try:
+        import engines.visit_engine as visit_engine
+        sco = request.query_params.get("sco")
+        date = request.query_params.get("date")
+        status_filter = request.query_params.get("status")
+        limit = int(request.query_params.get("limit", 200))
+
+        records = await asyncio.to_thread(visit_engine.get_detail_visits, sco, date, status_filter, limit)
+        return JSONResponse({"ok": True, "count": len(records), "data": records})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_visit_export_csv(request):
+    """Mengunduh file long format Target vs Realisasi Kunjungan (CSV)."""
+    try:
+        csv_path = os.path.join(BASE_DIR, ".cache", "visit_target_vs_actual_2026-11.csv")
+        if not os.path.exists(csv_path):
+            import engines.visit_engine as visit_engine
+            await asyncio.to_thread(visit_engine.build_visit_analysis)
+        if os.path.exists(csv_path):
+            return FileResponse(csv_path, media_type="text/csv", filename="visit_target_vs_actual_2026-11.csv")
+        return JSONResponse({"ok": False, "error": "File CSV tidak ditemukan"}, status_code=404)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_visit_upload(request):
+    """Menerima upload file Excel laporan kunjungan baru, memperbarui cache, dan menghasilkan analisa baru."""
+    try:
+        form = await request.form()
+        uploaded_file = form.get("file")
+        if not uploaded_file:
+            return JSONResponse({"ok": False, "error": "Tidak ada file yang diunggah"}, status_code=400)
+
+        upload_dir = os.path.join(BASE_DIR, ".cache", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        dest_path = os.path.join(upload_dir, "uploaded_visit_report.xlsx")
+
+        contents = await uploaded_file.read()
+        with open(dest_path, "wb") as f_out:
+            f_out.write(contents)
+
+        import engines.visit_engine as visit_engine
+        res = await asyncio.to_thread(visit_engine.build_visit_analysis, dest_path, True)
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+
 
 
 
@@ -3602,6 +3678,14 @@ routes = [
     Route("/api/sco/push",      api_sco_push,     methods=["GET", "POST"]),
 
     Route("/api/sco/check",     api_sco_check,    methods=["GET", "POST"]),
+
+    Route("/api/visit/summary",    api_visit_summary, methods=["GET"]),
+
+    Route("/api/visit/detail",     api_visit_detail,  methods=["GET"]),
+
+    Route("/api/visit/export-csv", api_visit_export_csv, methods=["GET"]),
+
+    Route("/api/visit/upload",     api_visit_upload,  methods=["POST"]),
 
     Route("/api/status",        api_status),
 

@@ -203,6 +203,12 @@ const ROUTES = {
     scriptUrl: "./pages/sco/sco.js",
     initFn: "initScoView"
   },
+  "#visit": {
+    title: "Target Kunjungan SCO vs Realisasi",
+    pageUrl: "./pages/visit/index.html",
+    scriptUrl: "./pages/visit/visit.js",
+    initFn: "loadVisit"
+  },
   "#reseller": {
     title: "Agen & Reseller",
     pageUrl: "./pages/agen/index.html",

@@ -235,8 +235,13 @@ def sync_to_vps_stream():
                 rel_dir = os.path.relpath(root, local_cache)
                 rem_base = "/var/www/webreport/.cache" if rel_dir == "." else f"/var/www/webreport/.cache/{rel_dir.replace(os.sep, '/')}"
                 for f in files:
-                    # Filter file parquet & json penting
-                    if f.endswith(".parquet") or (f.endswith(".json") and ("analisa_gold" in f or "yoy" in f or "data_sco" in f or "data_reseller" in f)):
+                    # Filter file parquet, json, dan csv penting
+                    is_target = (
+                        f.endswith(".parquet") or
+                        (f.endswith(".json") and any(k in f for k in ["analisa_gold", "yoy", "data_sco", "data_reseller", "visit"])) or
+                        (f.endswith(".csv") and "visit" in f)
+                    )
+                    if is_target:
                         local_path = os.path.join(root, f)
                         rem_path = f"{rem_base}/{f}"
                         files_to_upload.append((local_path, rem_path, rel_dir, f))
