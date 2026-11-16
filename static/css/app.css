@@ -2601,10 +2601,6 @@ html.admin-station-mode #nav-pivot-admin {
   display: block !important;
 }
 
-html.admin-station-mode .nav-menu > li:not(.nav-item-admin):not(.nav-label-admin) {
-  display: none !important;
-}
-
 html.admin-station-mode .nav-label-admin {
   margin-top: 6px !important;
   font-size: 11px !important;
