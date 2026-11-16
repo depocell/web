@@ -1444,16 +1444,24 @@
         </div>
       </div>
 
-      <!-- COUNTER & RESET BAR -->
+      <!-- COUNTER & ACTION BAR -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; flex-wrap: wrap; gap: 8px;">
         <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);" id="detail-counter-text">
           Menampilkan <strong style="color:var(--text-main);">${Math.min(filtered.length, state.detailPageLimit)}</strong> dari <strong style="color:var(--text-main);">${filtered.length}</strong> Toko
         </span>
-        <div id="detail-reset-btn-wrapper">
-          ${(state.selectedJadwal !== 'ALL' || state.searchQuery || state.detailSort !== 'growth_asc') ? `
-            <button class="action-btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="window.resetDetailFilters()">
-              <i class="fa-solid fa-xmark"></i> Reset Filter
-            </button>` : ''}
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="action-btn btn-success btn-sm" onclick="window.copyDetailTargetWa()" title="Salin Target Kunjungan untuk WhatsApp" style="background:#16a34a; border-color:#16a34a; color:#ffffff; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            <span>Salin Target WA</span>
+          </button>
+          <div id="detail-reset-btn-wrapper">
+            ${(state.selectedJadwal !== 'ALL' || state.searchQuery || state.detailSort !== 'growth_asc') ? `
+              <button class="action-btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="window.resetDetailFilters()">
+                <i class="fa-solid fa-xmark"></i> Reset Filter
+              </button>` : ''}
+          </div>
         </div>
       </div>
 
@@ -2240,117 +2248,104 @@
     }
   };
 
-  window.copyTargetPjpWa = function () {
+  window.copyDetailTargetWa = function () {
     if (!state.data || !state.data.tren_agen) {
       showToast('Data agen belum tersedia!', 'danger');
       return;
     }
 
-    const all = state.data.tren_agen;
-    const periodCode = state.selectedPeriod || (state.data && state.data.latest_period) || '1126';
-    const pData = (state.data && state.data.periods && state.data.periods[periodCode]) ? state.data.periods[periodCode] : null;
-    const prevCode = pData ? pData.prev_code : null;
-
-    // Filter hanya agen SCO sah yang bertransaksi bulan lalu ATAU bulan ini (exclude churn di kedua bulan)
-    const activeAgents = all.filter(a => {
-      const aSco = String(a.sco || '').trim();
-      const lower = aSco.toLowerCase();
-      if (!aSco || lower === 'non sco' || lower === 'online' || lower.includes('total')) {
-        return false;
-      }
-
-      let curTrx = 0;
-      let prevTrx = 0;
-      if (a.monthly_avg) {
-        prevTrx = prevCode ? (parseFloat(a.monthly_avg[prevCode]) || 0) : 0;
-        curTrx = periodCode ? (parseFloat(a.monthly_avg[periodCode]) || 0) : 0;
-      } else {
-        curTrx = Number(a.avg_curr !== undefined ? a.avg_curr : (a.Nov !== undefined ? a.Nov : (a.daily_curr || 0)));
-        prevTrx = Number(a.avg_prev !== undefined ? a.avg_prev : (a.Oct !== undefined ? a.Oct : (a.daily_prev || 0)));
-      }
-
-      return (curTrx > 0 || prevTrx > 0);
-    });
-
-    const scoFilter = state.coverageSales;
-    const jadwalFilter = state.coverageJadwal;
-
-    function getJadwalKey(raw) {
-      const s = String(raw || '').toLowerCase().replace(/['’]/g, '');
-      if (s.includes('senin') || s.includes('kamis')) return 'SENIN-KAMIS';
-      if (s.includes('selasa') || s.includes('jum')) return 'SELASA-JUMAT';
-      if (s.includes('rabu') || s.includes('sabtu')) return 'RABU-SABTU';
-      return 'LAINNYA';
-    }
-
-    function formatAgentsForPjp(agentList) {
-      const groups = {
-        'SENIN-KAMIS': [],
-        'SELASA-JUMAT': [],
-        'RABU-SABTU': [],
-        'LAINNYA': []
-      };
-
-      agentList.forEach(a => {
-        if (jadwalFilter !== 'ALL') {
-          const rawJadwal = (a.jadwal || '').trim().replace(/['’]/g, '').toLowerCase();
-          if (jadwalFilter === 'Senin,Kamis' && (!rawJadwal.includes('senin') || !rawJadwal.includes('kamis'))) return;
-          if (jadwalFilter === 'Selasa,Jumat' && (!rawJadwal.includes('selasa') || (!rawJadwal.includes('jum') && !rawJadwal.includes('jumat')))) return;
-          if (jadwalFilter === 'Rabu,Sabtu' && (!rawJadwal.includes('rabu') || !rawJadwal.includes('sabtu'))) return;
-          if (jadwalFilter === 'LAINNYA' && (rawJadwal.includes('senin') || rawJadwal.includes('selasa') || rawJadwal.includes('rabu'))) return;
-        }
-
-        const k = getJadwalKey(a.jadwal);
-        const agentId = String(a.aid || a.kode || '').trim();
-        let name = String(a.name || a.nama || agentId).trim();
-        if (agentId && !name.startsWith(agentId)) {
-          name = `${agentId}-${name}`;
-        }
-        if (!groups[k]) groups[k] = [];
-        groups[k].push(name);
-      });
-
-      const sections = [];
-      const order = ['SENIN-KAMIS', 'SELASA-JUMAT', 'RABU-SABTU', 'LAINNYA'];
-      order.forEach(k => {
-        const list = groups[k] || [];
-        if (list.length > 0) {
-          list.sort((a, b) => a.localeCompare(b));
-          sections.push(`Jadwal : ${k}\n` + list.join('\n'));
-        }
-      });
-
-      return sections.join('\n\n');
-    }
-
-    let resultText = '';
-    let totalCopied = 0;
-
-    if (scoFilter !== 'ALL') {
-      const targetList = activeAgents.filter(a => String(a.sco || '').trim() === scoFilter);
-      resultText = formatAgentsForPjp(targetList);
-      totalCopied = targetList.length;
-    } else {
-      const cleanScos = getCleanScoList(activeAgents);
-      const scoSlices = [];
-      cleanScos.forEach(scoName => {
-        const targetList = activeAgents.filter(a => String(a.sco || '').trim() === scoName);
-        const formatted = formatAgentsForPjp(targetList);
-        if (formatted) {
-          scoSlices.push(`*SCO : ${scoName.toUpperCase()}*\n\n${formatted}`);
-          totalCopied += targetList.length;
-        }
-      });
-      resultText = scoSlices.join('\n\n====================\n\n');
-    }
-
-    if (!resultText.trim()) {
-      showToast('Tidak ada data toko aktif untuk disalin!', 'danger');
+    const allAgents = getActivePeriodAgents();
+    const targetSco = state.selectedSales;
+    if (!targetSco) {
+      showToast('Pilih personil SCO terlebih dahulu!', 'danger');
       return;
     }
 
-    copyText(resultText, `Target PJP (${totalCopied} Toko)`);
+    // Ambil toko aktif milik SCO terpilih
+    const scoAgents = allAgents.filter(a => String(a.sco || '').trim() === targetSco);
+    if (!scoAgents || scoAgents.length === 0) {
+      showToast(`Tidak ada target toko aktif untuk ${targetSco}!`, 'danger');
+      return;
+    }
+
+    function getCleanStoreName(aid, name) {
+      const aidStr = String(aid || '').trim().toUpperCase();
+      let n = String(name || '').trim();
+      if (aidStr && n.toUpperCase().startsWith(aidStr + '-')) {
+        n = n.substring(aidStr.length + 1).trim();
+      } else if (aidStr && n.toUpperCase().startsWith(aidStr + ' ')) {
+        n = n.substring(aidStr.length + 1).trim();
+      }
+      return n;
+    }
+
+    function formatAgentLine(a) {
+      const aid = String(a.aid || a['AGEN ID'] || '').trim();
+      const cleanName = getCleanStoreName(aid, a.name || a['AGEN NAME'] || aid);
+      return `${aid}, ${cleanName}`;
+    }
+
+    function getJadwalCategory(rawJadwal) {
+      const s = String(rawJadwal || '').toLowerCase().replace(/['’]/g, '');
+      if (s.includes('senin') || s.includes('kamis')) return 'Senin-Kamis';
+      if (s.includes('selasa') || s.includes('jum')) return 'Selasa-Jumat';
+      if (s.includes('rabu') || s.includes('sabtu')) return 'Rabu-Sabtu';
+      return 'Lainnya';
+    }
+
+    // Filter jadwal jika user sedang memilih filter jadwal tertentu
+    let targetList = scoAgents;
+    const jadwalFilter = state.selectedJadwal;
+    if (jadwalFilter && jadwalFilter !== 'ALL') {
+      const jf = jadwalFilter.toLowerCase().replace(/['’]/g, '');
+      if (jf.includes('senin') || jf.includes('kamis')) {
+        targetList = scoAgents.filter(a => getJadwalCategory(a.jadwal) === 'Senin-Kamis');
+      } else if (jf.includes('selasa') || jf.includes('jum')) {
+        targetList = scoAgents.filter(a => getJadwalCategory(a.jadwal) === 'Selasa-Jumat');
+      } else if (jf.includes('rabu') || jf.includes('sabtu')) {
+        targetList = scoAgents.filter(a => getJadwalCategory(a.jadwal) === 'Rabu-Sabtu');
+      } else if (jf.includes('lain')) {
+        targetList = scoAgents.filter(a => getJadwalCategory(a.jadwal) === 'Lainnya');
+      }
+    }
+
+    // Kelompokkan per jadwal
+    const groups = {
+      'Senin-Kamis': [],
+      'Selasa-Jumat': [],
+      'Rabu-Sabtu': [],
+      'Lainnya': []
+    };
+
+    targetList.forEach(a => {
+      const cat = getJadwalCategory(a.jadwal);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(formatAgentLine(a));
+    });
+
+    const sections = [];
+    const order = ['Senin-Kamis', 'Selasa-Jumat', 'Rabu-Sabtu', 'Lainnya'];
+    let totalToko = 0;
+
+    order.forEach(cat => {
+      const list = groups[cat] || [];
+      if (list.length > 0) {
+        list.sort((x, y) => x.localeCompare(y));
+        sections.push(`Jadwal : ${cat}\n` + list.join('\n'));
+        totalToko += list.length;
+      }
+    });
+
+    if (sections.length === 0 || totalToko === 0) {
+      showToast('Tidak ada data toko untuk jadwal ini!', 'danger');
+      return;
+    }
+
+    const outputText = sections.join('\n\n');
+    copyText(outputText, `Target WA (${totalToko} Toko)`);
   };
+
+  window.copyTargetPjpWa = window.copyDetailTargetWa;
 
   window.resetCoverageFilters = function () {
 
