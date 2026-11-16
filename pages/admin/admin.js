@@ -280,6 +280,10 @@ function loadAdmin() {
 
     switchAdminTab("ingestion");
 
+  } else if (hash.includes("tab=vps")) {
+
+    switchAdminTab("vps");
+
   } else {
 
     switchAdminTab(activeAdminTab);

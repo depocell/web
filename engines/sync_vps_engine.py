@@ -207,8 +207,25 @@ def sync_to_vps_stream():
                     rem_path = f"/var/www/webreport/MASTER/{f}"
                     if f.endswith(".db") or f.endswith(".xlsx") or f == "auth_users.json":
                         size_mb = os.path.getsize(local_path) / (1024 * 1024)
-                        yield {"type": "log", "level": "upload", "message": f"Mengunggah MASTER/{f} ({size_mb:.2f} MB)..."}
-                        sftp.put(local_path, rem_path)
+                        should_upload_m = True
+                        try:
+                            rem_stat = sftp.stat(rem_path)
+                            loc_stat = os.stat(local_path)
+                            if rem_stat.st_size == loc_stat.st_size and rem_stat.st_mtime >= (loc_stat.st_mtime - 5):
+                                should_upload_m = False
+                        except IOError:
+                            should_upload_m = True
+
+                        if should_upload_m:
+                            yield {"type": "log", "level": "upload", "message": f"Mengunggah MASTER/{f} ({size_mb:.2f} MB)..."}
+                            sftp.put(local_path, rem_path)
+                            try:
+                                loc_stat = os.stat(local_path)
+                                sftp.utime(rem_path, (int(loc_stat.st_atime), int(loc_stat.st_mtime)))
+                            except Exception:
+                                pass
+                        else:
+                            yield {"type": "log", "level": "skip", "message": f"Identik: MASTER/{f} ({size_mb:.2f} MB) - Di-skip."}
 
         # 3. Kumpulkan file yang perlu diunggah dari .cache
         local_cache = os.path.join(BASE_DIR, ".cache")
@@ -219,7 +236,7 @@ def sync_to_vps_stream():
                 rem_base = "/var/www/webreport/.cache" if rel_dir == "." else f"/var/www/webreport/.cache/{rel_dir.replace(os.sep, '/')}"
                 for f in files:
                     # Filter file parquet & json penting
-                    if f.endswith(".parquet") or (f.endswith(".json") and ("analisa_gold" in f or "yoy" in f)):
+                    if f.endswith(".parquet") or (f.endswith(".json") and ("analisa_gold" in f or "yoy" in f or "data_sco" in f or "data_reseller" in f)):
                         local_path = os.path.join(root, f)
                         rem_path = f"{rem_base}/{f}"
                         files_to_upload.append((local_path, rem_path, rel_dir, f))
@@ -229,18 +246,24 @@ def sync_to_vps_stream():
         yield {"type": "log", "level": "info", "message": f"Memeriksa {total_files} file cache Parquet/JSON lokal vs remote..."}
 
         for local_path, rem_path, rel_dir, f in files_to_upload:
+            is_historical = any(yr in f for yr in ["2023", "2024", "2025"])
             should_upload = True
+            disp = f".cache/{f}" if rel_dir == "." else f".cache/{rel_dir}/{f}"
+            size_mb = os.path.getsize(local_path) / (1024 * 1024)
+
             try:
                 rem_stat = sftp.stat(rem_path)
                 loc_stat = os.stat(local_path)
-                # Jika ukuran persis sama dan timestamp dekat, lewati
-                if rem_stat.st_size == loc_stat.st_size and abs(rem_stat.st_mtime - loc_stat.st_mtime) < 2:
+
+                # ATURAN SMART INCREMENTAL SKIP:
+                # 1. File historis masa lalu (2023, 2024, 2025): Jika ukuran sama persis, PASTI SKIP
+                if is_historical and rem_stat.st_size == loc_stat.st_size:
+                    should_upload = False
+                # 2. File umum: Jika ukuran sama DAN remote mtime >= local mtime - 5 (sudah up-to-date), SKIP
+                elif rem_stat.st_size == loc_stat.st_size and rem_stat.st_mtime >= (loc_stat.st_mtime - 5):
                     should_upload = False
             except IOError:
                 should_upload = True
-
-            disp = f".cache/{f}" if rel_dir == "." else f".cache/{rel_dir}/{f}"
-            size_mb = os.path.getsize(local_path) / (1024 * 1024)
 
             if should_upload:
                 yield {
@@ -251,6 +274,11 @@ def sync_to_vps_stream():
                     "size_mb": round(size_mb, 2)
                 }
                 sftp.put(local_path, rem_path)
+                try:
+                    loc_stat = os.stat(local_path)
+                    sftp.utime(rem_path, (int(loc_stat.st_atime), int(loc_stat.st_mtime)))
+                except Exception:
+                    pass
                 uploaded_count += 1
             else:
                 yield {
