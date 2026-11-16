@@ -12,6 +12,7 @@ import re
 import sqlite3
 import pandas as pd
 import openpyxl
+import json
 from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,10 +63,55 @@ def parse_date_str(d_str):
     return None
 
 
-def get_target_agents():
-    """Mengambil master agen yang memiliki jadwal kunjungan aktif di bawah SCO lapangan."""
+def get_active_transacting_ar_ids(months=("2026-10", "2026-11"), force_refresh=False):
+    """
+    Mengambil set AR ID yang bertransaksi sukses pada bulan lalu dan bulan ini.
+    Toko yang 0 transaksi di kedua bulan berturut-turut (dorman/mati) dikeluarkan dari target kunjungan.
+    Hasil di-cache di file .cache/active_target_agents.json.
+    """
+    cache_file = os.path.join(CACHE_DIR, "active_target_agents.json")
+    if not force_refresh and os.path.exists(cache_file):
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+                if cached.get("months") == list(months) and "active_ars" in cached:
+                    return set(cached["active_ars"])
+        except Exception:
+            pass
+
+    parquet_path = os.path.join(CACHE_DIR, "trx_astaga_2026.parquet")
+    if not os.path.exists(parquet_path):
+        return None
+
+    try:
+        import pyarrow.parquet as pq
+        table = pq.read_table(
+            parquet_path,
+            columns=['tgl_entry', 'ar_id', 'status'],
+            filters=[('status', '=', 'Sukses')]
+        )
+        df_p = table.to_pandas()
+        df_p['m'] = df_p['tgl_entry'].astype(str).str[:7]
+        active_set = set(df_p[df_p['m'].isin(months)]['ar_id'].dropna().unique())
+
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump({"months": list(months), "active_ars": list(active_set)}, f)
+
+        return active_set
+    except Exception as e:
+        print(f"Warning reading active trx: {e}")
+        return None
+
+
+def get_target_agents(filter_dormant=True, force_refresh=False):
+    """
+    Mengambil master agen yang memiliki jadwal kunjungan aktif di bawah SCO lapangan.
+    Jika filter_dormant=True, hanya menyertakan agen yang memiliki transaksi di bulan lalu / bulan ini
+    (mengecualikan toko yang 0 transaksi di kedua bulan berturut-turut).
+    """
     if not os.path.exists(DB_PATH):
-        return pd.DataFrame()
+        return pd.DataFrame(), 0
 
     conn = sqlite3.connect(DB_PATH)
     query = """
@@ -76,7 +122,18 @@ def get_target_agents():
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
-    return df
+
+    total_master = len(df)
+    dormant_excluded = 0
+
+    if filter_dormant:
+        active_ars = get_active_transacting_ar_ids(force_refresh=force_refresh)
+        if active_ars is not None:
+            df_filtered = df[df['agen_id'].isin(active_ars)].reset_index(drop=True)
+            dormant_excluded = total_master - len(df_filtered)
+            df = df_filtered
+
+    return df, dormant_excluded
 
 
 def load_visit_excel(excel_path=None):
@@ -170,7 +227,7 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
                     return _CACHED_VISIT_RESULT
             except Exception:
                 pass
-    df_agents = get_target_agents()
+    df_agents, dormant_excluded = get_target_agents(filter_dormant=True, force_refresh=force_refresh)
     if df_agents.empty:
         return {"ok": False, "error": "Master data agen dengan jadwal kunjungan tidak ditemukan."}
 
@@ -178,9 +235,16 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
     if df_visits.empty:
         return {"ok": False, "error": "File laporan kunjungan Excel kosong atau tidak valid."}
 
-    # Range tanggal: ambil min_date dan max_date dari kunjungan
-    min_date = df_visits['date'].min()
+    # Rentang tanggal kunjungan riil di file
+    min_date_raw = df_visits['date'].min()
     max_date = df_visits['date'].max()
+
+    # ATURAN MULAI TARGET KUNJUNGAN:
+    # Karena tgl 30 November = hari Senin (Senin ke-5), maka target kunjungan resmi
+    # dimulai pada hari Selasa di awal bulan (3 November 2026), sehingga setiap siklus
+    # (Senin-Kamis, Selasa-Jumat, Rabu-Sabtu) tepat memiliki 8 hari target dalam 1 bulan penuh (8x kunjungan ideal).
+    target_start_date = "2026-11-03"
+    min_date = target_start_date if target_start_date <= max_date else min_date_raw
 
     date_range = pd.date_range(min_date, max_date)
 
@@ -389,6 +453,8 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
             "total_score": total_score,
             "total_missed": total_missed,
             "overall_pct": overall_pct,
+            "total_target_agents": len(df_agents),
+            "dormant_excluded": dormant_excluded,
             "total_physical_visits": total_physical_visits,
             "off_target_visits": off_target_visits,
             "total_active_days": len(active_dates),

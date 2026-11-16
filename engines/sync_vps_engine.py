@@ -259,7 +259,7 @@ def sync_to_vps_stream():
                     # Filter file parquet, json, dan csv penting
                     is_target = (
                         f.endswith(".parquet") or
-                        (f.endswith(".json") and any(k in f for k in ["analisa_gold", "yoy", "data_sco", "data_reseller", "visit"])) or
+                        (f.endswith(".json") and any(k in f for k in ["analisa_gold", "yoy", "data_sco", "data_reseller", "visit", "active_target"])) or
                         (f.endswith(".csv") and "visit" in f)
                     )
                     if is_target:

@@ -50,12 +50,22 @@ function renderVisitSummary(data) {
   // 1. Periode Header
   const periodEl = document.getElementById("visit-period-label");
   if (periodEl) {
-    periodEl.textContent = `Periode: ${data.min_date || '01-11-2026'} s/d ${data.max_date || '15-11-2026'} (${kpi.total_active_days || 12} Hari Kerja Aktif)`;
+    periodEl.textContent = `Periode Target: ${data.min_date || '2026-11-03'} s/d ${data.max_date || '2026-11-14'} (${kpi.total_active_days || 11} Hari Kerja Aktif)`;
   }
 
   // 2. KPI Cards
   const kpiTargetEl = document.getElementById("kpi-total-target");
   if (kpiTargetEl) kpiTargetEl.textContent = formatNum(kpi.total_target || 0);
+
+  const kpiDaysEl = document.getElementById("kpi-active-days");
+  if (kpiDaysEl) kpiDaysEl.textContent = `${kpi.total_active_days || 11} Hari Kerja Aktif`;
+
+  const kpiStoreEl = document.getElementById("kpi-store-count");
+  if (kpiStoreEl) {
+    const act = kpi.total_target_agents || 453;
+    const dorm = kpi.dormant_excluded || 47;
+    kpiStoreEl.textContent = `${formatNum(act)} Toko Aktif (${dorm} Dorman Dikeluarkan)`;
+  }
 
   const kpiScoreEl = document.getElementById("kpi-total-score");
   if (kpiScoreEl) kpiScoreEl.textContent = formatNum(kpi.total_score || 0);
