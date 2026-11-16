@@ -15,10 +15,18 @@ import socket
 import threading
 
 # Proteksi stdout/stderr saat dijalankan via pythonw.exe (tanpa console window)
+_log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(_log_dir, exist_ok=True)
 if sys.stdout is None:
-    sys.stdout = open(os.devnull, "w")
+    try:
+        sys.stdout = open(os.path.join(_log_dir, "desktop_app.log"), "a", encoding="utf-8", buffering=1)
+    except Exception:
+        sys.stdout = open(os.devnull, "w")
 if sys.stderr is None:
-    sys.stderr = open(os.devnull, "w")
+    try:
+        sys.stderr = open(os.path.join(_log_dir, "desktop_app.log"), "a", encoding="utf-8", buffering=1)
+    except Exception:
+        sys.stderr = open(os.devnull, "w")
 
 import uvicorn
 import webview
@@ -39,7 +47,7 @@ def is_port_in_use(host: str, port: int) -> bool:
 
 import urllib.request
 
-def wait_for_server(host: str, port: int, timeout: float = 10.0) -> bool:
+def wait_for_server(host: str, port: int, timeout: float = 15.0) -> bool:
     start = time.time()
     url = f"http://{host}:{port}/"
     while time.time() - start < timeout:
@@ -49,7 +57,7 @@ def wait_for_server(host: str, port: int, timeout: float = 10.0) -> bool:
                     return True
         except Exception:
             pass
-        time.sleep(0.15)
+        time.sleep(0.2)
     return False
 
 import subprocess
@@ -59,10 +67,13 @@ def start_background_server():
     server_script = os.path.join(base_dir, "server.py")
     creationflags = (0x00000008 | 0x00000200 | 0x08000000) if sys.platform == "win32" else 0
     try:
+        env = os.environ.copy()
+        env["NO_BROWSER"] = "1"
         subprocess.Popen(
-            [sys.executable, server_script],
+            [sys.executable, server_script, "--no-browser"],
             cwd=base_dir,
             creationflags=creationflags,
+            env=env,
             close_fds=True
         )
     except Exception as e:

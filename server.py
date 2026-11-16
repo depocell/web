@@ -14,6 +14,23 @@ import os
 
 import sys
 
+# Proteksi stdout/stderr saat dijalankan via pythonw.exe (tanpa console window)
+if sys.stdout is None:
+    try:
+        _log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+        os.makedirs(_log_dir, exist_ok=True)
+        sys.stdout = open(os.path.join(_log_dir, "server.log"), "a", encoding="utf-8", buffering=1)
+    except Exception:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+
+if sys.stderr is None:
+    try:
+        _log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+        os.makedirs(_log_dir, exist_ok=True)
+        sys.stderr = open(os.path.join(_log_dir, "server.log"), "a", encoding="utf-8", buffering=1)
+    except Exception:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
 import json
 
 import uvicorn
@@ -3754,6 +3771,10 @@ def _prewarm():
 def _open_browser():
 
     """Buka browser otomatis saat server sudah siap."""
+
+    if os.environ.get("NO_BROWSER") == "1" or "--no-browser" in sys.argv:
+
+        return
 
     import threading, time, webbrowser
 
