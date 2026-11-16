@@ -379,8 +379,12 @@ $$\text{D} > \text{M} > \text{R} > \text{P} > \text{O}$$
 
 * **ATURAN WAJIB SISTEM:**
   1. **Laptop Workstation Lokal (`WebReportAdmin.exe` / `localhost:8000`)**:
+     - **Hak Akses Super Admin Penuh (SEMUA MENU WAJIB TAMPIL)**:
+       - Workstation lokal adalah pos komando Owner / Super Admin.
+       - **DILARANG KERAS menyembunyikan menu laporan apa pun di lokal** (Overview, YoY, Agen, Profit, Produk, Supplier, Detail Trx, Daily Report, SCO Suite, Master Customer, Master Produk).
+       - Ditambah menu eksklusif Dapur: `#admin` *(Admin & Olah Data, Tab Sync & Telemetri VPS, User Management)* dan `#pivot-admin` *(Pivot Admin)*.
+       - **SELURUH MENU (PUBLIK + DAPUR) HARUS TAMPIL UTUH TANPA TERSEMBUNYI!**
      - **Memegang Hak Akses Dapur Penuh**: Membaca folder `C:\DMS RAW DATA\`, memproses `astaga.tsv` & `okipay.tsv`, mengelola `MASTER/master_data.db`, dan menghasilkan file Parquet/JSON.
-     - **Menu Eksklusif Dapur**: Menu `#admin` *(Admin & Olah Data, Tab Sync & Telemetri VPS, User Management)* dan `#pivot-admin` *(Pivot Admin)* **HANYA BOLEH TERSEDIA DI WORKSTATION LOKAL**.
      - Terhubung ke VPS via SFTP & SSH untuk mengunggah file Parquet hasil olahan secara berkala.
   2. **Cloud VPS (`185.205.222.170` / `depas.my.id`)**:
      - Berjalan di Ubuntu Linux port `8000` di bawah PM2 (`webreport`), berdampingan dengan Depot Pulsa port `3000` (`serpul`), dan diproxy oleh Nginx dengan SSL Let's Encrypt serta DNS Cloudflare (Proxied).
