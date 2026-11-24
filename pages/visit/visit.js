@@ -918,8 +918,8 @@ function formatNum(val) {
   return new Intl.NumberFormat("id-ID").format(Math.round(val));
 }
 
-function formatRate(val, decimals = 2) {
-  if (val === null || val === undefined || isNaN(val)) return "0.00";
+function formatRate(val, decimals = 0) {
+  if (val === null || val === undefined || isNaN(val)) return "0";
   return Number(val).toLocaleString("id-ID", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals

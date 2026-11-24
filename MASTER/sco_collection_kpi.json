@@ -1,27 +1,27 @@
 {
   "Hupron": {
-    "target": 350,
-    "realisasi": 335,
-    "actual": 335
-  },
-  "Febri Kurniawan": {
-    "target": 129,
-    "realisasi": 128,
-    "actual": 128
-  },
-  "Mas Komarjaya": {
-    "target": 272,
-    "realisasi": 259,
-    "actual": 259
+    "target": 524,
+    "realisasi": 499,
+    "actual": 499
   },
   "Abdul Harris": {
-    "target": 323,
-    "realisasi": 295,
-    "actual": 295
+    "target": 484,
+    "realisasi": 442,
+    "actual": 442
   },
   "Khoirul Anan": {
-    "target": 203,
-    "realisasi": 191,
-    "actual": 191
+    "target": 305,
+    "realisasi": 287,
+    "actual": 287
+  },
+  "Febri Kurniawan": {
+    "target": 194,
+    "realisasi": 189,
+    "actual": 189
+  },
+  "Mas Komarjaya": {
+    "target": 406,
+    "realisasi": 384,
+    "actual": 384
   }
 }

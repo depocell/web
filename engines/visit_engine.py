@@ -26,10 +26,37 @@ CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 SUMMARY_CACHE_FILE = os.path.join(CACHE_DIR, "visit_summary_cache.json")
 _CACHED_VISIT_RESULT = None
 _CACHED_PJP_CLAIM_DATA = None
+ACTIVE_VISIT_EXCEL_PATH = os.path.join(BASE_DIR, "MASTER", "active_visit_report.xlsx")
+UPLOADED_VISIT_PATH = os.path.join(BASE_DIR, ".cache", "uploads", "uploaded_visit_report.xlsx")
 DEFAULT_EXCEL_PATH = os.path.join(
     BASE_DIR,
     "Laporan Kunjungan Klien Semua Personalia Versi 2 Periode 1 Nov 2026 - 15 Nov 2026 - 1794806282880.xlsx"
 )
+
+
+def get_active_visit_excel_path():
+    """
+    Mengambil file Excel laporan kunjungan aktif secara permanen:
+    1. MASTER/active_visit_report.xlsx (file kunjungan aktif tersimpan permanen saat upload)
+    2. .cache/uploads/uploaded_visit_report.xlsx (file upload terkini)
+    3. File 'Laporan Kunjungan*.xlsx' dengan tanggal modifikasi terbaru di root
+    4. DEFAULT_EXCEL_PATH (fallback awal)
+    """
+    candidates = []
+    if os.path.exists(ACTIVE_VISIT_EXCEL_PATH) and os.path.getsize(ACTIVE_VISIT_EXCEL_PATH) > 0:
+        candidates.append((os.path.getmtime(ACTIVE_VISIT_EXCEL_PATH), ACTIVE_VISIT_EXCEL_PATH))
+    if os.path.exists(UPLOADED_VISIT_PATH) and os.path.getsize(UPLOADED_VISIT_PATH) > 0:
+        candidates.append((os.path.getmtime(UPLOADED_VISIT_PATH), UPLOADED_VISIT_PATH))
+
+    import glob
+    for f in glob.glob(os.path.join(BASE_DIR, "Laporan Kunjungan*.xlsx")):
+        candidates.append((os.path.getmtime(f), f))
+
+    if candidates:
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return candidates[0][1]
+
+    return DEFAULT_EXCEL_PATH
 
 DAY_TO_JADWAL = {
     'Monday': 'Senin,Kamis',
@@ -154,7 +181,7 @@ def get_target_agents(filter_dormant=True, force_refresh=False):
 
 def load_visit_excel(excel_path=None):
     """Membaca dan mem-parsing data riwayat kunjungan dari file Excel personalia."""
-    target_path = excel_path if (excel_path and os.path.exists(excel_path)) else DEFAULT_EXCEL_PATH
+    target_path = excel_path if (excel_path and os.path.exists(excel_path)) else get_active_visit_excel_path()
     if not os.path.exists(target_path):
         return pd.DataFrame(), None
 
@@ -1224,7 +1251,7 @@ def export_kpi_sco_excel(kpi_data, pjp_stores=None):
         c7 = ws.cell(curr_row, 7, f"=IFERROR(F{curr_row}/E{curr_row},0)")
         c7.number_format = "0.0%"
         c8 = ws.cell(curr_row, 8, f"=G{curr_row}*15%")
-        c8.number_format = "0.00%"
+        c8.number_format = "0.0%"
 
         # 2. Collection (25%)
         ws.cell(curr_row, 9, item["coll_target"]).number_format = "#,##0"
@@ -1232,31 +1259,31 @@ def export_kpi_sco_excel(kpi_data, pjp_stores=None):
         c11 = ws.cell(curr_row, 11, f"=IFERROR(J{curr_row}/I{curr_row},0)")
         c11.number_format = "0.0%"
         c12 = ws.cell(curr_row, 12, f"=K{curr_row}*25%")
-        c12.number_format = "0.00%"
+        c12.number_format = "0.0%"
 
         # 3. Daily Trx Net (35%)
-        ws.cell(curr_row, 13, f"=Q{curr_row}+50").number_format = "#,##0.00"
-        ws.cell(curr_row, 14, item["net_trx"]).number_format = "#,##0.00"
+        ws.cell(curr_row, 13, f"=Q{curr_row}+50").number_format = "#,##0"
+        ws.cell(curr_row, 14, item["net_trx"]).number_format = "#,##0"
         c15 = ws.cell(curr_row, 15, f"=IFERROR(N{curr_row}/M{curr_row},0)")
         c15.number_format = "0.0%"
         c16 = ws.cell(curr_row, 16, f"=O{curr_row}*35%")
-        c16.number_format = "0.00%"
+        c16.number_format = "0.0%"
 
         # 4. Growth Gross (25%)
-        ws.cell(curr_row, 17, item["oct_gross"]).number_format = "#,##0.00"
-        ws.cell(curr_row, 18, item["nov_gross"]).number_format = "#,##0.00"
+        ws.cell(curr_row, 17, item["oct_gross"]).number_format = "#,##0"
+        ws.cell(curr_row, 18, item["nov_gross"]).number_format = "#,##0"
         c19 = ws.cell(curr_row, 19, f"=(R{curr_row}-Q{curr_row})/Q{curr_row}")
         c19.number_format = "0.0%"
         c20 = ws.cell(curr_row, 20, f"=S{curr_row}*25%")
-        c20.number_format = "0.00%"
+        c20.number_format = "0.0%"
 
         # Total Score & Incentive
         c21 = ws.cell(curr_row, 21, f"=H{curr_row}+L{curr_row}+P{curr_row}+T{curr_row}")
-        c21.number_format = "0.00%"
+        c21.number_format = "0.0%"
         c21.font = Font(bold=True, color="1E3A8A")
 
         c23 = ws.cell(curr_row, 23, f"=IF(U{curr_row}>1.2,1.2,IF(U{curr_row}>=0.6,U{curr_row},IF(U{curr_row}>=0.5,0.5,0)))")
-        c23.number_format = "0.00%"
+        c23.number_format = "0.0%"
         c23.font = Font(bold=True)
 
         c24 = ws.cell(curr_row, 24, f"=50*(N{curr_row}*31)*W{curr_row}")
@@ -1276,27 +1303,31 @@ def export_kpi_sco_excel(kpi_data, pjp_stores=None):
     ws.cell(tot_row, 5, f"=SUM(E9:E{tot_row-1})").font = Font(bold=True)
     ws.cell(tot_row, 6, f"=SUM(F9:F{tot_row-1})").font = Font(bold=True)
     ws.cell(tot_row, 7, f"=IFERROR(F{tot_row}/E{tot_row},0)").number_format = "0.0%"
-    ws.cell(tot_row, 8, f"=G{tot_row}*15%").number_format = "0.00%"
+    ws.cell(tot_row, 8, f"=G{tot_row}*15%").number_format = "0.0%"
 
     ws.cell(tot_row, 9, f"=SUM(I9:I{tot_row-1})").font = Font(bold=True)
     ws.cell(tot_row, 10, f"=SUM(J9:J{tot_row-1})").font = Font(bold=True)
     ws.cell(tot_row, 11, f"=IFERROR(J{tot_row}/I{tot_row},0)").number_format = "0.0%"
-    ws.cell(tot_row, 12, f"=K{tot_row}*25%").number_format = "0.00%"
+    ws.cell(tot_row, 12, f"=K{tot_row}*25%").number_format = "0.0%"
 
-    ws.cell(tot_row, 13, f"=SUM(M9:M{tot_row-1})").font = Font(bold=True)
-    ws.cell(tot_row, 14, f"=SUM(N9:N{tot_row-1})").font = Font(bold=True)
+    ws.cell(tot_row, 13, f"=SUM(M9:M{tot_row-1})").number_format = "#,##0"
+    ws.cell(tot_row, 13).font = Font(bold=True)
+    ws.cell(tot_row, 14, f"=SUM(N9:N{tot_row-1})").number_format = "#,##0"
+    ws.cell(tot_row, 14).font = Font(bold=True)
     ws.cell(tot_row, 15, f"=IFERROR(N{tot_row}/M{tot_row},0)").number_format = "0.0%"
-    ws.cell(tot_row, 16, f"=O{tot_row}*35%").number_format = "0.00%"
+    ws.cell(tot_row, 16, f"=O{tot_row}*35%").number_format = "0.0%"
 
-    ws.cell(tot_row, 17, f"=SUM(Q9:Q{tot_row-1})").font = Font(bold=True)
-    ws.cell(tot_row, 18, f"=SUM(R9:R{tot_row-1})").font = Font(bold=True)
+    ws.cell(tot_row, 17, f"=SUM(Q9:Q{tot_row-1})").number_format = "#,##0"
+    ws.cell(tot_row, 17).font = Font(bold=True)
+    ws.cell(tot_row, 18, f"=SUM(R9:R{tot_row-1})").number_format = "#,##0"
+    ws.cell(tot_row, 18).font = Font(bold=True)
     ws.cell(tot_row, 19, f"=(R{tot_row}-Q{tot_row})/Q{tot_row}").number_format = "0.0%"
-    ws.cell(tot_row, 20, f"=S{tot_row}*25%").number_format = "0.00%"
+    ws.cell(tot_row, 20, f"=S{tot_row}*25%").number_format = "0.0%"
 
-    ws.cell(tot_row, 21, f"=H{tot_row}+L{tot_row}+P{tot_row}+T{tot_row}").number_format = "0.00%"
+    ws.cell(tot_row, 21, f"=H{tot_row}+L{tot_row}+P{tot_row}+T{tot_row}").number_format = "0.0%"
     ws.cell(tot_row, 21).font = Font(bold=True, color="1E3A8A")
 
-    ws.cell(tot_row, 23, f"=IF(U{tot_row}>1.2,1.2,IF(U{tot_row}>=0.6,U{tot_row},IF(U{tot_row}>=0.5,0.5,0)))").number_format = "0.00%"
+    ws.cell(tot_row, 23, f"=IF(U{tot_row}>1.2,1.2,IF(U{tot_row}>=0.6,U{tot_row},IF(U{tot_row}>=0.5,0.5,0)))").number_format = "0.0%"
     ws.cell(tot_row, 23).font = Font(bold=True)
 
     ws.cell(tot_row, 24, f"=SUM(X9:X{tot_row-1})").number_format = "Rp #,##0"

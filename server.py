@@ -1061,8 +1061,27 @@ async def api_visit_upload(request):
         with open(dest_path, "wb") as f_out:
             f_out.write(contents)
 
+        # Salin ke MASTER/active_visit_report.xlsx agar permanen dan tidak hilang saat refresh
+        import shutil
+        active_master = os.path.join(BASE_DIR, "MASTER", "active_visit_report.xlsx")
+        os.makedirs(os.path.dirname(active_master), exist_ok=True)
+        try:
+            shutil.copy2(dest_path, active_master)
+        except Exception as e_cp:
+            print(f"Warning copying to active_visit_report: {e_cp}")
+
         import engines.visit_engine as visit_engine
-        res = await asyncio.to_thread(visit_engine.build_visit_analysis, dest_path, True)
+        visit_engine._CACHED_VISIT_RESULT = None
+        visit_engine._CACHED_PJP_CLAIM_DATA = None
+        res = await asyncio.to_thread(visit_engine.build_visit_analysis, active_master, True)
+
+        # Update juga Tab 2 PJP Claim & Tab 3 KPI SCO agar sinkron dengan file kunjungan baru
+        try:
+            await asyncio.to_thread(visit_engine.get_pjp_claim_data, True)
+            await asyncio.to_thread(visit_engine.get_kpi_sco_data, True)
+        except Exception as e_kpi:
+            print(f"Warning updating KPI on visit upload: {e_kpi}")
+
         return JSONResponse(res)
     except Exception as e:
         import traceback
