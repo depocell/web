@@ -1,0 +1,322 @@
+﻿<ui:FluentWindow x:Class="DepasCommander.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        mc:Ignorable="d"
+        Title="Depo Cell — Pos Komando Admin (Fluent Station)"
+        Height="820" Width="1300"
+        MinHeight="650" MinWidth="1050"
+        WindowStartupLocation="CenterScreen"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- TITLEBAR FLUENT WINDOWS 11 -->
+        <ui:TitleBar Grid.Row="0"
+                     Title="Depo Cell — Pos Komando Admin"
+                     CloseWindowByDoubleClickOnIcon="False"
+                     ShowMinimize="True"
+                     ShowMaximize="True"
+                     ShowClose="True">
+            <ui:TitleBar.TrailingContent>
+                <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                    <ui:Button x:Name="BtnThemeToggle"
+                               Appearance="Transparent"
+                               Icon="{ui:SymbolIcon Symbol=WeatherMoon24}"
+                               ToolTip="Ganti Tema (Dark / Light)"
+                               Click="BtnThemeToggle_Click"
+                               Margin="0,0,6,0" />
+                </StackPanel>
+            </ui:TitleBar.TrailingContent>
+        </ui:TitleBar>
+
+        <!-- MAIN CONTENT WITH LEFT SIDEBAR -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT NAVIGATION VIEW -->
+            <ui:NavigationView Grid.Column="0"
+                               x:Name="RootNavigation"
+                               PaneDisplayMode="Left"
+                               IsBackButtonVisible="Collapsed"
+                               SelectionChanged="RootNavigation_SelectionChanged">
+                <ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem Content="Olah Data TSV"
+                                           TargetPageTag="tsv"
+                                           Icon="{ui:SymbolIcon Symbol=ArrowUpload24}" />
+                    <ui:NavigationViewItem Content="Sync Cloud VPS"
+                                           TargetPageTag="sync"
+                                           Icon="{ui:SymbolIcon Symbol=CloudSync24}" />
+                    <ui:NavigationViewItem Content="Status &amp; Telemetri"
+                                           TargetPageTag="status"
+                                           Icon="{ui:SymbolIcon Symbol=DataBarVertical24}" />
+                    <ui:NavigationViewItem Content="Web Report View"
+                                           TargetPageTag="webreport"
+                                           Icon="{ui:SymbolIcon Symbol=Globe24}" />
+                </ui:NavigationView.MenuItems>
+                <ui:NavigationView.FooterMenuItems>
+                    <ui:NavigationViewItem Content="Tutup Aplikasi"
+                                           TargetPageTag="exit"
+                                           Icon="{ui:SymbolIcon Symbol=Dismiss24}" />
+                </ui:NavigationView.FooterMenuItems>
+            </ui:NavigationView>
+
+            <!-- RIGHT CONTENT AREA -->
+            <Grid Grid.Column="1" Margin="24,12,24,24">
+
+                <!-- VIEW 1: OLAH DATA TSV -->
+                <Grid x:Name="ViewTsv" Visibility="Visible">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,18">
+                        <TextBlock Text="Olah Data TSV OtomaX" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="Unggah dan olah file TSV transaksi OtomaX langsung ke database Parquet bulanan."
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+
+                    <!-- DRAG DROP & FILE SELECTION CARD -->
+                    <Border Grid.Row="1"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            Padding="24"
+                            Margin="0,0,0,18">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,14">
+                                <TextBlock Text="Target Brand:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                <RadioButton x:Name="RbAstaga" Content="ASTAGA" IsChecked="True" GroupName="BrandGroup" Margin="0,0,16,0" Checked="RbBrand_Checked" />
+                                <RadioButton x:Name="RbOkipay" Content="OKIPAY" GroupName="BrandGroup" Checked="RbBrand_Checked" />
+                            </StackPanel>
+
+                            <!-- DRAG & DROP AREA -->
+                            <Border Grid.Row="1"
+                                    x:Name="DropZone"
+                                    BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="8"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                    Padding="30"
+                                    AllowDrop="True"
+                                    Drop="DropZone_Drop"
+                                    DragOver="DropZone_DragOver"
+                                    Margin="0,0,0,14">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <ui:SymbolIcon Symbol="ArrowUpload24" FontSize="42" HorizontalAlignment="Center" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                                    <TextBlock Text="Seret &amp; Lepas File .TSV di Sini" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,4" />
+                                    <TextBlock Text="atau klik tombol di bawah untuk memilih file astaga.tsv / okipay.tsv" Foreground="{DynamicResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                                    <ui:Button x:Name="BtnBrowseFile" Content="Pilih File TSV..." Appearance="Primary" HorizontalAlignment="Center" Margin="0,14,0,0" Click="BtnBrowseFile_Click" />
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock x:Name="TxtSelectedFile" Text="Belum ada file dipilih." FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="TxtSelectedFileSize" Text="-" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                </StackPanel>
+                                <ui:Button Grid.Column="1" x:Name="BtnProcessTsv" Content="Mulai Ingestion ke Parquet" Appearance="Primary" IsEnabled="False" Click="BtnProcessTsv_Click" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- LOG AREA -->
+                    <Border Grid.Row="2"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            Padding="16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Riwayat &amp; Log Proses Ingestion:" FontWeight="SemiBold" Margin="0,0,0,8" />
+                            <TextBox Grid.Row="1"
+                                     x:Name="TxtTsvLog"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas, JetBrains Mono, monospace"
+                                     FontSize="12"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Text="Siap memproses data TSV OtomaX..." />
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- VIEW 2: SYNC CLOUD VPS -->
+                <Grid x:Name="ViewSync" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,18">
+                        <TextBlock Text="Sinkronisasi Cloud VPS (depas.my.id)" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="Unggah database master, cache transaksi Parquet, dan sinkronkan etalase publik."
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+
+                    <!-- SYNC CONTROLS -->
+                    <Border Grid.Row="1"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            Padding="20"
+                            Margin="0,0,0,18">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBlock Text="Target Server:" FontWeight="SemiBold" Margin="0,0,8,0" />
+                                    <TextBlock Text="185.205.222.170 (depas.my.id)" Foreground="{DynamicResource AccentFillColorDefaultBrush}" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <TextBlock x:Name="TxtVpsStatus" Text="Memeriksa konektivitas VPS..." Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ui:Button x:Name="BtnCheckVps" Content="Cek Status" Appearance="Secondary" Margin="0,0,8,0" Click="BtnCheckVps_Click" />
+                                <ui:Button x:Name="BtnStartSync" Content="Mulai Sinkronkan Sekarang" Appearance="Primary" Click="BtnStartSync_Click" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- REALTIME SYNC TERMINAL -->
+                    <Border Grid.Row="2"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Background="#0d1117"
+                            Padding="16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Live Streaming Terminal (SFTP &amp; Git Sync):" Foreground="#58a6ff" FontWeight="SemiBold" Margin="0,0,0,8" />
+                            <TextBox Grid.Row="1"
+                                     x:Name="TxtSyncLog"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas, JetBrains Mono, monospace"
+                                     FontSize="12"
+                                     Foreground="#c9d1d9"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     Text="Tekan 'Mulai Sinkronkan Sekarang' untuk mengunggah data terbaru ke cloud..." />
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- VIEW 3: STATUS & TELEMETRI -->
+                <Grid x:Name="ViewStatus" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,18">
+                        <TextBlock Text="Status &amp; Telemetri Server" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="Pantau kesehatan server lokal dan status file Parquet 2026."
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1">
+                        <StackPanel>
+                            <!-- SERVER LOCAL STATUS CARD -->
+                            <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    Padding="20"
+                                    Margin="0,0,0,16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Backend Server Lokal (FastAPI)" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                        <TextBlock x:Name="TxtLocalServerStatus" Text="Memeriksa port 8000..." Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <ui:Button Content="Buka Browser" Appearance="Secondary" Margin="0,0,8,0" Click="BtnOpenBrowser_Click" />
+                                        <ui:Button Content="Buka Folder Data" Appearance="Primary" Click="BtnOpenRawData_Click" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- PARQUET STATUS CARD -->
+                            <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    Padding="20">
+                                <StackPanel>
+                                    <TextBlock Text="Status File Parquet Transaksi 2026 (.cache/)" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
+                                    <TextBlock x:Name="TxtParquetInfo" Text="Memuat status file..." FontFamily="Consolas, monospace" FontSize="13" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- VIEW 4: WEB REPORT PREVIEW (WEBVIEW2) -->
+                <Grid x:Name="ViewWebReport" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Web Report Desktop View (Admin Station)" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
+                        <ui:Button Grid.Column="1" Content="Refresh" Icon="{ui:SymbolIcon Symbol=ArrowClockwise24}" Click="BtnRefreshWeb_Click" />
+                    </Grid>
+                    <Border Grid.Row="1"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            ClipToBounds="True">
+                        <wv2:WebView2 x:Name="ReportWebView" />
+                    </Border>
+                </Grid>
+
+            </Grid>
+        </Grid>
+    </Grid>
+</ui:FluentWindow>

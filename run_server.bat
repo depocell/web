@@ -21,7 +21,7 @@ powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction Silen
 echo Menyalakan Web Report Server di port 8000...
 echo - Local: http://localhost:8000
 echo - Public: https://depas.my.id (jika tunnel nyala)
-echo - Unified Agent: Ompasha Agent (WhatsApp & Telegram aktif)
+echo - Unified Agent: Ompasha Agent (WhatsApp ^& Telegram aktif)
 echo.
 echo Tekan Ctrl+C untuk menghentikan server.
 echo ========================================================

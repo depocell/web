@@ -7,14 +7,16 @@
 
 * **Alamat IP Publik VPS**: `185.205.222.170`
 * **Domain Utama**: `https://depas.my.id` (Cloudflare Proxied A-Record `@` -> `185.205.222.170`)
-* **Web Server & SSL**: Nginx Reverse Proxy + Let's Encrypt SSL Certbot
+* **Subdomain Khusus Sales SCO**: `https://sco.depas.my.id` (Cloudflare Proxied A-Record `sco` -> `185.205.222.170`)
+* **Web Server & SSL**: Nginx Reverse Proxy + Let's Encrypt SSL Certbot (Auto-renew)
 * **OS & Runtime**: Ubuntu Linux, 2 vCPU, 2 GB RAM + 2 GB Swap, Python 3.12, Node.js v20+
 * **Process Manager**: PM2 (Auto-start saat server reboot)
-* **Status Dual-Project**:
-  | Project | Folder di VPS | Port Internal | URL Akses Langsung | Service PM2 | Domain / Reverse Proxy |
-  | :--- | :--- | :--- | :--- | :--- | :--- |
-  | **Depot Pulsa (DP)** | `/var/www/serpul` | `3000` | `http://185.205.222.170:3000` | `serpul` | - |
-  | **Web Report** | `/var/www/webreport` | `8000` | `http://185.205.222.170:8000` | `webreport` | `https://depas.my.id` |
+* **Status Layanan VPS**:
+  | Project / Layanan | Folder di VPS | Port Internal | URL Akses Langsung | Service PM2 | Domain / Reverse Proxy | Keterangan Akses |
+  | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+  | **Depot Pulsa (DP)** | `/var/www/serpul` | `3000` | `http://185.205.222.170:3000` | `serpul` | `depotpulsa.biz.id` | Server Transaksi OtomaX |
+  | **Web Report** | `/var/www/webreport` | `8000` | `http://185.205.222.170:8000` | `webreport` | `https://depas.my.id` | Dashboard Manajemen (Wajib Login) |
+  | **SCO Sales Suite** | `/var/www/webreport/pages/sco` | Nginx Static + 8000 | - | - | `https://sco.depas.my.id` | Mobile App Sales Lapangan (Tanpa Login) |
 
 ---
 
@@ -27,7 +29,7 @@
    - Mengontrol sinkronisasi ke VPS melalui Tab **"Sync & Status VPS"** dengan Live Streaming Terminal (SSE).
 
 2. **Cloud VPS (`https://depas.my.id`) = ETALASE PUBLIK**:
-   - Mode default pengunjung internet adalah **Tamu (Auto-Viewer)** tanpa perlu login password.
+   - Mode akses pengunjung internet: **Wajib Login (Protected Mode)**. Pengunjung tanpa sesi aktif otomatis dialihkan ke `/login`. Setelah login, sesi tersimpan (30 hari jika 'Ingat saya') dan langsung diarahkan ke `#overview`. Akun default: `admin` (pwd: `depas2026`).
    - Menu Dapur (`#admin` & `#pivot-admin`) dan label `Dapur & Admin` **DISEMBUNYIKAN TOTAL** (`display: none !important`).
    - Endpoint `/api/admin/*` dan `/pages/admin/*` menolak akses publik dengan `403 Forbidden`.
    - Menu `Daily Report` dan `SCO Suite` berdiri sendiri di bawah label **`Manajemen & Sales`**.

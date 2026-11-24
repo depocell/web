@@ -91,7 +91,21 @@ async function checkAuthStatus(force = false) {
             role: (data.role || "guest").toLowerCase(),
             is_local: !!data.is_local
           };
+        } else {
+          currentAuthUser = {
+            authenticated: false,
+            username: "",
+            role: "guest",
+            is_local: false
+          };
         }
+      } else {
+        currentAuthUser = {
+          authenticated: false,
+          username: "",
+          role: "guest",
+          is_local: false
+        };
       }
     } catch (e) {
       console.warn("Gagal memeriksa status auth:", e);
@@ -105,6 +119,14 @@ async function checkAuthStatus(force = false) {
 
 function applyAuthUI() {
   const isLocal = currentAuthUser.is_local || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+  // Jika akses publik/remote dan belum login, lempar ke halaman login
+  if (!isLocal && !currentAuthUser.authenticated) {
+    if (!window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login";
+      return;
+    }
+  }
 
   // Tag root html
   if (isLocal) {
@@ -137,7 +159,7 @@ function applyAuthUI() {
     userSec.style.display = isLocal ? "none" : "flex";
   }
   if (usernameEl) {
-    usernameEl.textContent = isLocal ? "Admin (Lokal)" : (currentAuthUser.username || "Tamu");
+    usernameEl.textContent = isLocal ? "Admin (Lokal)" : (currentAuthUser.username || "User");
   }
   if (roleBadgeEl) {
     if (isLocal) {
@@ -146,10 +168,17 @@ function applyAuthUI() {
       roleBadgeEl.style.color = "#2563eb";
       roleBadgeEl.style.borderColor = "#bfdbfe";
     } else {
-      roleBadgeEl.textContent = "Viewer";
-      roleBadgeEl.style.background = "#f1f5f9";
-      roleBadgeEl.style.color = "#475569";
-      roleBadgeEl.style.borderColor = "#cbd5e1";
+      const r = (currentAuthUser.role || "viewer").toUpperCase();
+      roleBadgeEl.textContent = r === "TAMU" ? "Viewer" : (r === "ADMIN" ? "Admin" : r);
+      if (r === "ADMIN") {
+        roleBadgeEl.style.background = "#eff6ff";
+        roleBadgeEl.style.color = "#2563eb";
+        roleBadgeEl.style.borderColor = "#bfdbfe";
+      } else {
+        roleBadgeEl.style.background = "#f1f5f9";
+        roleBadgeEl.style.color = "#475569";
+        roleBadgeEl.style.borderColor = "#cbd5e1";
+      }
     }
   }
 }

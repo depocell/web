@@ -1,0 +1,7 @@
+c:\WEB REPORT\tools\DepasCommander\publish\DepasCommander.pdb
+c:\WEB REPORT\tools\DepasCommander\publish\runtimes\win-x64\native\WebView2Loader.dll
+c:\WEB REPORT\tools\DepasCommander\publish\WebView2Loader.dll
+c:\WEB REPORT\tools\DepasCommander\publish\Microsoft.Web.WebView2.Core.xml
+c:\WEB REPORT\tools\DepasCommander\publish\Microsoft.Web.WebView2.WinForms.xml
+c:\WEB REPORT\tools\DepasCommander\publish\Microsoft.Web.WebView2.Wpf.xml
+c:\WEB REPORT\tools\DepasCommander\publish\DepasCommander.exe

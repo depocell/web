@@ -108,21 +108,20 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
 
 async def homepage(request):
+    # Akses Remote/Online: Wajib login jika belum ada sesi valid
+    if not is_local_request(request):
+        token = request.cookies.get("depas_session")
+        valid, _, _ = auth_engine.verify_session_token(token)
+        if not valid:
+            return RedirectResponse("/login", status_code=302)
 
     shell_path = os.path.join(TEMPLATES_DIR, "shell.html")
-
     if os.path.exists(shell_path):
-
         with open(shell_path, "r", encoding="utf-8") as f:
-
             return HTMLResponse(
-
                 f.read(),
-
                 headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
-
             )
-
     return HTMLResponse("<h1>Web Report</h1><p>Shell belum ditemukan.</p>")
 
 
@@ -148,57 +147,35 @@ async def favicon(request):
 
 
 def is_local_request(request) -> bool:
-
     """Mengecek apakah request berasal dari workstation lokal (desktop WebView2 / localhost)."""
-
     host_header = request.headers.get("host", "").lower()
-
     # Jika diakses via domain resmi atau IP publik VPS, pasti ONLINE
-
-    if "depas.my.id" in host_header or "45.66.153.150" in host_header:
-
+    if "depas.my.id" in host_header or "45.66.153.150" in host_header or "185.205.222.170" in host_header:
         return False
 
     # Jika lewat reverse proxy nginx (ada header x-forwarded), pasti ONLINE
-
     if request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip"):
-
         return False
 
     client_host = request.client.host if request.client else ""
-
     return client_host in ("127.0.0.1", "localhost", "::1")
 
 
-
-
-
 async def page_login(request):
-
     """Menampilkan halaman login manajemen."""
-
-    if is_local_request(request):
-
+    # Izinkan jika sengaja diakses dengan ?force=1 untuk preview/testing di lokal
+    if is_local_request(request) and request.query_params.get("force") != "1":
         return RedirectResponse("/", status_code=302)
 
     token = request.cookies.get("depas_session")
-
     valid, _, _ = auth_engine.verify_session_token(token)
-
-    if valid:
-
+    if valid and request.query_params.get("force") != "1":
         return RedirectResponse("/", status_code=302)
 
-
-
     login_path = os.path.join(TEMPLATES_DIR, "login.html")
-
     if os.path.exists(login_path):
-
         with open(login_path, "r", encoding="utf-8") as f:
-
             return HTMLResponse(f.read())
-
     return HTMLResponse("<h1>Login Page Not Found</h1>", status_code=404)
 
 
@@ -286,46 +263,28 @@ async def api_auth_logout(request):
 
 
 async def api_auth_status(request):
-
     """Cek status login pengguna saat ini beserta role-nya."""
-
     if is_local_request(request):
-
         return JSONResponse({"ok": True, "authenticated": True, "is_local": True, "username": "Admin (Lokal)", "role": "admin"})
 
     token = request.cookies.get("depas_session")
-
     valid, username, role = auth_engine.verify_session_token(token)
-
     if valid:
-
         return JSONResponse({
-
             "ok": True,
-
             "authenticated": True,
-
             "is_local": False,
-
             "username": username,
-
             "role": role
-
         })
 
-    # Default remote / VPS tanpa login: Otomatis mode Tamu (Viewer)
+    # Remote / VPS tanpa login: Belum terautentikasi
     return JSONResponse({
-
-        "ok": True,
-
-        "authenticated": True,
-
+        "ok": False,
+        "authenticated": False,
         "is_local": False,
-
-        "username": "Tamu",
-
-        "role": "tamu"
-
+        "username": "",
+        "role": ""
     })
 
 
@@ -1108,6 +1067,65 @@ async def api_visit_upload(request):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_visit_pjp_claim(request):
+    """Mengambil master data PJP dan status klaim Net Trx per toko."""
+    try:
+        import engines.visit_engine as visit_engine
+        import importlib
+        force = request.query_params.get("refresh", "0") in ("1", "true")
+        if force:
+            importlib.reload(visit_engine)
+        res = await asyncio.to_thread(visit_engine.get_pjp_claim_data, force_refresh=force)
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_visit_kpi_sco(request):
+    """Mengambil scorecard KPI SCO 4 Pilar lengkap beserta multiplier dan estimasi insentif."""
+    try:
+        import engines.visit_engine as visit_engine
+        import importlib
+        force = request.query_params.get("refresh", "0") in ("1", "true")
+        if force:
+            importlib.reload(visit_engine)
+        res = await asyncio.to_thread(visit_engine.get_kpi_sco_data, force_refresh=force)
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_visit_save_collection(request):
+    """Menyimpan input manual data target & ach collection per SCO, lalu merefresh KPI SCO & file Excel."""
+    try:
+        import engines.visit_engine as visit_engine
+        body = await request.json()
+        res = await asyncio.to_thread(visit_engine.save_collection_kpi, body)
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_visit_download_kpi_excel(request):
+    """Mengunduh file resmi KPI_SCO.xlsx."""
+    try:
+        excel_path = os.path.join(BASE_DIR, "pages", "sco", "KPI_SCO.xlsx")
+        if not os.path.exists(excel_path):
+            import engines.visit_engine as visit_engine
+            await asyncio.to_thread(visit_engine.get_kpi_sco_data, True)
+        if os.path.exists(excel_path):
+            return FileResponse(excel_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="KPI_SCO.xlsx")
+        return JSONResponse({"ok": False, "error": "File KPI_SCO.xlsx tidak ditemukan"}, status_code=404)
+    except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
@@ -2228,6 +2246,8 @@ async def api_admin_upload_tsv(request):
 
 
 
+        import importlib
+        importlib.reload(admin_engine)
         res = await asyncio.to_thread(admin_engine.upsert_direct_to_parquet, brand=brand, tsv_file_path=temp_path)
 
 
@@ -3484,13 +3504,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 
 
-        # 3. Akses Remote / VPS (Bebas Login - Default Mode Tamu/Viewer):
-        # Dapur olah data & admin tetap eksklusif di Web EXE lokal.
+        # 3. Akses Remote / VPS (Wajib Login):
         token = request.cookies.get("depas_session")
         valid, username, role = auth_engine.verify_session_token(token)
         if not valid:
-            username = "Tamu"
-            role = "tamu"
+            if path.startswith("/api/"):
+                return JSONResponse(
+                    {"ok": False, "error": "Unauthorized. Silakan login terlebih dahulu.", "login_required": True},
+                    status_code=401
+                )
+            return RedirectResponse("/login", status_code=302)
 
         # 4. Role-Based Access Control (RBAC):
         # Jika bukan role 'admin', blokir akses ke dapur olah data & finansial rahasia
@@ -3686,6 +3709,14 @@ routes = [
     Route("/api/visit/export-csv", api_visit_export_csv, methods=["GET"]),
 
     Route("/api/visit/upload",     api_visit_upload,  methods=["POST"]),
+
+    Route("/api/visit/pjp-claim",  api_visit_pjp_claim, methods=["GET"]),
+
+    Route("/api/visit/kpi-sco",    api_visit_kpi_sco,   methods=["GET"]),
+
+    Route("/api/visit/save-collection", api_visit_save_collection, methods=["POST"]),
+
+    Route("/api/visit/download-kpi-excel", api_visit_download_kpi_excel, methods=["GET"]),
 
     Route("/api/status",        api_status),
 

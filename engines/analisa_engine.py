@@ -22,6 +22,7 @@ Karakteristik & Integritas Data:
 
 import os
 import json
+import shutil
 import calendar
 from typing import Dict, Any, List
 import engines.metrics_engine as me
@@ -838,8 +839,10 @@ def _build_gold_monthly_history() -> Dict[str, Any]:
     # Sinkronkan snapshot static data.json agar selalu up-to-date
     data_json_path = os.path.join(BASE_DIR, "pages", "analisa", "data.json")
     try:
-        with open(data_json_path, "w", encoding="utf-8") as f_json:
+        tmp_json = data_json_path + f".tmp_{os.getpid()}"
+        with open(tmp_json, "w", encoding="utf-8") as f_json:
             json.dump(history, f_json)
+        shutil.move(tmp_json, data_json_path)
     except Exception:
         pass
 
@@ -888,8 +891,10 @@ def get_analisa_dataset() -> Dict[str, Any]:
     _ANALISA_CACHE = _build_gold_monthly_history()
     _ANALISA_MTIME = curr_mtime
     try:
-        with open(hist_cache_file, "w", encoding="utf-8") as f_out:
+        tmp_cache = hist_cache_file + f".tmp_{os.getpid()}"
+        with open(tmp_cache, "w", encoding="utf-8") as f_out:
             json.dump(_ANALISA_CACHE, f_out)
+        shutil.move(tmp_cache, hist_cache_file)
     except Exception as e:
         print(f"[WARN] Failed to write {hist_cache_file}: {e}")
 

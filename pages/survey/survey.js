@@ -466,7 +466,7 @@ async function loadSurveyLogs() {
 
       // Update opsi filter petugas
       const surveyorSelect = document.getElementById('survey-logs-filter-surveyor');
-      if (surveySelect) {
+      if (surveyorSelect) {
         const prevVal = surveyorSelect.value;
         const surveyors = Array.from(new Set(json.logs.map(l => l.surveyor || l.surveyor_username || 'admin').filter(Boolean))).sort();
         let optHtml = '<option value="ALL">Semua Petugas</option>';

@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "r9E4Z10eEgU=",
+  "success": true,
+  "projectFilePath": "C:\\WEB REPORT\\tools\\DepasCommander\\DepasCommander.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\lisam\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.34\\microsoft.net.illink.tasks.8.0.34.nupkg.sha512",
+    "C:\\Users\\lisam\\.nuget\\packages\\microsoft.web.webview2\\1.0.4370.26\\microsoft.web.webview2.1.0.4370.26.nupkg.sha512",
+    "C:\\Users\\lisam\\.nuget\\packages\\wpf-ui\\4.3.0\\wpf-ui.4.3.0.nupkg.sha512",
+    "C:\\Users\\lisam\\.nuget\\packages\\wpf-ui.abstractions\\4.3.0\\wpf-ui.abstractions.4.3.0.nupkg.sha512"
+  ],
+  "logs": []
+}

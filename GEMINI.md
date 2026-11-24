@@ -388,7 +388,7 @@ $$\text{D} > \text{M} > \text{R} > \text{P} > \text{O}$$
      - Terhubung ke VPS via SFTP & SSH untuk mengunggah file Parquet hasil olahan secara berkala.
   2. **Cloud VPS (`185.205.222.170` / `depas.my.id`)**:
      - Berjalan di Ubuntu Linux port `8000` di bawah PM2 (`webreport`), berdampingan dengan Depot Pulsa port `3000` (`serpul`), dan diproxy oleh Nginx dengan SSL Let's Encrypt serta DNS Cloudflare (Proxied).
-     - **Bebas Login (Default Mode Tamu/Viewer)**: Siapa pun yang membuka `https://depas.my.id` otomatis masuk sebagai role `tamu` tanpa form login atau password, langsung diarahkan ke `#overview`.
+     - **Wajib Login (Protected Mode)**: Pengunjung yang membuka `https://depas.my.id` tanpa sesi login aktif otomatis dialihkan ke `/login`. Setelah berhasil login, sesi tersimpan via cookie terenkripsi (30 hari jika mencentang 'Ingat saya') dan pengguna langsung diarahkan ke `#overview`. Akun default: `admin` (password: `depas2026`) atau akun operasional yang dikonfigurasi di User Management.
      - **Isolasi Mutlak Menu Dapur**:
        - Seluruh menu `#admin`, `#pivot-admin`, dan label `Dapur & Admin` **HARAM HUKUMNYA** muncul atau dirender di `depas.my.id` (sudah dilindungi dengan `display: none !important` di CSS dan route guard JS).
        - Seluruh endpoint `/api/admin/*` dan `/pages/admin/*` wajib menolak akses non-lokal dengan status `403 Forbidden`.
