@@ -3878,8 +3878,22 @@ def _prewarm():
 
 
     def run():
-
         time.sleep(1)
+
+        # Mode Hemat RAM (On-Demand) untuk VPS agar tidak memicu OOM / High CPU
+        low_mem = os.environ.get("LOW_MEM", "1") == "1"
+        if low_mem:
+            print("[BOOT] Mode Hemat RAM (On-Demand VPS) aktif: Pre-warming berat dinonaktifkan.")
+            try:
+                for brand in ["ASTAGA", "OKIPAY"]:
+                    cust_engine.get_ar_to_cabang(brand)
+                    prod_engine.get_product_map(brand)
+                res_engine.load_master_meta()
+            except Exception as e:
+                print(f"[BOOT] Load master meta warning: {e}")
+            telemetry_engine.set_idle("Server Ready — On-Demand VPS Mode", "RAM Hemat & Aman")
+            print("[BOOT] Server siap! Data transaksi akan dimuat on-demand saat dibuka.")
+            return
 
         telemetry_engine.set_busy("Boot Pre-warm Cache 2026...", "Memeriksa Parquet & RAM")
 
