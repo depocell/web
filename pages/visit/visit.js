@@ -933,8 +933,7 @@ function formatRupiah(val) {
 
 function formatCollection(val) {
   if (val === null || val === undefined || isNaN(val)) return "0";
-  if (val >= 1000000) return formatRupiah(val);
-  return formatNum(val) + " Jt";
+  return formatNum(Math.round(val));
 }
 
 function formatDateHeader(dateStr) {

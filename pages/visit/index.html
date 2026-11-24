@@ -865,8 +865,8 @@
               <th class="text-right" style="border-right: 1px solid var(--surface-border); font-weight: 800; color: var(--primary);">SKOR (15%)</th>
 
               <!-- PILAR 2 -->
-              <th class="text-right">TARGET (RP)</th>
-              <th class="text-right">REALISASI (RP)</th>
+              <th class="text-right">TARGET</th>
+              <th class="text-right">REALISASI</th>
               <th class="text-right">% ACH</th>
               <th class="text-right" style="border-right: 1px solid var(--surface-border); font-weight: 800; color: #d97706;">SKOR (25%)</th>
 
@@ -915,7 +915,7 @@
           <div style="font-weight: 700; color: var(--text-main); margin-bottom: 6px;">1. Komposisi 4 Pilar Bobot</div>
           <ul style="padding-left: 18px; margin: 0; line-height: 1.6;">
             <li><b>Daily Visit Agen (15%)</b>: Realisasi / Target Kunjungan &times; 15%</li>
-            <li><b>Collection (25%)</b>: Realisasi / Target Collection &times; 25% (Input manual)</li>
+            <li><b>Collection (25%)</b>: Realisasi / Target Tagihan &times; 25% (Input manual jumlah tagihan bulanan)</li>
             <li><b>Daily Net Trx (35%)</b>: Net Trx Sah / (Baseline Okt + 50) &times; 35%</li>
             <li><b>Growth Gross Trx (25%)</b>: (Nov Gross - Okt Gross) / Okt Gross &times; 25%</li>
           </ul>
@@ -964,7 +964,7 @@
 
     <div class="modal-body">
       <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
-        Masukkan angka target dan realisasi collection penagihan piutang per SCO dalam nominal Rupiah penuh (contoh: <code>500000000</code> untuk Rp 500.000.000). Data otomatis tersimpan di server dan mengupdate skor KPI SCO serta file Excel.
+        Masukkan jumlah target dan realisasi collection tagihan/nota per SCO dalam sebulan (contoh: target <code>350</code> tagihan, realisasi <code>335</code> tagihan). Data otomatis tersimpan di server dan mengupdate skor KPI SCO serta file Excel.
       </div>
 
       <div class="visit-table-wrapper">
@@ -973,8 +973,8 @@
             <tr>
               <th>SCO</th>
               <th>CABANG</th>
-              <th style="width: 170px;" class="text-right">TARGET (RP)</th>
-              <th style="width: 170px;" class="text-right">REALISASI (RP)</th>
+              <th style="width: 170px;" class="text-right">TARGET (TAGIHAN)</th>
+              <th style="width: 170px;" class="text-right">REALISASI (TAGIHAN)</th>
               <th style="width: 90px;" class="text-right">% ACH</th>
             </tr>
           </thead>
