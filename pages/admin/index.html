@@ -447,6 +447,8 @@
           value="https://depas.my.id/api/export/transactions.parquet?brand=ASTAGA&year=2026&month=2026-10&key=depas2026" />
         <input type="hidden" id="stream-url-agents"
           value="https://depas.my.id/api/export/agents.csv?brand=ASTAGA&key=depas2026" />
+        <input type="hidden" id="stream-url-agents-excel"
+          value="https://depas.my.id/api/export/agents.xlsx?brand=ASTAGA&key=depas2026" />
         <input type="hidden" id="stream-url-customers"
           value="https://depas.my.id/api/export/customers.csv?brand=ASTAGA&key=depas2026" />
         <input type="hidden" id="stream-url-products"
@@ -550,7 +552,7 @@
               <span>Salin Link</span>
             </button>
             <button type="button" onclick="downloadStreamUrl('stream-url-agents')" class="btn-system-refresh"
-              style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              style="padding: 6px 14px; font-size: 11.5px; background: var(--primary); color: #fff; border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 6px; font-weight: 600;" title="Unduh CSV">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -558,6 +560,16 @@
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
               <span>Download CSV</span>
+            </button>
+            <button type="button" onclick="downloadStreamUrl('stream-url-agents-excel')" class="btn-system-refresh"
+              style="padding: 6px 14px; font-size: 11.5px; background: #107c41; color: #fff; border: 1px solid #107c41; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;" title="Unduh Excel .xlsx">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download Excel</span>
             </button>
           </div>
         </div>

@@ -2773,7 +2773,7 @@ async def api_export_agents_csv(request):
 
                 SELECT agen_id, nama_agen, cabang, type, sco, dso, limit_saldo, markup, 
 
-                       tgl_daftar, tgl_aktivitas_terakhir, jadwal, location, kota_kab, kecamatan, kelurahan
+                       tgl_daftar, tgl_aktivitas_terakhir, jadwal, location, alamat, kota_kab, kecamatan, kelurahan
 
                 FROM agents
 
@@ -2812,6 +2812,100 @@ async def api_export_agents_csv(request):
         traceback.print_exc()
 
         return PlainTextResponse(f"Error generating agents CSV: {str(e)}", status_code=500)
+
+
+
+
+
+async def api_export_agents_excel(request):
+
+    """Menyediakan tabel dimensi Toko Induk (Master Agen Langsung) dalam format Excel (.xlsx).
+
+    Query Params:
+
+    - brand: ASTAGA / OKIPAY (default: ASTAGA)
+
+    - key: depas2026
+
+    """
+
+    try:
+
+        brand = request.query_params.get("brand", "ASTAGA").upper()
+
+        
+
+        def _get_agents_excel():
+
+            import sqlite3
+
+            import pandas as pd
+
+            import io
+
+            db_path = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+
+            conn = sqlite3.connect(db_path)
+
+            query = """
+
+                SELECT agen_id AS [AGEN ID], nama_agen AS [NAMA AGEN], cabang AS [CABANG],
+
+                       type AS [TYPE], sco AS [SCO], dso AS [DSO], limit_saldo AS [LIMIT],
+
+                       markup AS [MARKUP], tgl_daftar AS [TGL DAFTAR], tgl_aktivitas_terakhir AS [TGL AKTIF],
+
+                       jadwal AS [JADWAL], location AS [LOCATION], alamat AS [ALAMAT],
+
+                       kota_kab AS [KOTA/KAB], kecamatan AS [KECAMATAN], kelurahan AS [KELURAHAN]
+
+                FROM agents
+
+                WHERE brand = ?
+
+                ORDER BY agen_id
+
+            """
+
+            df = pd.read_sql_query(query, conn, params=(brand,))
+
+            conn.close()
+
+            
+
+            output = io.BytesIO()
+
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+
+                df.to_excel(writer, sheet_name="Master_Agents", index=False)
+
+            output.seek(0)
+
+            return output.getvalue()
+
+
+
+        excel_data = await asyncio.to_thread(_get_agents_excel)
+
+        filename = f"Master_Agents_{brand}.xlsx"
+
+        return Response(
+
+            excel_data,
+
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+
+        )
+
+    except Exception as e:
+
+        import traceback
+
+        traceback.print_exc()
+
+        return PlainTextResponse(f"Error generating agents Excel: {str(e)}", status_code=500)
 
 
 
@@ -3646,6 +3740,8 @@ routes = [
     Route("/api/export/customers.csv",    api_export_customers_csv),
 
     Route("/api/export/agents.csv",       api_export_agents_csv),
+
+    Route("/api/export/agents.xlsx",      api_export_agents_excel),
 
     Route("/api/export/products.csv",     api_export_products_csv),
 

@@ -25,6 +25,7 @@ OUTPUT_KPI_EXCEL_PATH = os.path.join(BASE_DIR, "pages", "sco", "KPI_SCO.xlsx")
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 SUMMARY_CACHE_FILE = os.path.join(CACHE_DIR, "visit_summary_cache.json")
 _CACHED_VISIT_RESULT = None
+_CACHED_PJP_CLAIM_DATA = None
 DEFAULT_EXCEL_PATH = os.path.join(
     BASE_DIR,
     "Laporan Kunjungan Klien Semua Personalia Versi 2 Periode 1 Nov 2026 - 15 Nov 2026 - 1794806282880.xlsx"
@@ -588,9 +589,205 @@ def get_pjp_path():
 
 def get_pjp_claim_data(force_refresh=False):
     """
-    Membaca master data PJP dari sheet NAM_PJP dan mengevaluasi hak klaim transaksi per toko.
+    Membaca master data PJP langsung dari master_data.db dan transaksi terkini (.parquet)
+    untuk mengevaluasi hak klaim transaksi per toko (Threshold 60% Kunjungan).
     HUKUM KLAIM: Jika % Visit >= 60%, SCO berhak klaim Net Trx. Jika < 60%, Net Trx HANGUS (0).
+    Fallback otomatis ke 11_NAM_PJP.xlsx jika database/parquet belum tersedia.
     """
+    global _CACHED_PJP_CLAIM_DATA
+    if not force_refresh and _CACHED_PJP_CLAIM_DATA is not None:
+        return _CACHED_PJP_CLAIM_DATA
+
+    # 1. Coba generate langsung dari master_data.db + Parquet
+    trx_parquet = os.path.join(CACHE_DIR, "trx_astaga_2026.parquet")
+    cust_parquet = os.path.join(CACHE_DIR, "cust_full_astaga.parquet")
+    visit_parquet = os.path.join(CACHE_DIR, "visit_target_vs_actual_2026-11.parquet")
+
+    if os.path.exists(DB_PATH) and os.path.exists(trx_parquet):
+        try:
+            import pyarrow.parquet as pq
+            import engines.metrics_engine as me
+
+            # A. Query Agents dari master_data.db
+            conn = sqlite3.connect(DB_PATH)
+            query = """
+                SELECT brand, agen_id, nama_agen, cabang, type as tipe_agen, sco, dso, jadwal, location as lokasi
+                FROM agents
+                WHERE sco IN ('Abdul Harris', 'Febri Kurniawan', 'Hupron', 'Khoirul Anan', 'Mas Komarjaya')
+                  AND jadwal IN ('Senin,Kamis', "Selasa,Jum'at", 'Rabu,Sabtu')
+                  AND is_active = 1
+                ORDER BY sco, cabang, nama_agen
+            """
+            df_agents = pd.read_sql_query(query, conn)
+            conn.close()
+
+            # B. Query Transaksi (Oktober & November 2026) - Fast PyArrow Scanner
+            table = pq.read_table(
+                trx_parquet,
+                columns=['tgl_entry', 'ar_id', 'status'],
+                filters=[
+                    ('status', '=', 'Sukses'),
+                    ('tgl_entry', '>=', pd.Timestamp('2026-10-01'))
+                ]
+            )
+            df_trx = table.to_pandas()
+            df_trx['m'] = df_trx['tgl_entry'].dt.month
+
+            # Mapping sub-reseller ke parent agen
+            if os.path.exists(cust_parquet):
+                cust = pd.read_parquet(cust_parquet, columns=['ar_id', 'agen_id'])
+                df_trx = df_trx.merge(cust, on='ar_id', how='left')
+                df_trx['parent_agen'] = df_trx['agen_id'].fillna(df_trx['ar_id'])
+            else:
+                df_trx['parent_agen'] = df_trx['ar_id']
+
+            # Hukum 4 GEMINI.md: Exclude akun internal operasional
+            df_trx = df_trx[~df_trx['ar_id'].isin(["AR00037", "AR00009", "AR20408"])]
+
+            oct_df = df_trx[df_trx['m'] == 10]
+            nov_df = df_trx[df_trx['m'] == 11]
+
+            oct_counts = oct_df.groupby('parent_agen').size().to_dict()
+            nov_counts = nov_df.groupby('parent_agen').size().to_dict()
+
+            oct_days = 31.0
+            nov_days = float(me.get_active_days(nov_df))
+            if nov_days <= 0:
+                nov_days = 1.0
+
+            # C. Kunjungan Target & Realisasi
+            if force_refresh or not os.path.exists(visit_parquet):
+                build_visit_analysis()
+
+            if os.path.exists(visit_parquet):
+                df_visit = pd.read_parquet(visit_parquet)
+                visit_summary = df_visit.groupby('agen_id').agg({'target': 'sum', 'score': 'sum'}).to_dict('index')
+            else:
+                visit_summary = {}
+
+            stores = []
+            total_gross_oct = 0.0
+            total_gross_nov = 0.0
+            total_net_trx = 0.0
+            total_lost_trx = 0.0
+            passed_cnt = 0
+            failed_cnt = 0
+            scos_agg = {}
+
+            for idx, r in df_agents.iterrows():
+                ar_id = str(r['agen_id']).strip()
+                oct_hits = oct_counts.get(ar_id, 0)
+                nov_hits = nov_counts.get(ar_id, 0)
+
+                # Filter toko target aktif: ada transaksi di bulan lalu atau bulan ini
+                if oct_hits == 0 and nov_hits == 0:
+                    continue
+
+                jadwal = str(r['jadwal'] or "").strip()
+                sco = str(r['sco'] or "").strip()
+                dso = str(r['dso'] or "").strip()
+                nama_agen = str(r['nama_agen'] or "").strip()
+                cabang = str(r['cabang'] or "").strip()
+                lokasi = str(r['lokasi'] or "").strip()
+
+                oct_rate = round(oct_hits / oct_days, 4)
+                nov_rate = round(nov_hits / nov_days, 4)
+
+                v = visit_summary.get(ar_id, {'target': 0, 'score': 0})
+                tgt_visit = int(v.get('target', 0))
+                ach_visit = int(v.get('score', 0))
+                ach_pct = round(ach_visit / tgt_visit, 4) if tgt_visit > 0 else 0.0
+
+                # HUKUM KLAIM TRANSAKSI (THRESHOLD 60%)
+                is_claimable = bool(ach_pct >= 0.60)
+                net_trx = nov_rate if is_claimable else 0.0
+                lost_trx = nov_rate if not is_claimable else 0.0
+                growth = round(nov_rate - oct_rate, 4)
+
+                if is_claimable:
+                    passed_cnt += 1
+                else:
+                    failed_cnt += 1
+
+                total_gross_oct += oct_rate
+                total_gross_nov += nov_rate
+                total_net_trx += net_trx
+                total_lost_trx += lost_trx
+
+                if sco:
+                    if sco not in scos_agg:
+                        scos_agg[sco] = {
+                            "sco": sco,
+                            "cabang": cabang,
+                            "total_stores": 0,
+                            "passed_stores": 0,
+                            "failed_stores": 0,
+                            "oct_gross": 0.0,
+                            "nov_gross": 0.0,
+                            "net_trx": 0.0,
+                            "lost_trx": 0.0,
+                            "visit_tgt": 0,
+                            "visit_ach": 0
+                        }
+                    scos_agg[sco]["total_stores"] += 1
+                    if is_claimable:
+                        scos_agg[sco]["passed_stores"] += 1
+                    else:
+                        scos_agg[sco]["failed_stores"] += 1
+                    scos_agg[sco]["oct_gross"] += oct_rate
+                    scos_agg[sco]["nov_gross"] += nov_rate
+                    scos_agg[sco]["net_trx"] += net_trx
+                    scos_agg[sco]["lost_trx"] += lost_trx
+                    scos_agg[sco]["visit_tgt"] += tgt_visit
+                    scos_agg[sco]["visit_ach"] += ach_visit
+
+                stores.append({
+                    "no": len(stores) + 1,
+                    "agen_id": ar_id,
+                    "jadwal": jadwal,
+                    "sco": sco,
+                    "dso": dso,
+                    "nama_agen": nama_agen,
+                    "cabang": cabang,
+                    "lokasi": lokasi,
+                    "oct_trx": round(oct_rate, 4),
+                    "nov_trx": round(nov_rate, 4),
+                    "tgt_visit": tgt_visit,
+                    "ach_visit": ach_visit,
+                    "ach_pct": round(ach_pct, 4),
+                    "is_claimable": is_claimable,
+                    "status_claim": "BERHAK KLAIM" if is_claimable else "HANGUS",
+                    "net_trx": round(net_trx, 4),
+                    "lost_trx": round(lost_trx, 4),
+                    "growth": growth
+                })
+
+            summary = {
+                "total_stores": len(stores),
+                "passed_stores": passed_cnt,
+                "failed_stores": failed_cnt,
+                "passed_pct": round(passed_cnt / len(stores) * 100, 1) if stores else 0.0,
+                "failed_pct": round(failed_cnt / len(stores) * 100, 1) if stores else 0.0,
+                "total_gross_oct": round(total_gross_oct, 2),
+                "total_gross_nov": round(total_gross_nov, 2),
+                "total_net_trx": round(total_net_trx, 2),
+                "total_lost_trx": round(total_lost_trx, 2),
+                "source": "master_data.db",
+                "active_days_nov": nov_days
+            }
+
+            res = {
+                "ok": True,
+                "summary": summary,
+                "scos_agg": scos_agg,
+                "stores": stores
+            }
+            _CACHED_PJP_CLAIM_DATA = res
+            return res
+        except Exception as e_dyn:
+            print(f"[PJP Engine] Fallback to NAM_PJP.xlsx: {e_dyn}")
+
+    # 2. Fallback to Excel NAM_PJP.xlsx jika master_data.db atau Parquet belum tersedia
     path = get_pjp_path()
     if not os.path.exists(path):
         return {"ok": False, "error": f"File master NAM_PJP tidak ditemukan: {path}"}
@@ -704,15 +901,18 @@ def get_pjp_claim_data(force_refresh=False):
         "total_gross_oct": round(total_gross_oct, 2),
         "total_gross_nov": round(total_gross_nov, 2),
         "total_net_trx": round(total_net_trx, 2),
-        "total_lost_trx": round(total_lost_trx, 2)
+        "total_lost_trx": round(total_lost_trx, 2),
+        "source": "11_NAM_PJP.xlsx"
     }
 
-    return {
+    res = {
         "ok": True,
         "summary": summary,
         "scos_agg": scos_agg,
         "stores": stores
     }
+    _CACHED_PJP_CLAIM_DATA = res
+    return res
 
 
 def get_kpi_sco_data(force_refresh=False):
@@ -729,6 +929,13 @@ def get_kpi_sco_data(force_refresh=False):
         return claim_res
 
     scos_agg = claim_res["scos_agg"]
+
+    # Ambil Pilar 1 (Daily Visit Agen) langsung dari Tab 1 Leaderboard agar 100% konsisten
+    try:
+        visit_analysis = build_visit_analysis()
+        visit_leaderboard = {row['sco']: row for row in visit_analysis.get('leaderboard', [])}
+    except Exception:
+        visit_leaderboard = {}
 
     # Load manual collection inputs
     coll_data = {}
@@ -770,10 +977,15 @@ def get_kpi_sco_data(force_refresh=False):
         coll_pct = (coll_ach / coll_tgt) if coll_tgt > 0 else 0.0
         coll_score = coll_pct * 0.25
 
-        # 1. Visit (15%)
-        v_tgt = agg["visit_tgt"]
-        v_ach = agg["visit_ach"]
-        v_pct = (v_ach / v_tgt) if v_tgt > 0 else 0.0
+        # 1. Visit (15%) - diambil langsung dari Tab 1 Leaderboard
+        if sco_name in visit_leaderboard:
+            v_tgt = int(visit_leaderboard[sco_name].get('target', 0))
+            v_ach = int(visit_leaderboard[sco_name].get('realisasi', 0))
+            v_pct = (v_ach / v_tgt) if v_tgt > 0 else 0.0
+        else:
+            v_tgt = agg["visit_tgt"]
+            v_ach = agg["visit_ach"]
+            v_pct = (v_ach / v_tgt) if v_tgt > 0 else 0.0
         v_score = v_pct * 0.15
 
         # 3. Daily Trx Net (35%)

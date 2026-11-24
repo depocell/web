@@ -1940,7 +1940,7 @@ def export_master_excel(brand: str) -> str:
             SELECT agen_id AS [AGEN ID], nama_agen AS [NAMA AGEN], cabang AS [CABANG],
                    type AS [TYPE], sco AS [SCO], dso AS [DSO], limit_saldo AS [LIMIT],
                    markup AS [MARKUP], tgl_daftar AS [TGL DAFTAR], tgl_aktivitas_terakhir AS [TGL AKTIF],
-                   jadwal AS [JADWAL], location AS [LOCATION], kota_kab AS [KOTA/KAB],
+                   jadwal AS [JADWAL], location AS [LOCATION], alamat AS [ALAMAT], kota_kab AS [KOTA/KAB],
                    kecamatan AS [KECAMATAN], kelurahan AS [KELURAHAN]
             FROM agents WHERE brand = ? ORDER BY agen_id
         """, conn, params=(brand,))

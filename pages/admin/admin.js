@@ -6864,6 +6864,10 @@ function updateStreamUrls() {
 
   if (elAgents) elAgents.value = `${domain}/api/export/agents.csv?brand=${brand}&key=depas2026`;
 
+  const elAgentsExcel = document.getElementById("stream-url-agents-excel");
+
+  if (elAgentsExcel) elAgentsExcel.value = `${domain}/api/export/agents.xlsx?brand=${brand}&key=depas2026`;
+
 
 
   const elCust = document.getElementById("stream-url-customers");
