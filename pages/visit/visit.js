@@ -139,6 +139,10 @@ function renderLeaderboardTable(leaderboard) {
       ? `<span class="pill-badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">#1</span>`
       : `<span style="font-weight: 700; color: var(--text-muted);">#${row.rank}</span>`;
 
+    const targetPill = row.izin > 0 
+      ? `<div>${formatNum(row.target)}</div><div style="font-size: 10px; color: #d97706; font-weight: 600;" title="${row.izin} toko dinolkan karena izin">(${row.izin} Izin)</div>`
+      : formatNum(row.target);
+
     html += `
       <tr>
         <td class="text-center">${rankPill}</td>
@@ -148,7 +152,7 @@ function renderLeaderboardTable(leaderboard) {
         <td>
           <span class="pill-badge" style="background: var(--surface-bg); border: 1px solid var(--surface-border); color: var(--text-muted); font-size: 11px;">${escapeHtml(row.cabang)}</span>
         </td>
-        <td class="text-right" style="font-family: var(--font-mono);">${formatNum(row.target)}</td>
+        <td class="text-right" style="font-family: var(--font-mono);">${targetPill}</td>
         <td class="text-right" style="font-family: var(--font-mono); font-weight: 700; color: #10b981;">${formatNum(row.realisasi)}</td>
         <td class="text-right" style="font-family: var(--font-mono); color: ${row.missed > 0 ? '#ef4444' : 'var(--text-muted)'}; font-weight: ${row.missed > 0 ? '700' : '400'};">${formatNum(row.missed)}</td>
         <td class="text-right" style="font-family: var(--font-mono); font-weight: 800; color: ${statusColor};">${row.achievement_pct.toFixed(1)}%</td>
@@ -234,11 +238,15 @@ function renderDailyMatrixTable(matrix, dates) {
     dates.forEach(d => {
       const target = row.daily_targets ? (row.daily_targets[d] || 0) : 0;
       const score = row.daily_scores ? (row.daily_scores[d] || 0) : 0;
+      const isIzin = (row.daily_izin && row.daily_izin[d]);
+      const origTarget = (row.daily_orig_targets && row.daily_orig_targets[d]) || target;
 
       dayTargetTotals[d] += target;
       dayScoreTotals[d] += score;
 
-      if (target === 0) {
+      if (isIzin) {
+        bodyHtml += `<td class="cell-matrix cell-izin" title="Izin / Off (Target ${origTarget} dinolkan)"><span class="pill-badge pill-izin">IZIN</span></td>`;
+      } else if (target === 0) {
         bodyHtml += `<td class="cell-matrix" style="color: var(--text-muted);">-</td>`;
       } else {
         let cellClass = "cell-partial";
@@ -546,9 +554,15 @@ function renderAuditRows(records) {
   let html = "";
   records.forEach(row => {
     const isVisited = row.score === 1;
-    const statusPill = isVisited
-      ? `<span class="pill-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">DIKUNJUNGI</span>`
-      : `<span class="pill-badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">TERLEWAT</span>`;
+    const isIzin = row.is_izin === 1 || row.status_visit === 'IZIN';
+    let statusPill = "";
+    if (isIzin) {
+      statusPill = `<span class="pill-badge pill-izin">IZIN</span>`;
+    } else if (isVisited) {
+      statusPill = `<span class="pill-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">DIKUNJUNGI</span>`;
+    } else {
+      statusPill = `<span class="pill-badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">TERLEWAT</span>`;
+    }
 
     html += `
       <tr>

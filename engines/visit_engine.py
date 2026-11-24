@@ -17,6 +17,7 @@ from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "MASTER", "master_data.db")
+LEAVES_FILE = os.path.join(BASE_DIR, "MASTER", "visit_leaves.json")
 CACHE_DIR = os.path.join(BASE_DIR, ".cache")
 SUMMARY_CACHE_FILE = os.path.join(CACHE_DIR, "visit_summary_cache.json")
 _CACHED_VISIT_RESULT = None
@@ -231,7 +232,6 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
             return _CACHED_VISIT_RESULT
         if os.path.exists(SUMMARY_CACHE_FILE):
             try:
-                import json
                 with open(SUMMARY_CACHE_FILE, "r", encoding="utf-8") as f:
                     _CACHED_VISIT_RESULT = json.load(f)
                     return _CACHED_VISIT_RESULT
@@ -261,6 +261,7 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
     # Buat lookup kunjungan: key (date, sco, ar_id) -> record detail
     # Jika dikunjungi lebih dari sekali dalam hari yang sama, ambil kunjungan pertama/sukses
     visit_lookup = {}
+    sco_date_visits_count = {}
     for _, v in df_visits.iterrows():
         key = (v['date'], v['sco'], v['ar_id'])
         if key not in visit_lookup:
@@ -270,6 +271,24 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
                 'catatan': v['catatan'],
                 'klien_input': v['klien']
             }
+        sk = (v['date'], v['sco'])
+        sco_date_visits_count[sk] = sco_date_visits_count.get(sk, 0) + 1
+
+    # Load daftar hari izin resmi dari MASTER/visit_leaves.json jika ada
+    explicit_leaves = set()
+    if os.path.exists(LEAVES_FILE):
+        try:
+            with open(LEAVES_FILE, "r", encoding="utf-8") as lf:
+                leaves_data = json.load(lf)
+                for item in leaves_data:
+                    s_name = item.get("sco", "").strip()
+                    if s_name.upper() in ["ABDUL HARIS", "ABDUL HARRIS"]:
+                        s_name = "Abdul Harris"
+                    d_val = item.get("date", "").strip()
+                    if s_name and d_val:
+                        explicit_leaves.add((d_val, s_name))
+        except Exception as e_lf:
+            print(f"Warning reading visit_leaves.json: {e_lf}")
 
     # Bangun Long Format: Date x Target Agents
     long_rows = []
@@ -294,11 +313,29 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
             nama = ag['nama_agen']
             tipe = ag['tipe_agen']
 
+            # Aturan IZIN: Jika terdaftar di visit_leaves.json ATAU realisasi fisik SCO di hari itu adalah NOL
+            actual_count = sco_date_visits_count.get((d_iso, sco), 0)
+            is_izin = ((d_iso, sco) in explicit_leaves) or (actual_count == 0)
+
             key = (d_iso, sco, ar_id)
             is_visited = 1 if key in visit_lookup else 0
-            score = 1 if is_visited else 0
-
             v_info = visit_lookup.get(key, {})
+
+            if is_izin:
+                # Hari izin/off: Target dinolkan, realisasi & score = 0, toko tidak dihitung terlewat
+                target_val = 0
+                realisasi_val = 0
+                score_val = 0
+                is_izin_val = 1
+                status_val = 'IZIN'
+                catatan_val = 'Izin (Target dinolkan)'
+            else:
+                target_val = 1
+                realisasi_val = is_visited
+                score_val = 1 if is_visited else 0
+                is_izin_val = 0
+                status_val = v_info.get('status', '')
+                catatan_val = v_info.get('catatan', '')
 
             long_rows.append({
                 'date': d_iso,
@@ -310,12 +347,13 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
                 'agen_id': ar_id,
                 'nama_agen': nama,
                 'tipe_agen': tipe,
-                'target': 1,
-                'realisasi': is_visited,
-                'score': score,
+                'target': target_val,
+                'realisasi': realisasi_val,
+                'score': score_val,
+                'is_izin': is_izin_val,
                 'waktu': v_info.get('waktu', ''),
-                'status_visit': v_info.get('status', ''),
-                'catatan': v_info.get('catatan', ''),
+                'status_visit': status_val,
+                'catatan': catatan_val,
                 'klien_input': v_info.get('klien_input', '')
             })
 
@@ -355,7 +393,8 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
     summary_sco = df_long.groupby('sco').agg(
         cabang=('cabang', lambda x: x.iloc[0] if len(x) > 0 else '-'),
         target=('target', 'sum'),
-        score=('score', 'sum')
+        score=('score', 'sum'),
+        izin=('is_izin', 'sum')
     ).reset_index()
 
     summary_sco['missed'] = summary_sco['target'] - summary_sco['score']
@@ -383,6 +422,7 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
             'target': int(row['target']),
             'realisasi': int(row['score']),
             'missed': int(row['missed']),
+            'izin': int(row['izin']),
             'achievement_pct': ach,
             'status': badge_status,
             'badge_color': badge_color
@@ -401,12 +441,19 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
         
         daily_scores = {}
         daily_targets = {}
+        daily_izin = {}
+        daily_orig_targets = {}
         for d in active_dates:
             sub = df_sco[df_sco['date'] == d]
             t = int(sub['target'].sum()) if len(sub) > 0 else 0
             s = int(sub['score'].sum()) if len(sub) > 0 else 0
+            is_iz = bool((sub['is_izin'] == 1).any()) if len(sub) > 0 else False
+            orig_t = len(sub) if len(sub) > 0 else 0
+
             daily_targets[d] = t
             daily_scores[d] = s
+            daily_izin[d] = is_iz
+            daily_orig_targets[d] = orig_t
 
         matrix_data.append({
             'sco': sco_name,
@@ -415,7 +462,9 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
             'total_realisasi': item['realisasi'],
             'achievement_pct': item['achievement_pct'],
             'daily_scores': daily_scores,
-            'daily_targets': daily_targets
+            'daily_targets': daily_targets,
+            'daily_izin': daily_izin,
+            'daily_orig_targets': daily_orig_targets
         })
 
     # ==========================================
@@ -439,7 +488,7 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
     # ==========================================
     # 5. TOKO TERLEWAT (MISSED VISITS)
     # ==========================================
-    missed_df = df_long[df_long['score'] == 0].sort_values(by=['date', 'sco', 'nama_agen'])
+    missed_df = df_long[(df_long['target'] > 0) & (df_long['score'] == 0)].sort_values(by=['date', 'sco', 'nama_agen'])
     missed_list = []
     for _, r in missed_df.iterrows():
         missed_list.append({
@@ -468,6 +517,7 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
             "total_physical_visits": total_physical_visits,
             "off_target_visits": off_target_visits,
             "total_active_days": len(active_dates),
+            "total_izin_stores": int((df_long['is_izin'] == 1).sum()),
             "top_sco": leaderboard[0]['sco'] if leaderboard else '-'
         },
         "leaderboard": leaderboard,
@@ -482,7 +532,6 @@ def build_visit_analysis(excel_path=None, force_refresh=False):
 
     _CACHED_VISIT_RESULT = result
     try:
-        import json
         with open(SUMMARY_CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False)
     except Exception as e_json:
@@ -509,6 +558,8 @@ def get_detail_visits(sco=None, date=None, status_filter=None, limit=200):
     if status_filter == 'VISITED':
         df = df[df['score'] == 1]
     elif status_filter == 'MISSED':
-        df = df[df['score'] == 0]
+        df = df[(df['target'] > 0) & (df['score'] == 0)]
+    elif status_filter == 'IZIN':
+        df = df[df.get('is_izin', 0) == 1]
 
     return df.head(limit).to_dict(orient="records")

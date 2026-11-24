@@ -292,6 +292,18 @@
     color: #ef4444;
     font-weight: 700;
   }
+  .cell-izin {
+    background: rgba(245, 158, 11, 0.08);
+  }
+  .pill-izin {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+    font-weight: 700;
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
 </style>
 
 <div class="visit-container">
@@ -585,6 +597,7 @@
           <select id="filter-audit-status" onchange="applyAuditFilters()" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface); color: var(--text-main); font-size: 12px;">
             <option value="MISSED" selected>Hanya Toko Terlewat (Score = 0)</option>
             <option value="VISITED">Hanya Toko Dikunjungi (Score = 1)</option>
+            <option value="IZIN">Izin / Off (Target Dinolkan)</option>
             <option value="ALL">Semua Target</option>
           </select>
         </div>

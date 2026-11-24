@@ -226,7 +226,7 @@ def sync_to_vps_stream():
                 local_path = os.path.join(local_master, f)
                 if os.path.isfile(local_path):
                     rem_path = f"/var/www/webreport/MASTER/{f}"
-                    if f.endswith(".db") or f.endswith(".xlsx") or f == "auth_users.json":
+                    if f.endswith(".db") or f.endswith(".xlsx") or f.endswith(".json"):
                         size_mb = os.path.getsize(local_path) / (1024 * 1024)
                         should_upload_m = True
                         try:
@@ -321,7 +321,15 @@ def sync_to_vps_stream():
         # 4. Pull Git di VPS (Gunakan fetch & reset hard agar sinkron sempurna dengan origin/main)
         yield {"type": "log", "level": "info", "message": "Menarik update kode terbaru dari GitHub di VPS..."}
         ssh = get_ssh_client()
-        stdin, stdout, stderr = ssh.exec_command("git -C /var/www/webreport fetch origin main && git -C /var/www/webreport reset --hard origin/main")
+        git_cmd = (
+            "git -C /var/www/webreport remote set-url origin https://github.com/depocell/web.git && "
+            "git -C /var/www/webreport fetch origin main && "
+            "git -C /var/www/webreport reset --hard origin/main && "
+            "if [ ! -f /var/www/webreport/venv/pyvenv.cfg ]; then "
+            "printf 'home = /usr/bin\\ninclude-system-site-packages = false\\nversion = 3.12.3\\nexecutable = /usr/bin/python3.12\\ncommand = /usr/bin/python3 -m venv /var/www/webreport/venv\\n' > /var/www/webreport/venv/pyvenv.cfg; "
+            "fi"
+        )
+        stdin, stdout, stderr = ssh.exec_command(git_cmd)
         git_out = stdout.read().decode("utf-8").strip()
         yield {"type": "log", "level": "git", "message": f"Git sync output: {git_out}"}
 
