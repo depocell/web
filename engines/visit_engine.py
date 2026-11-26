@@ -984,9 +984,9 @@ def get_kpi_sco_data(force_refresh=False):
     SCO_ORDER = [
         ("Hupron", "BSD"),
         ("Abdul Harris", "ICON"),
-        ("Khoirul Anan", "PRG"),
         ("Febri Kurniawan", "PP"),
-        ("Mas Komarjaya", "PP")
+        ("Mas Komarjaya", "PP"),
+        ("Khoirul Anan", "PRG")
     ]
 
     kpi_rows = []
@@ -1067,6 +1067,10 @@ def get_kpi_sco_data(force_refresh=False):
             "multiplier": round(multiplier, 4),
             "estimasi_insentif": int(round(est_insentif))
         })
+
+    # Urutan Cabang Resmi: BSD -> ICON -> PP -> PRG
+    for idx, r in enumerate(kpi_rows):
+        r["no"] = idx + 1
 
     # Summary Totals
     tot_stores = sum(r["total_stores"] for r in kpi_rows)

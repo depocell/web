@@ -529,6 +529,49 @@
         <div class="page-breadcrumb" id="page-title">Overview Dashboard</div>
       </div>
       <div class="topbar-actions">
+        <!-- Live System Telemetry Header -->
+        <div class="topbar-telemetry" id="topbar-telemetry">
+          <div class="telemetry-pill telemetry-host" id="telemetry-host" title="Target Server Live Telemetry">
+            <span class="telemetry-pulse-dot" id="telemetry-pulse"></span>
+            <span class="telemetry-label" id="telemetry-host-label">VPS</span>
+          </div>
+
+          <div class="telemetry-pill" id="telemetry-ram" title="Penggunaan RAM Server">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="3" ry="3"></rect>
+              <line x1="6" y1="18" x2="6" y2="6"></line>
+              <line x1="10" y1="18" x2="10" y2="6"></line>
+              <line x1="14" y1="18" x2="14" y2="6"></line>
+              <line x1="18" y1="18" x2="18" y2="6"></line>
+            </svg>
+            <span class="telemetry-val" id="telemetry-ram-val">RAM: --</span>
+          </div>
+
+          <div class="telemetry-pill" id="telemetry-cpu" title="Beban CPU Server">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+              <rect x="9" y="9" width="6" height="6"></rect>
+              <line x1="9" y1="1" x2="9" y2="4"></line>
+              <line x1="15" y1="1" x2="15" y2="4"></line>
+              <line x1="9" y1="20" x2="9" y2="23"></line>
+              <line x1="15" y1="20" x2="15" y2="23"></line>
+              <line x1="20" y1="9" x2="23" y2="9"></line>
+              <line x1="20" y1="14" x2="23" y2="14"></line>
+              <line x1="1" y1="9" x2="4" y2="9"></line>
+              <line x1="1" y1="14" x2="4" y2="14"></line>
+            </svg>
+            <span class="telemetry-val" id="telemetry-cpu-val">CPU: --</span>
+          </div>
+
+          <div class="telemetry-pill" id="telemetry-restart" title="Status Restart &amp; Uptime Server">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6"></path>
+              <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span class="telemetry-val" id="telemetry-restart-val">Restart: --</span>
+          </div>
+        </div>
+
         <button id="btn-mobile-theme-toggle" class="btn-mobile-action" title="Ganti Mode Gelap / Terang" aria-label="Ganti Mode Gelap / Terang">
           <svg class="mobile-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>

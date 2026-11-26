@@ -1,5 +1,14 @@
 # 🏛️ PEDOMAN STANDAR METRIK & ARSITEKTUR WEB REPORT (NON-NEGOTIABLE)
 
+> ## ⛔ ATURAN KOMUNIKASI MUTLAK DARI OWNER (MAS PASHA):
+> 1. **Dilarang banyak basa-basi & penjelasan panjang lebar yang tidak diminta.**
+> 2. **Dilarang menampilkan daftar rekap pekerjaan yang selesai (anti-laporan mandor).**
+> 3. **Yang penting hasil:** Jika tugas sudah beres, cukup konfirmasi singkat: *"Done bro, silakan dicoba."*
+> 4. **Tanya A, jawab A:** To-the-point, jangan melebar ke teori atau analisa teknis internal.
+> 5. **Analisa & coretan teknis** simpan di proses internal/scratch sendiri, jangan kotori ruang chat.
+
+---
+
 Dokumen ini adalah **Single Source of Truth (SOP Wajib)** untuk seluruh AI Agent yang bekerja di project `c:\WEB REPORT`.
 Setiap kali menghitung metrik, membuat tabel, grafik, atau memodifikasi engine, agen **WAJIB** mematuhi hukum bisnis berikut:
 

@@ -775,10 +775,73 @@ function initThemeToggle() {
   }
 }
 
+// ── Topbar Live Telemetry (RAM, CPU, Restart) ───────────────────────────────
+let _telemetryPollInterval = null;
+
+async function fetchHeaderTelemetry() {
+  try {
+    const res = await fetch("/api/system/header-stats?t=" + Date.now());
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.ok) return;
+
+    // Host
+    const elHost = document.getElementById("telemetry-host-label");
+    if (elHost && data.host) {
+      elHost.textContent = data.host.includes("VPS") ? "VPS" : "LOKAL";
+    }
+
+    // RAM
+    const elRamVal = document.getElementById("telemetry-ram-val");
+    const elRamPill = document.getElementById("telemetry-ram");
+    if (elRamVal && data.ram) {
+      elRamVal.textContent = `RAM: ${data.ram.display || (data.ram.pct + "%")}`;
+      if (elRamPill) {
+        elRamPill.className = `telemetry-pill ${data.ram.status || "normal"}`;
+        elRamPill.title = `Penggunaan RAM Server: ${data.ram.used_mb} MB / ${data.ram.total_mb} MB (${data.ram.pct}%)`;
+      }
+    }
+
+    // CPU
+    const elCpuVal = document.getElementById("telemetry-cpu-val");
+    const elCpuPill = document.getElementById("telemetry-cpu");
+    if (elCpuVal && data.cpu) {
+      elCpuVal.textContent = `CPU: ${data.cpu.display || (data.cpu.pct + "%")}`;
+      if (elCpuPill) {
+        elCpuPill.className = `telemetry-pill ${data.cpu.status || "normal"}`;
+        elCpuPill.title = `Beban CPU Server: ${data.cpu.pct}%`;
+      }
+    }
+
+    // Restart & Uptime
+    const elRestartVal = document.getElementById("telemetry-restart-val");
+    const elRestartPill = document.getElementById("telemetry-restart");
+    if (elRestartVal && data.restart) {
+      elRestartVal.textContent = `Restart: ${data.restart.display || (data.restart.count + "x")}`;
+      if (elRestartPill) {
+        elRestartPill.className = `telemetry-pill ${data.restart.status || "normal"}`;
+        elRestartPill.title = `Status Restart: ${data.restart.count}x (Web Report: ${data.restart.webreport || 0}x, Depot Pulsa: ${data.restart.depotpulsa || 0}x) | Uptime: ${data.restart.uptime || "-"}`;
+      }
+    }
+  } catch (err) {
+    // Silent ignore
+  }
+}
+
+function initHeaderTelemetry() {
+  fetchHeaderTelemetry();
+  if (!_telemetryPollInterval) {
+    _telemetryPollInterval = setInterval(fetchHeaderTelemetry, 10000);
+  }
+}
+window.fetchHeaderTelemetry = fetchHeaderTelemetry;
+
 // ── Hash Change & DOMContentLoaded ─────────────────────────────────────────
 
 window.addEventListener("hashchange", navigate);
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialize Header Telemetry (RAM, CPU, Restart)
+  initHeaderTelemetry();
   // Mobile protection: ensure sidebar-collapsed is removed so drawer is full & readable
   if (window.innerWidth <= 768) {
     document.documentElement.classList.remove("sidebar-collapsed");

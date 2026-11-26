@@ -248,7 +248,7 @@ def sync_to_vps_stream():
                         else:
                             yield {"type": "log", "level": "skip", "message": f"Identik: MASTER/{f} ({size_mb:.2f} MB) - Di-skip."}
 
-        # 3. Kumpulkan file yang perlu diunggah dari .cache
+        # 3. Kumpulkan file yang perlu diunggah dari .cache dan pages/sco
         local_cache = os.path.join(BASE_DIR, ".cache")
         files_to_upload = []
         if os.path.exists(local_cache):
@@ -266,6 +266,15 @@ def sync_to_vps_stream():
                         local_path = os.path.join(root, f)
                         rem_path = f"{rem_base}/{f}"
                         files_to_upload.append((local_path, rem_path, rel_dir, f))
+
+        # 3b. File data & KPI SCO di pages/sco
+        sco_dir = os.path.join(BASE_DIR, "pages", "sco")
+        if os.path.exists(sco_dir):
+            for f in ["data_sco.json", "data_reseller.json", "KPI_SCO.xlsx"]:
+                local_f = os.path.join(sco_dir, f)
+                if os.path.exists(local_f):
+                    rem_f = f"/var/www/webreport/pages/sco/{f}"
+                    files_to_upload.append((local_f, rem_f, "pages/sco", f))
 
         total_files = len(files_to_upload)
         uploaded_count = 0

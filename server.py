@@ -459,6 +459,24 @@ async def api_auth_change_password(request):
 
 
 
+async def page_peta_redirect(request):
+    """Direct URL untuk Peta Coverage SCO & Jadwal Kunjungan."""
+    peta_path = os.path.join(BASE_DIR, "pages", "sco", "peta.html")
+    if os.path.exists(peta_path):
+        return FileResponse(peta_path, media_type="text/html")
+    return RedirectResponse(url="/pages/sco/peta.html", status_code=302)
+
+
+async def download_excel_sco(request):
+    """Download file agen_sco.xlsx."""
+    excel_path = os.path.join(BASE_DIR, "Coverage_sco", "agen_sco.xlsx")
+    if not os.path.exists(excel_path):
+        excel_path = os.path.join(BASE_DIR, "pages", "sco", "agen_sco.xlsx")
+    if os.path.exists(excel_path):
+        return FileResponse(excel_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="agen_sco.xlsx")
+    return Response("File tidak ditemukan", status_code=404)
+
+
 async def page_sco_redirect(request):
 
     """Direct standalone URL untuk tim sales lapangan ke SCO Performance Suite."""
@@ -3547,6 +3565,16 @@ async def api_system_pulse(request):
 
 
 
+async def api_system_header_stats(request):
+
+    """Header status bar: RAM, CPU, Restart count & uptime telemetri."""
+
+    import engines.telemetry_engine as telemetry_engine
+
+    return JSONResponse(telemetry_engine.get_header_telemetry())
+
+
+
 
 
 # ─── Auth Middleware ─────────────────────────────────────────────────────────
@@ -3606,6 +3634,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
             path.startswith("/pages/sco") or
 
             path.startswith("/api/sco") or
+            path == "/peta" or
+            path.startswith("/peta/") or
+            path == "/coverage" or
+            path.startswith("/coverage/") or
+            path == "/agen_sco.xlsx" or
+            path.startswith("/Coverage_sco/") or
 
             path.startswith("/static/") or
 
@@ -3663,6 +3697,13 @@ routes = [
 
     Route("/login",                     page_login),
 
+    Route("/peta",                      page_peta_redirect),
+    Route("/peta/",                     page_peta_redirect),
+    Route("/coverage",                  page_peta_redirect),
+    Route("/coverage/",                 page_peta_redirect),
+    Route("/agen_sco.xlsx",             download_excel_sco),
+    Route("/Coverage_sco/agen_sco.xlsx", download_excel_sco),
+    Route("/pages/sco/agen_sco.xlsx",   download_excel_sco),
     Route("/sco",                       page_sco_redirect),
 
     Route("/sco/",                      page_sco_redirect),
@@ -3836,6 +3877,8 @@ routes = [
     Route("/api/status",        api_status),
 
     Route("/api/system/pulse",  api_system_pulse),
+
+    Route("/api/system/header-stats", api_system_header_stats),
 
     Route("/api/trx/build",     api_trx_build,   methods=["GET", "POST"]),
 

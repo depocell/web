@@ -548,6 +548,10 @@ function renderPjpClaimTable(stores) {
 // TAB 3: KPI SCO & INSENTIF
 // ==============================================================================
 
+// ==============================================================================
+// TAB 3: KPI SCO & INSENTIF
+// ==============================================================================
+
 async function loadKpiScoData(forceRefresh = false) {
   const tbody = document.getElementById("tbody-visit-kpisco");
   if (tbody && !_kpiScoData) {
@@ -669,13 +673,11 @@ function renderKpiScoTable(kpiList, totals) {
 
     html += `
       <tr>
-        <td class="text-center">${rankPill}</td>
+        <td class="text-center"><span class="pill-badge" style="background: var(--surface-bg); border: 1px solid var(--surface-border); font-size: 11px; font-weight: 700;">${escapeHtml(row.cabang)}</span></td>
         <td>
           <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(row.sco)}</div>
         </td>
-        <td style="border-right: 1px solid var(--surface-border);">
-          <span class="pill-badge" style="background: var(--surface-bg); border: 1px solid var(--surface-border); color: var(--text-muted); font-size: 11px;">${escapeHtml(row.cabang)}</span>
-        </td>
+        <td class="text-center" style="font-family: var(--font-mono); font-weight: 600; color: var(--text-muted); border-right: 1px solid var(--surface-border);">${formatNum(row.total_stores || 0)}</td>
 
         <!-- PILAR 1: VISIT (15%) -->
         <td class="text-right" style="font-family: var(--font-mono);">${formatNum(vTgt)}</td>
@@ -738,7 +740,8 @@ function renderKpiScoTable(kpiList, totals) {
 
     tfoot.innerHTML = `
       <tr class="total-row">
-        <td colspan="3" style="font-weight: 800; border-right: 1px solid var(--surface-border);">TOTAL (6 SCO)</td>
+        <td colspan="2" style="font-weight: 800;">TOTAL KESELURUHAN (${kpiList.length} SCO)</td>
+        <td class="text-center" style="font-family: var(--font-mono); font-weight: 800; border-right: 1px solid var(--surface-border);">${formatNum(totals.total_stores || 461)}</td>
         
         <!-- PILAR 1 -->
         <td class="text-right" style="font-family: var(--font-mono);">${formatNum(totVTgt)}</td>
@@ -771,6 +774,389 @@ function renderKpiScoTable(kpiList, totals) {
       </tr>
     `;
   }
+}
+
+// ==============================================================================
+// DOWNLOAD PNG EXPORT SCORECARD KPI SCO (EXECUTIVE HD POSTER)
+// ==============================================================================
+
+async function downloadKpiScoPng() {
+  const btn = document.getElementById("btn-download-kpi-png");
+  const label = document.getElementById("label-download-kpi-png");
+
+  if (btn) btn.disabled = true;
+  if (label) label.textContent = "Merender HD...";
+
+  try {
+    if (!_kpiScoData) {
+      await loadKpiScoData(false);
+    }
+    if (!_kpiScoData || !_kpiScoData.kpi || _kpiScoData.kpi.length === 0) {
+      throw new Error("Data KPI SCO belum tersedia.");
+    }
+
+    const html2canvasFn = window.html2canvas;
+    if (!html2canvasFn) {
+      throw new Error("Library html2canvas belum dimuat pada aplikasi.");
+    }
+
+    const poster = buildKpiScoPosterElement(_kpiScoData);
+    poster.style.position = "fixed";
+    poster.style.left = "0px";
+    poster.style.top = "0px";
+    poster.style.zIndex = "-9999";
+    poster.style.pointerEvents = "none";
+    document.body.appendChild(poster);
+
+    // Dapatkan dimensi aktual poster agar pas 100% tanpa terpotong
+    const posterW = poster.offsetWidth || 1220;
+    const posterH = poster.offsetHeight || 480;
+
+    // Render HD Canvas dengan scale 2 untuk resolusi retina tajam
+    const canvas = await html2canvasFn(poster, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      width: posterW,
+      height: posterH,
+      windowWidth: posterW + 100,
+      windowHeight: posterH + 100,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0
+    });
+
+    document.body.removeChild(poster);
+
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0];
+    const filename = `KPI_SCO_ASTAGA_${dateStr}.png`;
+
+    const dataUrl = canvas.toDataURL("image/png");
+    if (typeof window.saveFileSmart === "function") {
+      await window.saveFileSmart(filename, dataUrl, "image/png");
+    } else {
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+    }
+  } catch (err) {
+    console.error("[Visit KPI PNG Error]", err);
+    alert("Gagal membuat gambar KPI SCO: " + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (label) label.textContent = "Download PNG";
+  }
+}
+window.downloadKpiScoPng = downloadKpiScoPng;
+
+/**
+ * Membuat DOM Element Kartu Scorecard HD yang bersih, rapi, dan bebas dari sel terpotong (anti-#####)
+ * Sesuai arahan: urutan cabang BSD-ICON-PP-PRG, tanpa card, tanpa footer Depot Pulsa.
+ */
+function buildKpiScoPosterElement(data) {
+  const totals = data.totals || {};
+  const kpiList = [...(data.kpi || [])];
+
+  // Urutan Cabang Resmi: BSD -> ICON -> PP (Febri, Mas Komarjaya) -> PRG
+  const branchOrder = {
+    "Hupron": 1,         // BSD
+    "Abdul Harris": 2,   // ICON
+    "Febri Kurniawan": 3,// PP
+    "Mas Komarjaya": 4,  // PP
+    "Khoirul Anan": 5    // PRG
+  };
+  kpiList.sort((a, b) => (branchOrder[a.sco] || 99) - (branchOrder[b.sco] || 99));
+
+  const now = new Date();
+  const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const printDateStr = `${dayNames[now.getDay()]}, ${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()} pukul ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+
+  const container = document.createElement("div");
+  container.style.cssText = `
+    width: 1220px;
+    min-width: 1220px;
+    max-width: 1220px;
+    background: #ffffff;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    padding: 22px 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+  `;
+
+  // 1. TOP HEADER (CLEAN EXECUTIVE BANNER)
+  let headerHtml = `
+    <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 6px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 19px; font-weight: 800; letter-spacing: -0.3px; color: #0369a1;">
+          UPDATED KPI - NOVEMBER 2026
+        </div>
+        <div style="font-size: 12.5px; color: #0284c7; margin-top: 2px; font-weight: 600;">
+          Evaluasi 4 Pilar &amp; Estimasi Insentif SCO &bull; Cabang: BSD, ICON, PP, PRG &bull; 461 Toko PJP
+        </div>
+      </div>
+      <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+        <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: #ffffff; border: 1px solid #7dd3fc; border-radius: 5px; font-size: 11px; font-weight: 700; color: #0369a1;">
+          CUT-OFF S/D 15 NOV 2026 (11 HARI KERJA)
+        </span>
+        <div style="font-size: 10.5px; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #64748b;">
+          ${printDateStr}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 2. TABLE SCORECARD 4 PILAR (EXACT ORDER & COLUMNS LIKE EXCEL)
+  let tableRowsHtml = "";
+  kpiList.forEach((row, idx) => {
+    const vTgt = row.visit_target !== undefined ? row.visit_target : (row.visit_tgt || 0);
+    const vAch = row.visit_realisasi !== undefined ? row.visit_realisasi : (row.visit_ach || 0);
+    const vPct = (row.visit_ach_pct !== undefined ? row.visit_ach_pct : (row.visit_pct || 0)) * ((row.visit_ach_pct || row.visit_pct || 0) <= 1 ? 100 : 1);
+    const vScore = (row.visit_score !== undefined ? row.visit_score : (row.score_visit || 0)) * ((row.visit_score || row.score_visit || 0) <= 1 ? 100 : 1);
+
+    const cTgt = row.coll_target !== undefined ? row.coll_target : (row.collection_tgt || 0);
+    const cAch = row.coll_realisasi !== undefined ? row.coll_realisasi : (row.collection_ach || 0);
+    const cPct = (row.coll_ach_pct !== undefined ? row.coll_ach_pct : (row.collection_pct || 0)) * ((row.coll_ach_pct || row.collection_pct || 0) <= 1 ? 100 : 1);
+    const cScore = (row.coll_score !== undefined ? row.coll_score : (row.score_collection || 0)) * ((row.coll_score || row.score_collection || 0) <= 1 ? 100 : 1);
+
+    const nTgt = row.net_target !== undefined ? row.net_target : (row.net_tgt_rate || 0);
+    const nTrx = row.net_trx !== undefined ? row.net_trx : (row.net_claim_rate || 0);
+    const nPct = (row.net_ach_pct !== undefined ? row.net_ach_pct : (row.net_trx_pct || 0)) * ((row.net_ach_pct || row.net_trx_pct || 0) <= 1 ? 100 : 1);
+    const nScore = (row.net_score !== undefined ? row.net_score : (row.score_net_trx || 0)) * ((row.net_score || row.score_net_trx || 0) <= 1 ? 100 : 1);
+
+    const octG = row.oct_gross !== undefined ? row.oct_gross : (row.oct_gross_rate || 0);
+    const novG = row.nov_gross !== undefined ? row.nov_gross : (row.nov_gross_rate || 0);
+    const grwRaw = row.growth_pct !== undefined ? row.growth_pct : 0;
+    const grwPct = grwRaw * (Math.abs(grwRaw) <= 1 ? 100 : 1);
+    const grwScoreRaw = row.growth_score !== undefined ? row.growth_score : (row.score_growth || 0);
+    const grwScore = grwScoreRaw * (Math.abs(grwScoreRaw) <= 1 ? 100 : 1);
+
+    const totScoreRaw = row.total_score !== undefined ? row.total_score : 0;
+    const totScore = totScoreRaw * (totScoreRaw <= 1 ? 100 : 1);
+    const mulRaw = row.multiplier !== undefined ? row.multiplier : 0;
+    const mul = mulRaw * (mulRaw <= 1 ? 100 : 1);
+    const insentif = row.estimasi_insentif || 0;
+
+    const rowBg = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
+
+    tableRowsHtml += `
+      <tr style="background: ${rowBg}; border-bottom: 1px solid #cbd5e1; font-size: 11px;">
+        <td style="padding: 8px 6px; text-align: center; font-weight: 700; color: #334155;">${escapeHtml(row.cabang)}</td>
+        <td style="padding: 8px 10px; font-weight: 700; color: #0f172a; white-space: nowrap;">${escapeHtml(row.sco)}</td>
+        <td style="padding: 8px 6px; text-align: center; font-family: 'SF Mono', Menlo, Consolas, monospace; border-right: 1px solid #cbd5e1; font-weight: 600; color: #475569;">${formatNum(row.total_stores || 0)}</td>
+
+        <!-- PILAR 1: VISIT (15%) -->
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${formatNum(vTgt)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 700; color: #0284c7;">${formatNum(vAch)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 600;">${vPct.toFixed(0)}%</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #0284c7; border-right: 1px solid #cbd5e1; background: rgba(2, 132, 199, 0.04);">${vScore.toFixed(1)}%</td>
+
+        <!-- PILAR 2: COLLECTION (25%) -->
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${formatNum(cTgt)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 700; color: #b45309;">${formatNum(cAch)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 600;">${cPct.toFixed(0)}%</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #b45309; border-right: 1px solid #cbd5e1; background: rgba(245, 158, 11, 0.04);">${cScore.toFixed(1)}%</td>
+
+        <!-- PILAR 3: DAILY TRX (35%) -->
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #dc2626;">${formatNum(nTgt)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 700; color: #059669;">${formatNum(nTrx)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 600;">${nPct.toFixed(0)}%</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #059669; border-right: 1px solid #cbd5e1; background: rgba(16, 185, 129, 0.04);">${nScore.toFixed(1)}%</td>
+
+        <!-- PILAR 4: GROWTH (25%) -->
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${formatRate(octG, 0)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 600;">${formatRate(novG, 0)}</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 600; color: ${grwPct >= 0 ? '#10b981' : '#dc2626'};">${grwPct >= 0 ? '+' : ''}${grwPct.toFixed(0)}%</td>
+        <td style="padding: 8px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #475569; border-right: 1px solid #cbd5e1; background: rgba(100, 116, 139, 0.04);">${grwScore >= 0 ? '+' : ''}${grwScore.toFixed(0)}%</td>
+
+        <!-- HASIL & INSENTIF -->
+        <td style="padding: 8px 6px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #854d0e; background: #fef9c3;">${totScore.toFixed(1)}%</td>
+        <td style="padding: 8px 6px; text-align: center; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #0369a1; background: #e0f2fe;">${mul.toFixed(1)}%</td>
+        <td style="padding: 8px 10px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 800; color: #0f766e; background: #ccfbf1; font-size: 12px; border-left: 1px solid #99f6e4;">${formatRupiah(insentif)}</td>
+      </tr>
+    `;
+  });
+
+  // Footer Totals Row
+  const totVTgt = totals.visit_target !== undefined ? totals.visit_target : (totals.visit_tgt || 0);
+  const totVAch = totals.visit_realisasi !== undefined ? totals.visit_realisasi : (totals.visit_ach || 0);
+  const totVPct = (totals.visit_ach_pct !== undefined ? totals.visit_ach_pct : (totals.visit_pct || 0)) * ((totals.visit_ach_pct || totals.visit_pct || 0) <= 1 ? 100 : 1);
+  const totVScore = (totals.visit_score !== undefined ? totals.visit_score : (totals.score_visit || 0)) * ((totals.visit_score || totals.score_visit || 0) <= 1 ? 100 : 1);
+
+  const totCTgt = totals.coll_target !== undefined ? totals.coll_target : (totals.collection_tgt || 0);
+  const totCAch = totals.coll_realisasi !== undefined ? totals.coll_realisasi : (totals.collection_ach || 0);
+  const totCPct = (totals.coll_ach_pct !== undefined ? totals.coll_ach_pct : (totals.collection_pct || 0)) * ((totals.coll_ach_pct || totals.collection_pct || 0) <= 1 ? 100 : 1);
+  const totCScore = (totals.coll_score !== undefined ? totals.coll_score : (totals.score_collection || 0)) * ((totals.coll_score || totals.score_collection || 0) <= 1 ? 100 : 1);
+
+  const totNTgt = totals.net_target !== undefined ? totals.net_target : (totals.net_tgt_rate || 0);
+  const totNTrx = totals.net_trx !== undefined ? totals.net_trx : (totals.net_claim_rate || 0);
+  const totNPct = (totals.net_ach_pct !== undefined ? totals.net_ach_pct : (totals.net_trx_pct || 0)) * ((totals.net_ach_pct || totals.net_trx_pct || 0) <= 1 ? 100 : 1);
+  const totNScore = (totals.net_score !== undefined ? totals.net_score : (totals.score_net_trx || 0)) * ((totals.net_score || totals.score_net_trx || 0) <= 1 ? 100 : 1);
+
+  const totOctG = totals.oct_gross !== undefined ? totals.oct_gross : (totals.oct_gross_rate || 0);
+  const totNovG = totals.nov_gross !== undefined ? totals.nov_gross : (totals.nov_gross_rate || 0);
+  const totGrwRaw = totals.growth_pct !== undefined ? totals.growth_pct : 0;
+  const totGrwPct = totGrwRaw * (Math.abs(totGrwRaw) <= 1 ? 100 : 1);
+  const totGrwScoreRaw = totals.growth_score !== undefined ? totals.growth_score : (totals.score_growth || 0);
+  const totGrwScore = totGrwScoreRaw * (Math.abs(totGrwScoreRaw) <= 1 ? 100 : 1);
+
+  const totScoreRaw = totals.total_score !== undefined ? totals.total_score : (totals.avg_score || 0);
+  const totScore = totScoreRaw * (totScoreRaw <= 1 ? 100 : 1);
+
+  let footerTotalsHtml = `
+    <tr style="background: #f1f5f9; border-top: 2px solid #64748b; border-bottom: 2px solid #64748b; font-size: 11.5px; font-weight: 800;">
+      <td colspan="2" style="padding: 10px 8px; color: #0f172a;">TOTAL KESELURUHAN</td>
+      <td style="padding: 10px 6px; text-align: center; font-family: 'SF Mono', Menlo, Consolas, monospace; border-right: 1px solid #cbd5e1;">${formatNum(totals.total_stores || 461)}</td>
+
+      <!-- PILAR 1 -->
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${formatNum(totVTgt)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #0284c7;">${formatNum(totVAch)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${totVPct.toFixed(0)}%</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #0284c7; border-right: 1px solid #cbd5e1; background: rgba(2, 132, 199, 0.08);">${totVScore.toFixed(1)}%</td>
+
+      <!-- PILAR 2 -->
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${formatNum(totCTgt)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #b45309;">${formatNum(totCAch)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${totCPct.toFixed(0)}%</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #b45309; border-right: 1px solid #cbd5e1; background: rgba(245, 158, 11, 0.08);">${totCScore.toFixed(1)}%</td>
+
+      <!-- PILAR 3 -->
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #dc2626;">${formatNum(totNTgt)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #059669;">${formatNum(totNTrx)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${totNPct.toFixed(0)}%</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #059669; border-right: 1px solid #cbd5e1; background: rgba(16, 185, 129, 0.08);">${totNScore.toFixed(1)}%</td>
+
+      <!-- PILAR 4 -->
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${formatRate(totOctG, 0)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace;">${formatRate(totNovG, 0)}</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: ${totGrwPct >= 0 ? '#10b981' : '#dc2626'};">${totGrwPct >= 0 ? '+' : ''}${totGrwPct.toFixed(0)}%</td>
+      <td style="padding: 10px 4px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #475569; border-right: 1px solid #cbd5e1; background: rgba(100, 116, 139, 0.08);">${totGrwScore >= 0 ? '+' : ''}${totGrwScore.toFixed(0)}%</td>
+
+      <!-- HASIL -->
+      <td style="padding: 10px 6px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: #854d0e; background: #fef9c3;">${totScore.toFixed(1)}%</td>
+      <td style="padding: 10px 6px; text-align: center; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #0369a1; background: #e0f2fe;">${(totScore).toFixed(1)}%</td>
+      <td style="padding: 10px 10px; text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; color: #0f766e; background: #ccfbf1; font-size: 13px; border-left: 1px solid #99f6e4;">${formatRupiah(totals.estimasi_insentif || 0)}</td>
+    </tr>
+  `;
+
+  let tableHtml = `
+    <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; background: #ffffff;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed;">
+        <colgroup>
+          <col style="width: 58px;">
+          <col style="width: 125px;">
+          <col style="width: 44px;">
+          <col style="width: 42px;"><col style="width: 42px;"><col style="width: 46px;"><col style="width: 48px;">
+          <col style="width: 42px;"><col style="width: 42px;"><col style="width: 46px;"><col style="width: 48px;">
+          <col style="width: 52px;"><col style="width: 46px;"><col style="width: 46px;"><col style="width: 48px;">
+          <col style="width: 50px;"><col style="width: 50px;"><col style="width: 46px;"><col style="width: 48px;">
+          <col style="width: 56px;"><col style="width: 54px;"><col style="width: 98px;">
+        </colgroup>
+        <thead>
+          <!-- TIER 1 -->
+          <tr style="border-bottom: 2px solid #cbd5e1; font-size: 11px; text-transform: uppercase;">
+            <th colspan="3" style="background: #f1f5f9; color: #1e293b; padding: 8px 6px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 800;">SCO</th>
+            <th colspan="4" style="background: #dbeafe; color: #1e3a8a; padding: 8px 4px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 800;">DAILY VISIT AGEN (15%)</th>
+            <th colspan="4" style="background: #fef3c7; color: #92400e; padding: 8px 4px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 800;">COLLECTION (25%)</th>
+            <th colspan="4" style="background: #dcfce7; color: #166534; padding: 8px 4px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 800;">DAILLY TRANSACTION (35%)</th>
+            <th colspan="4" style="background: #f1f5f9; color: #334155; padding: 8px 4px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 800;">GROWTH TRANSACTION (25%)</th>
+            <th style="background: #fef08a; color: #854d0e; padding: 8px 4px; text-align: center; font-weight: 800; font-size: 10px;">TOTAL SCORE</th>
+            <th style="background: #bae6fd; color: #0369a1; padding: 8px 4px; text-align: center; font-weight: 800; font-size: 10px;">MULTIPLIER</th>
+            <th style="background: #ccfbf1; color: #0f766e; padding: 8px 6px; text-align: center; font-weight: 800; font-size: 10.5px;">INSENTIF</th>
+          </tr>
+          <!-- TIER 2 -->
+          <tr style="background: #f8fafc; border-bottom: 1.5px solid #cbd5e1; font-size: 10px; color: #475569; font-weight: 700; text-transform: uppercase;">
+            <th style="padding: 7px 4px; text-align: center;">CABANG</th>
+            <th style="padding: 7px 8px;">NAMA</th>
+            <th style="padding: 7px 4px; text-align: center; border-right: 1px solid #cbd5e1;">#PJP</th>
+
+            <th style="padding: 7px 4px; text-align: right;">Tgt</th>
+            <th style="padding: 7px 4px; text-align: right;">Ach</th>
+            <th style="padding: 7px 4px; text-align: right;">% Ach</th>
+            <th style="padding: 7px 4px; text-align: right; border-right: 1px solid #cbd5e1; color: #1e3a8a;">Score</th>
+
+            <th style="padding: 7px 4px; text-align: right;">Tgt</th>
+            <th style="padding: 7px 4px; text-align: right;">Ach</th>
+            <th style="padding: 7px 4px; text-align: right;">% Ach</th>
+            <th style="padding: 7px 4px; text-align: right; border-right: 1px solid #cbd5e1; color: #92400e;">Score</th>
+
+            <th style="padding: 7px 4px; text-align: right; color: #dc2626;">Net Tgt</th>
+            <th style="padding: 7px 4px; text-align: right; color: #059669;">Net Trx</th>
+            <th style="padding: 7px 4px; text-align: right;">% Ach</th>
+            <th style="padding: 7px 4px; text-align: right; border-right: 1px solid #cbd5e1; color: #166534;">Score</th>
+
+            <th style="padding: 7px 4px; text-align: right;">Bln Lalu</th>
+            <th style="padding: 7px 4px; text-align: right;">Bln Ini</th>
+            <th style="padding: 7px 4px; text-align: right;">% Growt</th>
+            <th style="padding: 7px 4px; text-align: right; border-right: 1px solid #cbd5e1; color: #334155;">Score</th>
+
+            <th style="padding: 7px 4px; text-align: right; background: #fef9c3; color: #854d0e;">SCORE</th>
+            <th style="padding: 7px 4px; text-align: center; background: #e0f2fe; color: #0369a1;">INSENTIF</th>
+            <th style="padding: 7px 6px; text-align: right; background: #ccfbf1; color: #0f766e;">(ESTIMASI)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHtml}
+        </tbody>
+        <tfoot>
+          ${footerTotalsHtml}
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  // 3. FOOTER POLICY & RUMUS CARDS (COMPACT)
+  let policyHtml = `
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 11px; color: #475569;">
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px;">
+        <div style="font-weight: 700; color: #0f172a; margin-bottom: 3px;">
+          1. Komposisi 4 Pilar Bobot
+        </div>
+        <ul style="padding-left: 14px; margin: 0; line-height: 1.45;">
+          <li><b>Visit Agen (15%)</b>: Realisasi / Target &times; 15%</li>
+          <li><b>Collection (25%)</b>: Realisasi / Target Tagihan &times; 25%</li>
+          <li><b>Daily Net Trx (35%)</b>: Net Sah / (Baseline Okt + 50) &times; 35%</li>
+          <li><b>Growth Gross (25%)</b>: (Nov - Okt) / Okt &times; 25%</li>
+        </ul>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px;">
+        <div style="font-weight: 700; color: #0f172a; margin-bottom: 3px;">
+          2. Skala Multiplier Insentif
+        </div>
+        <ul style="padding-left: 14px; margin: 0; line-height: 1.45;">
+          <li><b>&gt; 120%</b>: Maksimal dikunci di <b>120%</b></li>
+          <li><b>60% - 120%</b>: Sesuai Total Skor Murni</li>
+          <li><b>50% - 59.9%</b>: Berhak minimal <b>50%</b></li>
+          <li><b>&lt; 50%</b>: Hangus gugur (<b>0%</b>)</li>
+        </ul>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px;">
+        <div style="font-weight: 700; color: #0f172a; margin-bottom: 3px;">
+          3. Formula Uang Insentif
+        </div>
+        <div style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight: 700; color: #15803d; background: #dcfce7; padding: 5px 8px; border-radius: 4px; margin: 3px 0; border: 1px solid #bbf7d0; font-size: 10.5px;">
+          Insentif = Rp 50 &times; (Net Trx Daily &times; 31 Hari) &times; Multiplier
+        </div>
+        <div style="font-size: 10px; color: #64748b; margin-top: 3px;">
+          * Syarat Klaim: Transaksi toko hanya sah jika kunjungan fisik ke toko tersebut &ge; 60%.
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = headerHtml + tableHtml + policyHtml;
+  return container;
 }
 
 // ==============================================================================

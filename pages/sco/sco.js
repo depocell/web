@@ -1,5 +1,19 @@
 // pages/sco/sco.js — Controller untuk Modul SCO Executive Suite
 
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    if (res.status === 502) {
+      throw new Error("Server sedang memproses beban tinggi (502 Bad Gateway). Coba beberapa saat lagi.");
+    } else if (res.status === 504) {
+      throw new Error("Koneksi gateway timeout (504). Coba beberapa saat lagi.");
+    }
+    throw new Error(`Respon server tidak valid (HTTP ${res.status}).`);
+  }
+}
+
 async function initScoView() {
   console.log("[SCO] Initialized SCO view controller.");
   // Auto-check: jika data_sco.json stale → regenerate otomatis
@@ -15,7 +29,7 @@ async function autoCheckSco() {
   try {
     // 1. Cek apakah ada data transaksi baru (instan < 0.05s)
     const checkRes = await fetch("/api/sco/check?check_only=1");
-    const checkJson = await checkRes.json();
+    const checkJson = await parseJsonResponse(checkRes);
     if (!checkJson.ok || !checkJson.stale) {
       if (banner) banner.style.display = "none";
       return;
@@ -43,7 +57,7 @@ async function autoCheckSco() {
 
     // 3. Jalankan regenerasi data
     const res = await fetch("/api/sco/generate", { method: "POST" });
-    const json = await res.json();
+    const json = await parseJsonResponse(res);
 
     if (json.ok) {
       if (banner) {
@@ -113,7 +127,7 @@ async function handleScoGenerate() {
 
   try {
     const res = await fetch("/api/sco/generate", { method: "POST" });
-    const json = await res.json();
+    const json = await parseJsonResponse(res);
 
     if (json.ok) {
       if (banner) {
@@ -174,7 +188,7 @@ async function handleScoPush() {
 
   try {
     const res = await fetch("/api/sco/push", { method: "POST" });
-    const json = await res.json();
+    const json = await parseJsonResponse(res);
 
     if (json.ok) {
       if (banner) {

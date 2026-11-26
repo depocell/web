@@ -179,9 +179,20 @@ def generate_sco_data():
         import engines.transaction_engine as te
         te.build_cache("ASTAGA", "2026")
 
-    df_trx = pd.read_parquet(p_trx)
+    cols = ["status", "tgl_entry", "ar_id", "product_id", "trx_id"]
+    try:
+        df_trx = pd.read_parquet(p_trx, columns=cols)
+    except Exception:
+        try:
+            cols_fallback = ["status", "tgl_entry", "ar_id", "product_id"]
+            df_trx = pd.read_parquet(p_trx, columns=cols_fallback)
+        except Exception:
+            df_trx = pd.read_parquet(p_trx)
     df_trx = me.filter_astaga_internal(df_trx)
     df_sukses = df_trx[df_trx["status"].astype(str).str.lower().str.contains("sukses", na=False)].copy()
+    del df_trx
+    import gc
+    gc.collect()
 
     # Ekstrak tanggal dan kode bulan
     df_sukses["tgl_dt"] = pd.to_datetime(df_sukses["tgl_entry"])
@@ -675,9 +686,20 @@ def generate_reseller_data(df_sukses: pd.DataFrame = None, months: list = None) 
             if not os.path.exists(p_trx):
                 import engines.transaction_engine as te
                 te.build_cache("ASTAGA", "2026")
-            df_trx = pd.read_parquet(p_trx)
+            cols = ["status", "tgl_entry", "ar_id", "product_id", "trx_id"]
+            try:
+                df_trx = pd.read_parquet(p_trx, columns=cols)
+            except Exception:
+                try:
+                    cols_fallback = ["status", "tgl_entry", "ar_id", "product_id"]
+                    df_trx = pd.read_parquet(p_trx, columns=cols_fallback)
+                except Exception:
+                    df_trx = pd.read_parquet(p_trx)
             df_trx = me.filter_astaga_internal(df_trx)
             df_sukses = df_trx[df_trx["status"].astype(str).str.lower().str.contains("sukses", na=False)].copy()
+            del df_trx
+            import gc
+            gc.collect()
             df_sukses["tgl_dt"] = pd.to_datetime(df_sukses["tgl_entry"])
             df_sukses["MonthCode"] = df_sukses["tgl_dt"].dt.strftime("%m%y")
             df_sukses["ar_id"] = df_sukses["ar_id"].astype(str).str.strip()
@@ -766,10 +788,11 @@ def generate_reseller_data(df_sukses: pd.DataFrame = None, months: list = None) 
             label_id = BULAN_SHORT_ID.get(mm, mm) + f" 20{m_code[2:]}"
 
             # Pivot per reseller
+            val_col = "trx_id" if "trx_id" in df_m.columns else "product_id"
             pivot = df_m.pivot_table(
                 index=["ar_id", "Reseller_Name", "Group"],
                 columns="Kategori",
-                values="trx_id",
+                values=val_col,
                 aggfunc="count",
                 fill_value=0
             )
