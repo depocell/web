@@ -42,6 +42,7 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse, HTMLResponse, FileResponse, RedirectResponse, Response, PlainTextResponse, StreamingResponse
 
 from starlette.routing import Route, Mount
+from starlette.middleware.cors import CORSMiddleware
 
 from starlette.staticfiles import StaticFiles
 
@@ -1010,6 +1011,41 @@ async def api_sco_check(request):
 
         traceback.print_exc()
 
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_sco_checkin(request):
+    """Menerima check-in lapangan SCO (GPS + Foto Selfie), verifikasi AI, dan simpan ke SQLite."""
+    try:
+        body = await request.json()
+        import engines.checkin_engine as checkin_engine
+        res = await asyncio.to_thread(
+            checkin_engine.save_checkin,
+            sco_name=body.get("sco_name", ""),
+            agen_id=body.get("agen_id", ""),
+            agen_name=body.get("agen_name", ""),
+            lat=body.get("lat"),
+            lon=body.get("lon"),
+            distance_m=body.get("distance_m"),
+            photo_b64=body.get("photo_b64", ""),
+            note=body.get("note", ""),
+        )
+        return JSONResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+async def api_sco_checkins(request):
+    """Mengambil riwayat check-in SCO hari ini atau tanggal tertentu."""
+    try:
+        sco_name = request.query_params.get("sco", "")
+        date_str = request.query_params.get("date", "")
+        import engines.checkin_engine as checkin_engine
+        rows = await asyncio.to_thread(checkin_engine.list_checkins, sco_name=sco_name, date_str=date_str)
+        return JSONResponse({"ok": True, "checkins": rows})
+    except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
@@ -3857,6 +3893,8 @@ routes = [
     Route("/api/sco/push",      api_sco_push,     methods=["GET", "POST"]),
 
     Route("/api/sco/check",     api_sco_check,    methods=["GET", "POST"]),
+    Route("/api/sco/checkin",   api_sco_checkin,  methods=["POST"]),
+    Route("/api/sco/checkins",  api_sco_checkins, methods=["GET"]),
 
     Route("/api/visit/summary",    api_visit_summary, methods=["GET"]),
 
@@ -3897,6 +3935,13 @@ app = Starlette(debug=True, routes=routes)
 app.add_middleware(AuthMiddleware)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 
 

@@ -1,0 +1,18 @@
+{
+  "appId": "id.my.depas.sco",
+  "appName": "SCO Depocell",
+  "webDir": "www",
+  "server": {
+    "url": "https://sco.depas.my.id",
+    "cleartext": false,
+    "allowNavigation": [
+      "sco.depas.my.id",
+      "depas.my.id",
+      "*.depas.my.id"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true
+  }
+}

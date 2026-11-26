@@ -1,0 +1,17 @@
+{
+  "name": "sco-depocell-apk",
+  "version": "1.0.0",
+  "description": "APK Android Operasional SCO Depocell (Capacitor Live Shell)",
+  "scripts": {
+    "cap:add": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/cli": "^6.1.2"
+  }
+}

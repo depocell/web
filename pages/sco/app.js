@@ -26,6 +26,19 @@
     coverageSales: 'ALL',
     coverageJadwal: 'ALL',
     coverageSearch: '',
+    opsSales: localStorage.getItem('sco_ops_sales') || 'Abdul Harris',
+    opsDayFilter: 'TODAY',
+    opsSearch: '',
+    userLat: null,
+    userLon: null,
+    gpsStatus: 'idle',
+    gpsError: '',
+    selectedCheckinStore: null,
+    checkinPhotoB64: '',
+    checkinNote: '',
+    checkinSubmitting: false,
+    checkinAlert: null,
+    todayCheckins: [],
     theme: localStorage.getItem('sco_theme') || localStorage.getItem('theme_preference') || 'system',
   };
 
@@ -301,11 +314,11 @@
   // ── ROUTER ──
   function handleRoute() {
     const hash = window.location.hash || '#ringkasan';
-    const validRoutes = ['#ringkasan', '#coverage', '#profil-agen', '#detail', '#kpi-sco', '#kpi-dso', '#settings'];
+    const validRoutes = ['#ringkasan', '#coverage', '#profil-agen', '#detail', '#kpi-sco', '#kpi-dso', '#jadwal', '#checkin', '#settings'];
     state.currentRoute = validRoutes.includes(hash) ? hash : '#ringkasan';
 
-    // Update nav links active state
-    document.querySelectorAll('.nav-link').forEach(link => {
+    // Update nav links active state (sidebar + bottom footer nav)
+    document.querySelectorAll('.nav-link, .sco-bottom-item').forEach(link => {
       link.classList.toggle('active', link.getAttribute('href') === state.currentRoute);
     });
 
@@ -364,6 +377,12 @@
       case '#kpi-dso':
         renderKpiDsoView(container);
         break;
+      case '#jadwal':
+        renderJadwalView(container);
+        break;
+      case '#checkin':
+        renderCheckinView(container);
+        break;
       case '#settings':
         renderSettingsView(container);
         break;
@@ -385,6 +404,8 @@
       '#detail': '<i class="fa-solid fa-users" style="color:var(--primary);"></i> Performa MTD',
       '#kpi-sco': '<i class="fa-solid fa-bullseye" style="color:var(--primary);"></i> KPI & Insentif SCO',
       '#kpi-dso': '<i class="fa-solid fa-award" style="color:var(--primary);"></i> KPI & Insentif DSO',
+      '#jadwal': '<i class="fa-solid fa-calendar-check" style="color:var(--primary);"></i> Jadwal Kunjungan',
+      '#checkin': '<i class="fa-solid fa-location-dot" style="color:var(--primary);"></i> Check-in Lapangan',
       '#settings': '<i class="fa-solid fa-gear" style="color:var(--primary);"></i> Pengaturan'
     };
 
@@ -2458,6 +2479,458 @@
     showToast(`File ${filename} berhasil diunduh!`, 'file-csv');
   };
 
+  // ── OPERASIONAL LAPANGAN: JADWAL & CHECK-IN GPS + AI ──
+  function getApiBase() {
+    const h = window.location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1' || h === 'depas.my.id') return '';
+    return 'https://depas.my.id';
+  }
+
+  function haversineMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = d => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function formatDistance(m) {
+    if (m === null || m === undefined || isNaN(m)) return '-';
+    if (m < 1000) return `${Math.round(m)} m`;
+    return `${(m / 1000).toFixed(2)} km`;
+  }
+
+  function getTodayNameId() {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    return days[new Date().getDay()];
+  }
+
+  function getOpsStoresForSales() {
+    const allAgents = state.data?.tren_agen || [];
+    const scoList = getCleanScoList(allAgents);
+    if (!scoList.includes(state.opsSales) && scoList.length > 0) {
+      state.opsSales = scoList[0];
+    }
+
+    const todayName = getTodayNameId().toLowerCase();
+    const q = (state.opsSearch || '').trim().toLowerCase();
+    const dayFilter = state.opsDayFilter || 'TODAY';
+
+    const checkinMap = {};
+    (state.todayCheckins || []).forEach(c => {
+      checkinMap[String(c.agen_id || '').toUpperCase()] = c;
+    });
+
+    const filtered = allAgents
+      .filter(a => String(a.sco || '').trim() === state.opsSales)
+      .filter(a => {
+        if (dayFilter === 'ALL') return true;
+        const targetDay = (dayFilter === 'TODAY') ? todayName : dayFilter.toLowerCase();
+        return String(a.jadwal || '').toLowerCase().includes(targetDay);
+      })
+      .filter(a => {
+        if (!q) return true;
+        return (
+          String(a.name || '').toLowerCase().includes(q) ||
+          String(a.aid || '').toLowerCase().includes(q) ||
+          String(a.cabang || '').toLowerCase().includes(q)
+        );
+      })
+      .map(a => {
+        const coords = parseStoreCoordinates(a.location || '');
+        let distM = null;
+        if (coords && state.userLat !== null && state.userLon !== null) {
+          distM = haversineMeters(state.userLat, state.userLon, coords.lat, coords.lon);
+        }
+        const aidUpper = String(a.aid || '').toUpperCase();
+        return {
+          ...a,
+          coords,
+          distM,
+          checkedIn: checkinMap[aidUpper] || null,
+        };
+      });
+
+    // Auto-sort toko terdekat paling atas bila GPS aktif!
+    filtered.sort((a, b) => {
+      if (a.distM !== null && b.distM !== null) return a.distM - b.distM;
+      if (a.distM !== null) return -1;
+      if (b.distM !== null) return 1;
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+
+    return { stores: filtered, scoList, todayName: getTodayNameId() };
+  }
+
+  async function loadTodayCheckins(forceRender = false) {
+    try {
+      const url = `${getApiBase()}/api/sco/checkins?sco=${encodeURIComponent(state.opsSales || '')}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok) {
+          state.todayCheckins = json.checkins || [];
+          if (forceRender && (state.currentRoute === '#jadwal' || state.currentRoute === '#checkin')) {
+            renderCurrentRoute();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[OPS] Gagal memuat riwayat check-in:', e);
+    }
+  }
+
+  function requestGpsLocation(autoRender = true) {
+    if (!navigator.geolocation) {
+      state.gpsStatus = 'error';
+      state.gpsError = 'Browser/HP tidak mendukung GPS.';
+      if (autoRender) renderCurrentRoute();
+      return;
+    }
+    state.gpsStatus = 'loading';
+    state.gpsError = '';
+    if (autoRender) renderCurrentRoute();
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        state.userLat = pos.coords.latitude;
+        state.userLon = pos.coords.longitude;
+        state.gpsStatus = 'ready';
+        state.gpsError = '';
+        if (state.currentRoute === '#jadwal' || state.currentRoute === '#checkin') {
+          renderCurrentRoute();
+        }
+      },
+      (err) => {
+        state.gpsStatus = 'error';
+        state.gpsError = err.message || 'Gagal membaca lokasi GPS. Pastikan izin lokasi aktif.';
+        if (state.currentRoute === '#jadwal' || state.currentRoute === '#checkin') {
+          renderCurrentRoute();
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 }
+    );
+  }
+
+  function compressImageFile(file, maxW = 720, quality = 0.72) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxW) {
+            h = Math.round((h * maxW) / w);
+            w = maxW;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('Gagal memproses file gambar.'));
+        img.src = ev.target.result;
+      };
+      reader.onerror = () => reject(new Error('Gagal membaca file kamera.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  window.setOpsSales = function (val) {
+    state.opsSales = val;
+    try { localStorage.setItem('sco_ops_sales', val); } catch (e) {}
+    state.selectedCheckinStore = null;
+    state.checkinAlert = null;
+    loadTodayCheckins(true);
+    renderCurrentRoute();
+  };
+
+  window.setOpsDay = function (val) {
+    state.opsDayFilter = val;
+    renderCurrentRoute();
+  };
+
+  window.setOpsSearch = function (val) {
+    state.opsSearch = val;
+    renderCurrentRoute();
+    const inp = document.getElementById('ops-search-input');
+    if (inp) {
+      inp.focus();
+      inp.setSelectionRange(val.length, val.length);
+    }
+  };
+
+  window.refreshOpsGps = function () {
+    requestGpsLocation(true);
+  };
+
+  window.selectCheckinStore = function (aid) {
+    const { stores } = getOpsStoresForSales();
+    const found = stores.find(s => String(s.aid).toUpperCase() === String(aid).toUpperCase());
+    if (found) {
+      state.selectedCheckinStore = found;
+      state.checkinPhotoB64 = '';
+      state.checkinNote = '';
+      state.checkinAlert = null;
+      if (state.currentRoute !== '#checkin') {
+        window.location.hash = '#checkin';
+      } else {
+        renderCurrentRoute();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
+  window.onCheckinPhotoSelected = async function (input) {
+    const file = input?.files?.[0];
+    if (!file) return;
+    try {
+      state.checkinAlert = null;
+      state.checkinPhotoB64 = await compressImageFile(file, 720, 0.72);
+      renderCurrentRoute();
+    } catch (err) {
+      state.checkinAlert = { type: 'error', message: err.message };
+      renderCurrentRoute();
+    }
+  };
+
+  window.submitScoCheckin = async function () {
+    const st = state.selectedCheckinStore;
+    if (!st) return;
+    if (!state.checkinPhotoB64) {
+      state.checkinAlert = { type: 'error', message: 'Silakan ambil foto selfie di depan toko terlebih dahulu.' };
+      renderCurrentRoute();
+      return;
+    }
+
+    const noteEl = document.getElementById('checkin-note-input');
+    if (noteEl) state.checkinNote = noteEl.value || '';
+
+    state.checkinSubmitting = true;
+    state.checkinAlert = null;
+    renderCurrentRoute();
+
+    try {
+      const res = await fetch(`${getApiBase()}/api/sco/checkin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sco_name: state.opsSales,
+          agen_id: st.aid,
+          agen_name: st.name,
+          lat: state.userLat,
+          lon: state.userLon,
+          distance_m: st.distM,
+          photo_b64: state.checkinPhotoB64,
+          note: state.checkinNote,
+        }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        state.checkinAlert = {
+          type: 'success',
+          message: `Check-in BERHASIL di ${st.name} (${json.checkin?.checkin_time || ''}). ${json.checkin?.ai_reason || ''}`,
+        };
+        state.checkinPhotoB64 = '';
+        state.checkinNote = '';
+        await loadTodayCheckins(false);
+      } else {
+        // Jika ditolak AI, reset foto agar wajib ambil ulang
+        if (json.rejected_by_ai) {
+          state.checkinPhotoB64 = '';
+        }
+        state.checkinAlert = {
+          type: 'error',
+          message: json.error || 'Foto tidak memenuhi syarat check-in di depan toko.',
+        };
+      }
+    } catch (err) {
+      state.checkinAlert = {
+        type: 'error',
+        message: 'Gagal mengirim check-in ke server: ' + err.message,
+      };
+    } finally {
+      state.checkinSubmitting = false;
+      renderCurrentRoute();
+    }
+  };
+
+  function renderOpsToolbar(scoList, todayName, stores) {
+    const doneCount = stores.filter(s => s.checkedIn).length;
+    const gpsBadge =
+      state.gpsStatus === 'ready'
+        ? `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-location-crosshairs"></i> GPS Aktif (Sorted Terdekat)</span>`
+        : state.gpsStatus === 'loading'
+          ? `<span style="color:#0284c7; font-weight:600;"><i class="fa-solid fa-spinner fa-spin"></i> Mencari GPS...</span>`
+          : `<span style="color:#d97706; font-weight:600;"><i class="fa-solid fa-location-slash"></i> ${escapeHtml(state.gpsError || 'GPS belum aktif')}</span>`;
+
+    return `
+      <div class="ops-toolbar">
+        <div class="ops-controls">
+          <select class="ops-select" onchange="window.setOpsSales(this.value)">
+            ${scoList.map(s => `<option value="${escapeAttr(s)}" ${s === state.opsSales ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
+          </select>
+
+          <select class="ops-select" onchange="window.setOpsDay(this.value)">
+            <option value="TODAY" ${state.opsDayFilter === 'TODAY' ? 'selected' : ''}>Hari Ini (${todayName})</option>
+            <option value="ALL" ${state.opsDayFilter === 'ALL' ? 'selected' : ''}>Semua Jadwal</option>
+            ${['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'].map(d =>
+              `<option value="${d}" ${state.opsDayFilter === d ? 'selected' : ''}>${d}</option>`
+            ).join('')}
+          </select>
+
+          <input id="ops-search-input" type="search" class="ops-input" placeholder="Cari nama / ID toko..." value="${escapeAttr(state.opsSearch)}" oninput="window.setOpsSearch(this.value)" style="flex:1; min-width:160px;">
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+          ${gpsBadge}
+          <button class="action-btn btn-secondary" onclick="window.refreshOpsGps()" style="padding:6px 10px; font-size:12px;">
+            <i class="fa-solid fa-arrows-rotate"></i> GPS
+          </button>
+          <span style="font-weight:700; color:var(--text-main);">${doneCount}/${stores.length} Visit</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderJadwalView(container) {
+    if (state.gpsStatus === 'idle') requestGpsLocation(false);
+    if (state.todayCheckins.length === 0) loadTodayCheckins(true);
+
+    const { stores, scoList, todayName } = getOpsStoresForSales();
+
+    container.innerHTML = `
+      ${renderOpsToolbar(scoList, todayName, stores)}
+      <div class="ops-store-list">
+        ${stores.length === 0 ? `<div class="empty-state"><i class="fa-solid fa-calendar-xmark"></i><p>Tidak ada jadwal toko yang cocok.</p></div>` : ''}
+        ${stores.map((st, idx) => {
+          const mapUrl = parseDmsToMaps(st.location || '');
+          const distHtml = st.distM !== null
+            ? `<span class="ops-dist-text ${st.distM > 150 ? 'far' : ''}">${formatDistance(st.distM)}</span>`
+            : `<span style="color:var(--text-muted);">-</span>`;
+          const statusHtml = st.checkedIn
+            ? `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Checked-in ${st.checkedIn.checkin_time || ''}</span>`
+            : `<span style="color:var(--text-muted);">Belum visit</span>`;
+
+          return `
+            <div class="ops-store-row ${st.checkedIn ? 'checked-in' : ''}">
+              <div class="ops-store-info">
+                <div class="ops-store-name">#${idx + 1} ${escapeHtml(st.name)}</div>
+                <div class="ops-store-meta">
+                  <span>${escapeHtml(st.cabang || '-')}</span>
+                  <span>&bull; ${escapeHtml(st.jadwal || '-')}</span>
+                  <span>&bull; Jarak: ${distHtml}</span>
+                  <span>&bull; ${statusHtml}</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:6px; flex-shrink:0;">
+                ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="action-btn btn-secondary" style="padding:7px 10px; font-size:12px;"><i class="fa-solid fa-map-pin"></i></a>` : ''}
+                <button class="action-btn btn-primary" onclick="window.selectCheckinStore('${escapeAttr(st.aid)}')" style="padding:7px 12px; font-size:12px;">
+                  <i class="fa-solid fa-camera"></i> Check-in
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function renderCheckinView(container) {
+    if (state.gpsStatus === 'idle') requestGpsLocation(false);
+    if (state.todayCheckins.length === 0) loadTodayCheckins(true);
+
+    const { stores, scoList, todayName } = getOpsStoresForSales();
+    if (!state.selectedCheckinStore && stores.length > 0 && state.gpsStatus === 'ready') {
+      state.selectedCheckinStore = stores[0];
+    }
+    const sel = state.selectedCheckinStore;
+
+    let cameraPanelHtml = '';
+    if (sel) {
+      const distInfo = sel.distM !== null
+        ? `<span class="ops-dist-text ${sel.distM > 150 ? 'far' : ''}">${formatDistance(sel.distM)} dari lokasi Anda</span>`
+        : `<span style="color:#d97706;">Jarak GPS belum terbaca</span>`;
+
+      const alertHtml = state.checkinAlert
+        ? (state.checkinAlert.type === 'error'
+          ? `<div class="ops-ai-alert"><i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;"></i><div>${escapeHtml(state.checkinAlert.message)}</div></div>`
+          : `<div class="ops-ai-success"><i class="fa-solid fa-circle-check" style="margin-top:2px;"></i><div>${escapeHtml(state.checkinAlert.message)}</div></div>`)
+        : '';
+
+      cameraPanelHtml = `
+        <div class="ops-camera-panel">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">TOKO TERPILIH UNTUK CHECK-IN</div>
+              <div style="font-size:16px; font-weight:800; color:var(--text-main); margin-top:2px;">${escapeHtml(sel.name)}</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+                Jadwal: ${escapeHtml(sel.jadwal || '-')} &bull; ${distInfo}
+              </div>
+            </div>
+            <label class="action-btn btn-primary" style="cursor:pointer; margin:0;">
+              <i class="fa-solid fa-camera"></i> ${state.checkinPhotoB64 ? 'Foto Ulang' : 'Ambil Foto Selfie Depan Toko'}
+              <input type="file" accept="image/*" capture="user" style="display:none;" onchange="window.onCheckinPhotoSelected(this)">
+            </label>
+          </div>
+
+          ${state.checkinPhotoB64 ? `
+            <div style="margin-top:12px;">
+              <img src="${state.checkinPhotoB64}" class="ops-photo-preview" alt="Preview Selfie">
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center;">
+                <input id="checkin-note-input" type="text" class="ops-input" placeholder="Catatan kunjungan (opsional)..." value="${escapeAttr(state.checkinNote)}" style="flex:1; min-width:180px;">
+                <button class="action-btn btn-primary" onclick="window.submitScoCheckin()" ${state.checkinSubmitting ? 'disabled' : ''}>
+                  ${state.checkinSubmitting ? '<i class="fa-solid fa-circle-notch fa-spin"></i> AI Memverifikasi...' : '<i class="fa-solid fa-paper-plane"></i> Kirim Check-in'}
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
+          ${alertHtml}
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      ${renderOpsToolbar(scoList, todayName, stores)}
+      ${cameraPanelHtml}
+      <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">
+        PILIH TOKO (OTOMATIS DIURUTKAN DARI JARAK TERDEKAT)
+      </div>
+      <div class="ops-store-list">
+        ${stores.length === 0 ? `<div class="empty-state"><i class="fa-solid fa-store-slash"></i><p>Tidak ada toko ditemukan.</p></div>` : ''}
+        ${stores.map((st, idx) => {
+          const isSel = sel && String(sel.aid).toUpperCase() === String(st.aid).toUpperCase();
+          const distHtml = st.distM !== null
+            ? `<span class="ops-dist-text ${st.distM > 150 ? 'far' : ''}">${formatDistance(st.distM)}</span>`
+            : `<span style="color:var(--text-muted);">-</span>`;
+          return `
+            <div class="ops-store-row ${isSel ? 'selected' : ''} ${st.checkedIn ? 'checked-in' : ''}" onclick="window.selectCheckinStore('${escapeAttr(st.aid)}')" style="cursor:pointer;">
+              <div class="ops-store-info">
+                <div class="ops-store-name">#${idx + 1} ${escapeHtml(st.name)}</div>
+                <div class="ops-store-meta">
+                  <span>${escapeHtml(st.jadwal || '-')}</span>
+                  <span>&bull; ${distHtml}</span>
+                  ${st.checkedIn ? `<span style="color:#059669; font-weight:700;">&bull; Sudah Check-in ${st.checkedIn.checkin_time}</span>` : ''}
+                </div>
+              </div>
+              <span style="font-size:12px; font-weight:700; color:var(--primary);">
+                ${isSel ? '<i class="fa-solid fa-circle-dot"></i> Dipilih' : 'Pilih'}
+              </span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
   // ── APP SHELL & NAVIGATION DRAWER ──
   function renderAppShell() {
     // Only construct once
@@ -2510,6 +2983,16 @@
             <a href="#kpi-dso" class="nav-link">
               <i class="fa-solid fa-award"></i>
               <span>KPI & Insentif DSO</span>
+            </a>
+
+            <div class="nav-heading">Operasional Lapangan</div>
+            <a href="#jadwal" class="nav-link">
+              <i class="fa-solid fa-calendar-check"></i>
+              <span>Jadwal Kunjungan</span>
+            </a>
+            <a href="#checkin" class="nav-link">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>Check-in Toko</span>
             </a>
 
             <div class="nav-heading">Preferensi</div>
@@ -2572,6 +3055,26 @@
           </main>
         </div>
       </div>
+
+      <!-- FOOTER BOTTOM NAVIGATION (OPERASIONAL MOBILE/APK) -->
+      <nav class="sco-bottom-nav" id="sco-bottom-nav">
+        <a href="#ringkasan" class="sco-bottom-item ${state.currentRoute === '#ringkasan' ? 'active' : ''}">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Ringkasan</span>
+        </a>
+        <a href="#jadwal" class="sco-bottom-item ${state.currentRoute === '#jadwal' ? 'active' : ''}">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>Jadwal</span>
+        </a>
+        <a href="#checkin" class="sco-bottom-item ${state.currentRoute === '#checkin' ? 'active' : ''}">
+          <i class="fa-solid fa-location-dot"></i>
+          <span>Check-in</span>
+        </a>
+        <a href="#kpi-sco" class="sco-bottom-item ${state.currentRoute === '#kpi-sco' ? 'active' : ''}">
+          <i class="fa-solid fa-bullseye"></i>
+          <span>KPI</span>
+        </a>
+      </nav>
     `;
 
     applyTheme(state.theme);
