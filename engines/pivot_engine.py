@@ -28,19 +28,49 @@ MASTER_DIR = os.path.join(BASE_DIR, "MASTER")
 
 CACHE_DIR  = os.path.join(BASE_DIR, ".cache")
 
+import threading
 _CUST_CACHE: Dict[str, pd.DataFrame] = {}
 _CUST_MTIME: Dict[str, float] = {}
 _PROD_CACHE: Dict[str, pd.DataFrame] = {}
 _PROD_MTIME: Dict[str, float] = {}
 _TRX_PREP_CACHE: Dict[str, Dict[str, Any]] = {}
+_CLEANUP_TIMER: Optional[threading.Timer] = None
+_TIMER_LOCK = threading.Lock()
+
+def _idle_cleanup_worker():
+    """Pekerja background: otomatis melepaskan memori transaksi setelah 60 detik idle."""
+    global _TRX_PREP_CACHE
+    _TRX_PREP_CACHE.clear()
+    try:
+        te.clear_memory_cache()
+    except Exception:
+        pass
+    me.release_os_memory()
+    print("[PIVOT ENGINE] Idle 60s: Memori Parquet dilepas & RAM dikembalikan ke OS.")
+
+def schedule_idle_cleanup(delay_sec: float = 60.0):
+    """Jadwalkan pembersihan memori jika tidak ada query pivot baru selama delay_sec detik."""
+    global _CLEANUP_TIMER
+    with _TIMER_LOCK:
+        if _CLEANUP_TIMER is not None:
+            _CLEANUP_TIMER.cancel()
+        _CLEANUP_TIMER = threading.Timer(delay_sec, _idle_cleanup_worker)
+        _CLEANUP_TIMER.daemon = True
+        _CLEANUP_TIMER.start()
 
 def clear_cache():
-    """Reset seluruh cache memori di pivot engine."""
+    """Reset seluruh cache memori di pivot engine dan panggil auto-trim OS."""
+    global _CLEANUP_TIMER
+    with _TIMER_LOCK:
+        if _CLEANUP_TIMER is not None:
+            _CLEANUP_TIMER.cancel()
+            _CLEANUP_TIMER = None
     _CUST_CACHE.clear()
     _CUST_MTIME.clear()
     _PROD_CACHE.clear()
     _PROD_MTIME.clear()
     _TRX_PREP_CACHE.clear()
+    me.release_os_memory()
 
 def get_customer_df(brand: str) -> pd.DataFrame:
     """Load and cache customer master with relevant analysis columns using fast parquet cache or SQLite."""
@@ -631,6 +661,7 @@ def execute_pivot(
         for col_h in col_headers:
             total_dict[col_h] = round(float(total_row_s.get(col_h, 0.0)), 2)
 
+        schedule_idle_cleanup(delay_sec=60.0)
         return {
             "is_2d": True,
             "row_dim": row_dim,
@@ -725,6 +756,7 @@ def execute_pivot(
                 "sukses_pct": overall_sukses_rate
             }
 
+            schedule_idle_cleanup(delay_sec=60.0)
             return {
                 "is_2d": False,
                 "row_dim": row_dim,
@@ -762,6 +794,7 @@ def execute_pivot(
                 "sukses_pct": overall_sukses_rate
             }
 
+            schedule_idle_cleanup(delay_sec=60.0)
             return {
                 "is_2d": False,
                 "row_dim": row_dim,

@@ -343,3 +343,20 @@ def format_limit_saldo(limit_saldo: Union[float, int]) -> str:
     """Alias backwards compatibility untuk format_limit."""
     return format_limit(limit_saldo)
 
+
+def release_os_memory():
+    """
+    Memaksa Garbage Collector Python dan glibc malloc untuk mengembalikan memori fisik (RSS) ke OS.
+    Sangat krusial untuk server VPS Linux setelah kalkulasi besar (pandas/parquet/pivot).
+    """
+    import gc
+    import sys
+    gc.collect()
+    if sys.platform.startswith("linux"):
+        try:
+            import ctypes
+            libc = ctypes.CDLL("libc.so.6")
+            libc.malloc_trim(0)
+        except Exception:
+            pass
+

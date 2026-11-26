@@ -4083,9 +4083,42 @@ def _open_browser():
 
 
 
+def _start_memory_trimmer():
+    """Background daemon yang memonitor pemakaian RAM server dan melakukan auto-trim saat idle."""
+    import threading, time, sys
+    if not sys.platform.startswith("linux"):
+        return
+
+    def run():
+        time.sleep(30)
+        while True:
+            time.sleep(60)
+            try:
+                # Cek RSS memori dari /proc/self/statm
+                with open("/proc/self/statm", "r") as f:
+                    pages = int(f.read().split()[1])
+                    rss_mb = (pages * os.sysconf("SC_PAGE_SIZE")) / (1024 * 1024)
+
+                # Jika pemakaian RAM di atas 350 MB, lakukan auto-trim
+                if rss_mb > 350:
+                    import engines.metrics_engine as me
+                    import engines.pivot_engine as pe
+                    import engines.transaction_engine as te
+                    pe.clear_cache()
+                    te.clear_memory_cache()
+                    me.release_os_memory()
+                    print(f"[AUTO-TRIM] RAM idle {rss_mb:.1f} MB dipangkas & dikembalikan ke OS.")
+            except Exception:
+                pass
+
+    threading.Thread(target=run, daemon=True).start()
+
+
 if __name__ == "__main__":
 
     _prewarm()
+
+    _start_memory_trimmer()
 
     _open_browser()
 
