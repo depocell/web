@@ -2529,7 +2529,8 @@
     let dayFiltered = salesAgents.filter(a => {
       if (dayFilter === 'ALL') return true;
       const targetDay = (dayFilter === 'TODAY') ? todayName : dayFilter.toLowerCase();
-      return String(a.jadwal || '').toLowerCase().includes(targetDay);
+      const jadwalClean = String(a.jadwal || '').toLowerCase().replace(/['’`]/g, '');
+      return jadwalClean.includes(targetDay);
     });
 
     // Jika hari ini (misal Jumat/Minggu) tidak ada jadwal PJP khusus, otomatis tampilkan semua toko SCO tsb
