@@ -2525,13 +2525,21 @@
       checkinMap[String(c.agen_id || '').toUpperCase()] = c;
     });
 
-    const filtered = allAgents
-      .filter(a => String(a.sco || '').trim() === state.opsSales)
-      .filter(a => {
-        if (dayFilter === 'ALL') return true;
-        const targetDay = (dayFilter === 'TODAY') ? todayName : dayFilter.toLowerCase();
-        return String(a.jadwal || '').toLowerCase().includes(targetDay);
-      })
+    const salesAgents = allAgents.filter(a => String(a.sco || '').trim() === state.opsSales);
+    let dayFiltered = salesAgents.filter(a => {
+      if (dayFilter === 'ALL') return true;
+      const targetDay = (dayFilter === 'TODAY') ? todayName : dayFilter.toLowerCase();
+      return String(a.jadwal || '').toLowerCase().includes(targetDay);
+    });
+
+    // Jika hari ini (misal Jumat/Minggu) tidak ada jadwal PJP khusus, otomatis tampilkan semua toko SCO tsb
+    let fallbackToAll = false;
+    if (dayFilter === 'TODAY' && dayFiltered.length === 0 && salesAgents.length > 0) {
+      dayFiltered = salesAgents;
+      fallbackToAll = true;
+    }
+
+    const filtered = dayFiltered
       .filter(a => {
         if (!q) return true;
         return (
@@ -2563,7 +2571,7 @@
       return String(a.name || '').localeCompare(String(b.name || ''));
     });
 
-    return { stores: filtered, scoList, todayName: getTodayNameId() };
+    return { stores: filtered, scoList, todayName: getTodayNameId(), fallbackToAll };
   }
 
   async function loadTodayCheckins(forceRender = false) {
