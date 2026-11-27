@@ -361,18 +361,23 @@ def _get_raw_ar_name(brand: str, ar_code: str) -> str:
         for p in candidate_paths:
             if os.path.exists(p):
                 try:
-                    d = pd.read_csv(p, sep="\t", dtype=str)
-                    kode_col = next((c for c in d.columns if c.lower() in ("kode", "kode reseller")), None)
-                    nama_col = next((c for c in d.columns if c.lower() in ("nama", "nama reseller")), None)
+                    cols = pd.read_csv(p, sep="\t", nrows=0).columns.tolist()
+                    kode_col = next((c for c in cols if c.lower() in ("kode", "kode reseller")), None)
+                    nama_col = next((c for c in cols if c.lower() in ("nama", "nama reseller")), None)
                     if kode_col and nama_col:
-                        for _, r in d[[kode_col, nama_col]].dropna().iterrows():
-                            k = str(r[kode_col]).strip().upper()
-                            if k not in _RAW_NAME_CACHE[brand]:
-                                _RAW_NAME_CACHE[brand][k] = str(r[nama_col]).strip()
+                        d = pd.read_csv(p, sep="\t", usecols=[kode_col, nama_col], dtype=str).dropna()
+                        keys = d[kode_col].str.strip().str.upper()
+                        vals = d[nama_col].str.strip()
+                        for k, v in zip(keys, vals):
+                            if k and k not in _RAW_NAME_CACHE[brand]:
+                                _RAW_NAME_CACHE[brand][k] = v
                 except Exception:
                     pass
 
     return _RAW_NAME_CACHE[brand].get(str(ar_code).strip().upper(), "")
+
+
+_TRX_ENTITY_FREQ_CACHE: Dict[tuple, Dict[str, Any]] = {}
 
 
 def check_unmapped_entities(year: str = "2026", force: bool = False) -> Dict[str, Any]:
@@ -380,7 +385,7 @@ def check_unmapped_entities(year: str = "2026", force: bool = False) -> Dict[str
     Mendeteksi kode reseller (ar_id) atau kode produk (product_id) pada transaksi
     yang belum terdaftar di Master Customer atau Master Produk (atau berkategori 'LAINNYA').
     """
-    global _UNMAPPED_CACHE, _UNMAPPED_TIME
+    global _UNMAPPED_CACHE, _UNMAPPED_TIME, _TRX_ENTITY_FREQ_CACHE
     import time
     import engines.product_engine as pe
     import engines.customer_engine as ce
@@ -393,19 +398,56 @@ def check_unmapped_entities(year: str = "2026", force: bool = False) -> Dict[str
     unmapped_summary = {}
 
     for brand in ["ASTAGA", "OKIPAY"]:
-        df = te.load(brand, year)
+        p_cache = te._cache_path(brand, year)
+        p_mtime = os.path.getmtime(p_cache) if os.path.exists(p_cache) else 0.0
+        freq_key = (brand, year)
+        cached_freq = _TRX_ENTITY_FREQ_CACHE.get(freq_key)
+
+        if cached_freq and cached_freq.get("mtime") == p_mtime and p_mtime > 0:
+            ar_vc_dict = cached_freq["ar_vc"]
+            prod_vc_dict = cached_freq["prod_vc"]
+        else:
+            if os.path.exists(p_cache):
+                try:
+                    df = pd.read_parquet(p_cache, columns=["ar_id", "product_id"])
+                except Exception:
+                    df = te.load(brand, year)
+            else:
+                df = te.load(brand, year)
+
+            if "ar_id" in df.columns:
+                ar_s = df["ar_id"].value_counts()
+                ar_s.index = ar_s.index.astype(str).str.strip().str.upper()
+                ar_vc_dict = {str(k): int(v) for k, v in ar_s.groupby(level=0).sum().items() if str(k) not in ("", "NAN", "NONE")}
+            else:
+                ar_vc_dict = {}
+
+            if "product_id" in df.columns:
+                pr_s = df["product_id"].value_counts()
+                pr_s.index = pr_s.index.astype(str).str.strip().str.upper()
+                prod_vc_dict = {str(k): int(v) for k, v in pr_s.groupby(level=0).sum().items() if str(k) not in ("", "NAN", "NONE")}
+            else:
+                prod_vc_dict = {}
+
+            if p_mtime > 0:
+                _TRX_ENTITY_FREQ_CACHE[freq_key] = {
+                    "mtime": p_mtime,
+                    "ar_vc": ar_vc_dict,
+                    "prod_vc": prod_vc_dict,
+                }
+
         cust_map = ce.get_ar_to_cabang(brand)
         prod_map = pe.get_product_map(brand)
 
         # Reseller
-        trx_ar = set(df["ar_id"].dropna().astype(str).str.strip().str.upper().unique()) if "ar_id" in df.columns else set()
+        trx_ar = set(ar_vc_dict.keys())
         master_ar = set(str(k).strip().upper() for k in cust_map.keys())
         missing_ar = sorted(list(trx_ar - master_ar))
         if brand == "ASTAGA":
             missing_ar = [x for x in missing_ar if str(x).strip().upper() not in ("AR00037", "AR00009", "AR20408", "AR02223")]
 
         # Produk (belum ada di master produk ATAU berkategori 'LAINNYA' / kosong)
-        trx_prod = set(df["product_id"].dropna().astype(str).str.strip().str.upper().unique()) if "product_id" in df.columns else set()
+        trx_prod = set(prod_vc_dict.keys())
         master_prod = set(str(k).strip().upper() for k in prod_map.keys())
         missing_prod = set(trx_prod - master_prod)
         for p in trx_prod.intersection(master_prod):
@@ -415,32 +457,28 @@ def check_unmapped_entities(year: str = "2026", force: bool = False) -> Dict[str
                 missing_prod.add(p)
         missing_prod = sorted(list(missing_prod))
 
-        # Hitung frekuensi secara vektorisasi instan (<0.05s)
+        # Hitung frekuensi instan dari dict cache
         missing_ar_details = []
-        if missing_ar and "ar_id" in df.columns:
-            ar_vc = df["ar_id"].astype(str).str.strip().str.upper().value_counts()
-            for ar_code in missing_ar:
-                cnt = int(ar_vc.get(ar_code, 0))
-                if cnt > 0:
-                    nm = _get_raw_ar_name(brand, ar_code)
-                    missing_ar_details.append({
-                        "code": str(ar_code),
-                        "name": nm,
-                        "trx_count": cnt
-                    })
-            missing_ar_details.sort(key=lambda x: x["trx_count"], reverse=True)
+        for ar_code in missing_ar:
+            cnt = int(ar_vc_dict.get(ar_code, 0))
+            if cnt > 0:
+                nm = _get_raw_ar_name(brand, ar_code)
+                missing_ar_details.append({
+                    "code": str(ar_code),
+                    "name": nm,
+                    "trx_count": cnt
+                })
+        missing_ar_details.sort(key=lambda x: x["trx_count"], reverse=True)
 
         missing_prod_details = []
-        if missing_prod and "product_id" in df.columns:
-            prod_vc = df["product_id"].astype(str).str.strip().str.upper().value_counts()
-            for p_code in missing_prod:
-                cnt = int(prod_vc.get(p_code, 0))
-                if cnt > 0:
-                    missing_prod_details.append({
-                        "code": str(p_code),
-                        "trx_count": cnt
-                    })
-            missing_prod_details.sort(key=lambda x: x["trx_count"], reverse=True)
+        for p_code in missing_prod:
+            cnt = int(prod_vc_dict.get(p_code, 0))
+            if cnt > 0:
+                missing_prod_details.append({
+                    "code": str(p_code),
+                    "trx_count": cnt
+                })
+        missing_prod_details.sort(key=lambda x: x["trx_count"], reverse=True)
 
         unmapped_summary[brand] = {
             "resellers": missing_ar_details,

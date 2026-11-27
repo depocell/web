@@ -3550,6 +3550,10 @@ async def api_admin_product_save(request):
             
 
         res = master_product_engine.save_product(brand, kode_produk, data)
+        try:
+            overview_engine.clear_unmapped_cache()
+        except Exception:
+            pass
 
         return JSONResponse({"ok": True, "message": f"Produk {kode_produk} berhasil disimpan!", "data": res})
 
