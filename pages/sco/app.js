@@ -2525,7 +2525,12 @@
       checkinMap[String(c.agen_id || '').toUpperCase()] = c;
     });
 
-    const salesAgents = allAgents.filter(a => String(a.sco || '').trim() === state.opsSales);
+    const salesAgents = allAgents.filter(a => {
+      if (String(a.sco || '').trim() !== state.opsSales) return false;
+      // Sesuai SCO.md 3C: rute PJP hanya toko aktif bulan ini atau bulan lalu (kecuali user sengaja mencari di kotak search)
+      if (!q && Number(a.avg_curr || 0) <= 0 && Number(a.avg_prev || 0) <= 0) return false;
+      return true;
+    });
     let dayFiltered = salesAgents.filter(a => {
       if (dayFilter === 'ALL') return true;
       const targetDay = (dayFilter === 'TODAY') ? todayName : dayFilter.toLowerCase();
@@ -2584,7 +2589,7 @@
         if (json.ok) {
           state.todayCheckins = json.checkins || [];
           if (forceRender && (state.currentRoute === '#jadwal' || state.currentRoute === '#checkin')) {
-            renderCurrentRoute();
+            updateOpsDynamicRegions();
           }
         }
       }
@@ -2611,14 +2616,14 @@
         state.gpsStatus = 'ready';
         state.gpsError = '';
         if (state.currentRoute === '#jadwal' || state.currentRoute === '#checkin') {
-          renderCurrentRoute();
+          updateOpsDynamicRegions();
         }
       },
       (err) => {
         state.gpsStatus = 'error';
         state.gpsError = err.message || 'Gagal membaca lokasi GPS. Pastikan izin lokasi aktif.';
         if (state.currentRoute === '#jadwal' || state.currentRoute === '#checkin') {
-          renderCurrentRoute();
+          updateOpsDynamicRegions();
         }
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 }
@@ -2658,22 +2663,17 @@
     state.selectedCheckinStore = null;
     state.checkinAlert = null;
     loadTodayCheckins(true);
-    renderCurrentRoute();
+    updateOpsDynamicRegions();
   };
 
   window.setOpsDay = function (val) {
     state.opsDayFilter = val;
-    renderCurrentRoute();
+    updateOpsDynamicRegions();
   };
 
   window.setOpsSearch = function (val) {
     state.opsSearch = val;
-    renderCurrentRoute();
-    const inp = document.getElementById('ops-search-input');
-    if (inp) {
-      inp.focus();
-      inp.setSelectionRange(val.length, val.length);
-    }
+    updateOpsDynamicRegions();
   };
 
   window.refreshOpsGps = function () {
@@ -2771,17 +2771,21 @@
     }
   };
 
+  function getOpsGpsBadgeHtml() {
+    if (state.gpsStatus === 'ready') {
+      return `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-location-crosshairs"></i> GPS Aktif (Sorted Terdekat)</span>`;
+    }
+    if (state.gpsStatus === 'loading') {
+      return `<span style="color:#0284c7; font-weight:600;"><i class="fa-solid fa-spinner fa-spin"></i> Mencari GPS...</span>`;
+    }
+    return `<span style="color:#d97706; font-weight:600;"><i class="fa-solid fa-location-slash"></i> ${escapeHtml(state.gpsError || 'GPS belum aktif')}</span>`;
+  }
+
   function renderOpsToolbar(scoList, todayName, stores) {
     const doneCount = stores.filter(s => s.checkedIn).length;
-    const gpsBadge =
-      state.gpsStatus === 'ready'
-        ? `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-location-crosshairs"></i> GPS Aktif (Sorted Terdekat)</span>`
-        : state.gpsStatus === 'loading'
-          ? `<span style="color:#0284c7; font-weight:600;"><i class="fa-solid fa-spinner fa-spin"></i> Mencari GPS...</span>`
-          : `<span style="color:#d97706; font-weight:600;"><i class="fa-solid fa-location-slash"></i> ${escapeHtml(state.gpsError || 'GPS belum aktif')}</span>`;
 
     return `
-      <div class="ops-toolbar">
+      <div class="ops-toolbar" id="ops-toolbar">
         <div class="ops-controls">
           <select class="ops-select" onchange="window.setOpsSales(this.value)">
             ${scoList.map(s => `<option value="${escapeAttr(s)}" ${s === state.opsSales ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
@@ -2799,14 +2803,150 @@
         </div>
 
         <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
-          ${gpsBadge}
+          <span id="ops-gps-badge">${getOpsGpsBadgeHtml()}</span>
           <button class="action-btn btn-secondary" onclick="window.refreshOpsGps()" style="padding:6px 10px; font-size:12px;">
             <i class="fa-solid fa-arrows-rotate"></i> GPS
           </button>
-          <span style="font-weight:700; color:var(--text-main);">${doneCount}/${stores.length} Visit</span>
+          <span id="ops-visit-count" style="font-weight:700; color:var(--text-main);">${doneCount}/${stores.length} Visit</span>
         </div>
       </div>
     `;
+  }
+
+  function buildJadwalListHtml(stores) {
+    if (stores.length === 0) {
+      return `<div class="empty-state"><i class="fa-solid fa-calendar-xmark"></i><p>Tidak ada jadwal toko yang cocok.</p></div>`;
+    }
+    return stores.map((st, idx) => {
+      const mapUrl = parseDmsToMaps(st.location || '');
+      const distHtml = st.distM !== null
+        ? `<span class="ops-dist-text ${st.distM > 150 ? 'far' : ''}">${formatDistance(st.distM)}</span>`
+        : `<span style="color:var(--text-muted);">-</span>`;
+      const statusHtml = st.checkedIn
+        ? `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Checked-in ${st.checkedIn.checkin_time || ''}</span>`
+        : `<span style="color:var(--text-muted);">Belum visit</span>`;
+
+      return `
+        <div class="ops-store-row ${st.checkedIn ? 'checked-in' : ''}">
+          <div class="ops-store-info">
+            <div class="ops-store-name">#${idx + 1} ${escapeHtml(st.name)}</div>
+            <div class="ops-store-meta">
+              <span>${escapeHtml(st.cabang || '-')}</span>
+              <span>&bull; ${escapeHtml(st.jadwal || '-')}</span>
+              <span>&bull; Jarak: ${distHtml}</span>
+              <span>&bull; ${statusHtml}</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="action-btn btn-secondary" style="padding:7px 10px; font-size:12px;"><i class="fa-solid fa-map-pin"></i></a>` : ''}
+            <button class="action-btn btn-primary" onclick="window.selectCheckinStore('${escapeAttr(st.aid)}')" style="padding:7px 12px; font-size:12px;">
+              <i class="fa-solid fa-camera"></i> Check-in
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function buildCheckinCameraHtml(sel) {
+    if (!sel) return '';
+    const distInfo = sel.distM !== null
+      ? `<span class="ops-dist-text ${sel.distM > 150 ? 'far' : ''}">${formatDistance(sel.distM)} dari lokasi Anda</span>`
+      : `<span style="color:#d97706;">Jarak GPS belum terbaca</span>`;
+
+    const alertHtml = state.checkinAlert
+      ? (state.checkinAlert.type === 'error'
+        ? `<div class="ops-ai-alert"><i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;"></i><div>${escapeHtml(state.checkinAlert.message)}</div></div>`
+        : `<div class="ops-ai-success"><i class="fa-solid fa-circle-check" style="margin-top:2px;"></i><div>${escapeHtml(state.checkinAlert.message)}</div></div>`)
+      : '';
+
+    return `
+      <div class="ops-camera-panel">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">TOKO TERPILIH UNTUK CHECK-IN</div>
+            <div style="font-size:16px; font-weight:800; color:var(--text-main); margin-top:2px;">${escapeHtml(sel.name)}</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+              Jadwal: ${escapeHtml(sel.jadwal || '-')} &bull; ${distInfo}
+            </div>
+          </div>
+          <label class="action-btn btn-primary" style="cursor:pointer; margin:0;">
+            <i class="fa-solid fa-camera"></i> ${state.checkinPhotoB64 ? 'Foto Ulang' : 'Ambil Foto Selfie Depan Toko'}
+            <input type="file" accept="image/*" capture="user" style="display:none;" onchange="window.onCheckinPhotoSelected(this)">
+          </label>
+        </div>
+
+        ${state.checkinPhotoB64 ? `
+          <div style="margin-top:12px;">
+            <img src="${state.checkinPhotoB64}" class="ops-photo-preview" alt="Preview Selfie">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center;">
+              <input id="checkin-note-input" type="text" class="ops-input" placeholder="Catatan kunjungan (opsional)..." value="${escapeAttr(state.checkinNote)}" style="flex:1; min-width:180px;">
+              <button class="action-btn btn-primary" onclick="window.submitScoCheckin()" ${state.checkinSubmitting ? 'disabled' : ''}>
+                ${state.checkinSubmitting ? '<i class="fa-solid fa-circle-notch fa-spin"></i> AI Memverifikasi...' : '<i class="fa-solid fa-paper-plane"></i> Kirim Check-in'}
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        ${alertHtml}
+      </div>
+    `;
+  }
+
+  function buildCheckinListHtml(stores, sel) {
+    if (stores.length === 0) {
+      return `<div class="empty-state"><i class="fa-solid fa-store-slash"></i><p>Tidak ada toko ditemukan.</p></div>`;
+    }
+    return stores.map((st, idx) => {
+      const isSel = sel && String(sel.aid).toUpperCase() === String(st.aid).toUpperCase();
+      const distHtml = st.distM !== null
+        ? `<span class="ops-dist-text ${st.distM > 150 ? 'far' : ''}">${formatDistance(st.distM)}</span>`
+        : `<span style="color:var(--text-muted);">-</span>`;
+      return `
+        <div class="ops-store-row ${isSel ? 'selected' : ''} ${st.checkedIn ? 'checked-in' : ''}" onclick="window.selectCheckinStore('${escapeAttr(st.aid)}')" style="cursor:pointer;">
+          <div class="ops-store-info">
+            <div class="ops-store-name">#${idx + 1} ${escapeHtml(st.name)}</div>
+            <div class="ops-store-meta">
+              <span>${escapeHtml(st.jadwal || '-')}</span>
+              <span>&bull; ${distHtml}</span>
+              ${st.checkedIn ? `<span style="color:#059669; font-weight:700;">&bull; Sudah Check-in ${st.checkedIn.checkin_time}</span>` : ''}
+            </div>
+          </div>
+          <span style="font-size:12px; font-weight:700; color:var(--primary);">
+            ${isSel ? '<i class="fa-solid fa-circle-dot"></i> Dipilih' : 'Pilih'}
+          </span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function updateOpsDynamicRegions() {
+    const listEl = document.getElementById('ops-store-list-container');
+    if (!listEl) {
+      renderCurrentRoute();
+      return;
+    }
+
+    const { stores } = getOpsStoresForSales();
+    const gpsEl = document.getElementById('ops-gps-badge');
+    const visitEl = document.getElementById('ops-visit-count');
+    const camEl = document.getElementById('ops-camera-container');
+
+    if (gpsEl) gpsEl.innerHTML = getOpsGpsBadgeHtml();
+    if (visitEl) {
+      const doneCount = stores.filter(s => s.checkedIn).length;
+      visitEl.textContent = `${doneCount}/${stores.length} Visit`;
+    }
+
+    if (state.currentRoute === '#checkin') {
+      if (!state.selectedCheckinStore && stores.length > 0 && state.gpsStatus === 'ready') {
+        state.selectedCheckinStore = stores[0];
+      }
+      if (camEl) camEl.innerHTML = buildCheckinCameraHtml(state.selectedCheckinStore);
+      listEl.innerHTML = buildCheckinListHtml(stores, state.selectedCheckinStore);
+    } else {
+      listEl.innerHTML = buildJadwalListHtml(stores);
+    }
   }
 
   function renderJadwalView(container) {
@@ -2817,37 +2957,8 @@
 
     container.innerHTML = `
       ${renderOpsToolbar(scoList, todayName, stores)}
-      <div class="ops-store-list">
-        ${stores.length === 0 ? `<div class="empty-state"><i class="fa-solid fa-calendar-xmark"></i><p>Tidak ada jadwal toko yang cocok.</p></div>` : ''}
-        ${stores.map((st, idx) => {
-          const mapUrl = parseDmsToMaps(st.location || '');
-          const distHtml = st.distM !== null
-            ? `<span class="ops-dist-text ${st.distM > 150 ? 'far' : ''}">${formatDistance(st.distM)}</span>`
-            : `<span style="color:var(--text-muted);">-</span>`;
-          const statusHtml = st.checkedIn
-            ? `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Checked-in ${st.checkedIn.checkin_time || ''}</span>`
-            : `<span style="color:var(--text-muted);">Belum visit</span>`;
-
-          return `
-            <div class="ops-store-row ${st.checkedIn ? 'checked-in' : ''}">
-              <div class="ops-store-info">
-                <div class="ops-store-name">#${idx + 1} ${escapeHtml(st.name)}</div>
-                <div class="ops-store-meta">
-                  <span>${escapeHtml(st.cabang || '-')}</span>
-                  <span>&bull; ${escapeHtml(st.jadwal || '-')}</span>
-                  <span>&bull; Jarak: ${distHtml}</span>
-                  <span>&bull; ${statusHtml}</span>
-                </div>
-              </div>
-              <div style="display:flex; gap:6px; flex-shrink:0;">
-                ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="action-btn btn-secondary" style="padding:7px 10px; font-size:12px;"><i class="fa-solid fa-map-pin"></i></a>` : ''}
-                <button class="action-btn btn-primary" onclick="window.selectCheckinStore('${escapeAttr(st.aid)}')" style="padding:7px 12px; font-size:12px;">
-                  <i class="fa-solid fa-camera"></i> Check-in
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('')}
+      <div class="ops-store-list" id="ops-store-list-container">
+        ${buildJadwalListHtml(stores)}
       </div>
     `;
   }
@@ -2862,80 +2973,14 @@
     }
     const sel = state.selectedCheckinStore;
 
-    let cameraPanelHtml = '';
-    if (sel) {
-      const distInfo = sel.distM !== null
-        ? `<span class="ops-dist-text ${sel.distM > 150 ? 'far' : ''}">${formatDistance(sel.distM)} dari lokasi Anda</span>`
-        : `<span style="color:#d97706;">Jarak GPS belum terbaca</span>`;
-
-      const alertHtml = state.checkinAlert
-        ? (state.checkinAlert.type === 'error'
-          ? `<div class="ops-ai-alert"><i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;"></i><div>${escapeHtml(state.checkinAlert.message)}</div></div>`
-          : `<div class="ops-ai-success"><i class="fa-solid fa-circle-check" style="margin-top:2px;"></i><div>${escapeHtml(state.checkinAlert.message)}</div></div>`)
-        : '';
-
-      cameraPanelHtml = `
-        <div class="ops-camera-panel">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
-            <div>
-              <div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">TOKO TERPILIH UNTUK CHECK-IN</div>
-              <div style="font-size:16px; font-weight:800; color:var(--text-main); margin-top:2px;">${escapeHtml(sel.name)}</div>
-              <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
-                Jadwal: ${escapeHtml(sel.jadwal || '-')} &bull; ${distInfo}
-              </div>
-            </div>
-            <label class="action-btn btn-primary" style="cursor:pointer; margin:0;">
-              <i class="fa-solid fa-camera"></i> ${state.checkinPhotoB64 ? 'Foto Ulang' : 'Ambil Foto Selfie Depan Toko'}
-              <input type="file" accept="image/*" capture="user" style="display:none;" onchange="window.onCheckinPhotoSelected(this)">
-            </label>
-          </div>
-
-          ${state.checkinPhotoB64 ? `
-            <div style="margin-top:12px;">
-              <img src="${state.checkinPhotoB64}" class="ops-photo-preview" alt="Preview Selfie">
-              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center;">
-                <input id="checkin-note-input" type="text" class="ops-input" placeholder="Catatan kunjungan (opsional)..." value="${escapeAttr(state.checkinNote)}" style="flex:1; min-width:180px;">
-                <button class="action-btn btn-primary" onclick="window.submitScoCheckin()" ${state.checkinSubmitting ? 'disabled' : ''}>
-                  ${state.checkinSubmitting ? '<i class="fa-solid fa-circle-notch fa-spin"></i> AI Memverifikasi...' : '<i class="fa-solid fa-paper-plane"></i> Kirim Check-in'}
-                </button>
-              </div>
-            </div>
-          ` : ''}
-
-          ${alertHtml}
-        </div>
-      `;
-    }
-
     container.innerHTML = `
       ${renderOpsToolbar(scoList, todayName, stores)}
-      ${cameraPanelHtml}
+      <div id="ops-camera-container">${buildCheckinCameraHtml(sel)}</div>
       <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">
         PILIH TOKO (OTOMATIS DIURUTKAN DARI JARAK TERDEKAT)
       </div>
-      <div class="ops-store-list">
-        ${stores.length === 0 ? `<div class="empty-state"><i class="fa-solid fa-store-slash"></i><p>Tidak ada toko ditemukan.</p></div>` : ''}
-        ${stores.map((st, idx) => {
-          const isSel = sel && String(sel.aid).toUpperCase() === String(st.aid).toUpperCase();
-          const distHtml = st.distM !== null
-            ? `<span class="ops-dist-text ${st.distM > 150 ? 'far' : ''}">${formatDistance(st.distM)}</span>`
-            : `<span style="color:var(--text-muted);">-</span>`;
-          return `
-            <div class="ops-store-row ${isSel ? 'selected' : ''} ${st.checkedIn ? 'checked-in' : ''}" onclick="window.selectCheckinStore('${escapeAttr(st.aid)}')" style="cursor:pointer;">
-              <div class="ops-store-info">
-                <div class="ops-store-name">#${idx + 1} ${escapeHtml(st.name)}</div>
-                <div class="ops-store-meta">
-                  <span>${escapeHtml(st.jadwal || '-')}</span>
-                  <span>&bull; ${distHtml}</span>
-                  ${st.checkedIn ? `<span style="color:#059669; font-weight:700;">&bull; Sudah Check-in ${st.checkedIn.checkin_time}</span>` : ''}
-                </div>
-              </div>
-              <span style="font-size:12px; font-weight:700; color:var(--primary);">
-                ${isSel ? '<i class="fa-solid fa-circle-dot"></i> Dipilih' : 'Pilih'}
-              </span>
-            </div>
-          `;
-        }).join('')}
+      <div class="ops-store-list" id="ops-store-list-container">
+        ${buildCheckinListHtml(stores, sel)}
       </div>
     `;
   }
