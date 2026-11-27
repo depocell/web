@@ -31,7 +31,11 @@ def get_ssh_client():
     if os.path.exists(key_path):
         try:
             pkey = paramiko.Ed25519Key.from_private_key_file(key_path)
-            client.connect(HOST, port=PORT, username=USER, pkey=pkey, timeout=8)
+            client.connect(
+                HOST, port=PORT, username=USER, pkey=pkey,
+                timeout=25, banner_timeout=25, auth_timeout=25,
+                allow_agent=False, look_for_keys=False
+            )
             return client
         except Exception:
             try:
@@ -40,7 +44,11 @@ def get_ssh_client():
                 pass
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(HOST, port=PORT, username=USER, password=PASS, timeout=8)
+    client.connect(
+        HOST, port=PORT, username=USER, password=PASS,
+        timeout=25, banner_timeout=25, auth_timeout=25,
+        allow_agent=False, look_for_keys=False
+    )
     return client
 
 
